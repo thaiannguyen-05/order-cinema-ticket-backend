@@ -13,7 +13,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // values
-  const port = configService.get<string>('PORT') || 3000;
+  const port = configService.getOrThrow<string>('PORT');
 
   // apply middleware
   const addHeaderMiddleware = new AddHeaderMiddleware();

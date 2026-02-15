@@ -1,0 +1,12 @@
+model FilmOfTheater {
+  id        String   @id @default(uuid()) @db.Uuid
+  time      DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  theaterId String   @db.Uuid
+  filmId    String   @db.Uuid
+
+  theater   Theater  @relation(fields: [theaterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  film      Film     @relation(fields: [filmId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}

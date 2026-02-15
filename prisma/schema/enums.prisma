@@ -1,0 +1,17 @@
+enum FilmType {
+  TWO_D
+  THREE_D
+  IMAX
+}
+
+enum SeatType {
+  NORMAL
+  VIP
+  COUPLE
+}
+
+enum SeatStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
+}

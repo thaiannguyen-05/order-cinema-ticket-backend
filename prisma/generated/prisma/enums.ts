@@ -9,7 +9,28 @@
 * 🟢 You can import this file directly.
 */
 
+export const FilmType = {
+  TWO_D: 'TWO_D',
+  THREE_D: 'THREE_D',
+  IMAX: 'IMAX'
+} as const
+
+export type FilmType = (typeof FilmType)[keyof typeof FilmType]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const SeatType = {
+  NORMAL: 'NORMAL',
+  VIP: 'VIP',
+  COUPLE: 'COUPLE'
+} as const
+
+export type SeatType = (typeof SeatType)[keyof typeof SeatType]
+
+
+export const SeatStatus = {
+  AVAILABLE: 'AVAILABLE',
+  BOOKED: 'BOOKED',
+  MAINTENANCE: 'MAINTENANCE'
+} as const
+
+export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus]

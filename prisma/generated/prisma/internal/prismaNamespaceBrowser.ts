@@ -51,7 +51,13 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-
+  Film: 'Film',
+  FilmOfTheater: 'FilmOfTheater',
+  Schedule: 'Schedule',
+  Seat: 'Seat',
+  Theater: 'Theater',
+  Ticket: 'Ticket',
+  User: 'User'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -68,4 +74,121 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const FilmScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  author: 'author',
+  performer: 'performer',
+  type: 'type',
+  startedTime: 'startedTime',
+  length: 'length',
+  lang: 'lang',
+  rated: 'rated',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FilmScalarFieldEnum = (typeof FilmScalarFieldEnum)[keyof typeof FilmScalarFieldEnum]
+
+
+export const FilmOfTheaterScalarFieldEnum = {
+  id: 'id',
+  time: 'time',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  theaterId: 'theaterId',
+  filmId: 'filmId'
+} as const
+
+export type FilmOfTheaterScalarFieldEnum = (typeof FilmOfTheaterScalarFieldEnum)[keyof typeof FilmOfTheaterScalarFieldEnum]
+
+
+export const ScheduleScalarFieldEnum = {
+  id: 'id',
+  date: 'date',
+  day: 'day',
+  filmId: 'filmId',
+  seatId: 'seatId'
+} as const
+
+export type ScheduleScalarFieldEnum = (typeof ScheduleScalarFieldEnum)[keyof typeof ScheduleScalarFieldEnum]
+
+
+export const SeatScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  type: 'type',
+  status: 'status'
+} as const
+
+export type SeatScalarFieldEnum = (typeof SeatScalarFieldEnum)[keyof typeof SeatScalarFieldEnum]
+
+
+export const TheaterScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  map: 'map',
+  address: 'address',
+  fax: 'fax',
+  hotline: 'hotline',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TheaterScalarFieldEnum = (typeof TheaterScalarFieldEnum)[keyof typeof TheaterScalarFieldEnum]
+
+
+export const TicketScalarFieldEnum = {
+  id: 'id',
+  time: 'time',
+  code: 'code',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId'
+} as const
+
+export type TicketScalarFieldEnum = (typeof TicketScalarFieldEnum)[keyof typeof TicketScalarFieldEnum]
+
+
+export const UserScalarFieldEnum = {
+  id: 'id',
+  fullname: 'fullname',
+  email: 'email',
+  isActive: 'isActive',
+  hashPassword: 'hashPassword',
+  dateOfBirth: 'dateOfBirth',
+  address: 'address',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

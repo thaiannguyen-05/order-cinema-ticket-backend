@@ -1,0 +1,12 @@
+model Theater {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  map       String
+  address   String
+  fax       String
+  hotline   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  filmOfTheaters FilmOfTheater[]
+}

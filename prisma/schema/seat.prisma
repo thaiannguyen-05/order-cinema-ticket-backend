@@ -1,0 +1,8 @@
+model Seat {
+  id     Int        @id @default(autoincrement())
+  name   String
+  type   SeatType
+  status SeatStatus
+
+  schedules Schedule[]
+}
