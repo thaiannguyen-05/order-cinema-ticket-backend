@@ -9,6 +9,10 @@ import { AuthenticationGuard } from './core/guard/authentication.guard';
 import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
 import { LoggerModule } from './logger/logger.module';
+import { AuthModule } from './module/auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { EmailModule } from './email/email.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -22,6 +26,10 @@ import { LoggerModule } from './logger/logger.module';
       },
     ]),
     LoggerModule,
+    AuthModule,
+    PrismaModule,
+    EmailModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [
