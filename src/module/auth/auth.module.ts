@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService } from './service/auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,7 @@ import { UserModule } from '../user/user.module';
 import { EmailModule } from '../../background/email/email.module';
 import { PrismaModule } from '../../background/prisma/prisma.module';
 import { RedisModule } from '../../background/redis/redis.module';
+import { TokenService } from './service/token.service';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { RedisModule } from '../../background/redis/redis.module';
     RedisModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, TokenService],
   exports: [JwtModule],
 })
 export class AuthModule {}

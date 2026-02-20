@@ -4,16 +4,20 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { hash } from 'argon2';
-import { EmailWorker } from '../../background/email/email.worker';
-import { RedisService } from '../../background/redis/redis.service';
-import { REDIS_KEY, REDIS_TTL } from '../../background/redis/redis.value';
-import { UserService } from '../user/user.service';
-import { RegisterDto } from './dto/register.dto';
-import { MyLogger } from '../../logger/logger.service';
-import { UserWithoutPassword } from './type/return.type';
-import { VreifyEmailDto } from './dto/verify.dto';
-import { ResetPasswordDto } from './dto/reset.password.dto';
+import { ConfigService } from '@nestjs/config';
+import { hash, verify } from 'argon2';
+import { EmailWorker } from '../../../background/email/email.worker';
+import { RedisService } from '../../../background/redis/redis.service';
+import { REDIS_KEY, REDIS_TTL } from '../../../background/redis/redis.value';
+import { UserService } from '../../user/user.service';
+import { RegisterDto } from '../dto/register.dto';
+import { MyLogger } from '../../../logger/logger.service';
+import { UserWithoutPassword } from '../type/return.type';
+import { VreifyEmailDto } from '../dto/verify.dto';
+import { ResetPasswordDto } from '../dto/reset.password.dto';
+import { LoginDto } from '../dto/login.dto';
+import { TokenService } from './token.service';
+import type { Request, Response } from 'express';
 @Injectable()
 export class AuthService {
   constructor(
@@ -21,6 +25,8 @@ export class AuthService {
     private readonly emailWorker: EmailWorker,
     private readonly redisService: RedisService,
     private readonly logger: MyLogger,
+    private readonly tokenService: TokenService,
+    private readonly configService: ConfigService,
   ) {}
 
   private hashPassword(password: string): Promise<string> {
@@ -29,6 +35,24 @@ export class AuthService {
 
   private generateCode(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private getUserIp(request: Request): string {
+    const forwardedFor = request.headers['x-forwarded-for'];
+    const realIp = request.headers['x-real-ip'];
+
+    const candidate =
+      (typeof forwardedFor === 'string'
+        ? forwardedFor.split(',')[0]
+        : Array.isArray(forwardedFor)
+          ? forwardedFor[0]
+          : undefined) ??
+      (typeof realIp === 'string' ? realIp : undefined) ??
+      request.ip ??
+      request.socket.remoteAddress ??
+      'unknown';
+
+    return candidate.trim().replace(/^::ffff:/, '');
   }
 
   async register(dto: RegisterDto): Promise<UserWithoutPassword> {
@@ -149,5 +173,61 @@ export class AuthService {
     );
 
     return true;
+  }
+
+  async login(dto: LoginDto, request: Request, response: Response) {
+    const availableUser = await this.userService.getUserByEmail(dto.email);
+    if (!availableUser) {
+      throw new NotFoundException('Account is not registered');
+    }
+
+    if (availableUser.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Account is not active');
+    }
+
+    const isPasswordValid = await verify(
+      dto.password,
+      availableUser.hashPassword,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid password');
+    }
+
+    const userIp = this.getUserIp(request);
+    const token = await this.tokenService.generateToken(availableUser);
+    const hashRefreshToken = await this.hashPassword(token.refreshToken);
+    const session = await this.tokenService.handleSession(
+      userIp,
+      availableUser.id,
+      hashRefreshToken,
+    );
+
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+    response.cookie('refreshToken', token.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    response.cookie('accessToken', token.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    return {
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      session: {
+        id: session.id,
+        userId: session.userId,
+        userIp: session.userIp,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      },
+    };
   }
 }

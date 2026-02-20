@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -9,11 +9,13 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
+import { AuthService } from './service/auth.service';
 import type { RegisterDto } from './dto/register.dto';
 import { Public } from '../../core/decorator/ispublic.decorator';
 import type { VreifyEmailDto } from './dto/verify.dto';
 import type { ResetPasswordDto } from './dto/reset.password.dto';
+import type { LoginDto } from './dto/login.dto';
+import type { Request, Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -136,5 +138,56 @@ export class AuthController {
   })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Public()
+  @Post('login')
+  @ApiOperation({ summary: 'Login and issue access/refresh token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'password'],
+      properties: {
+        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
+        password: { type: 'string', example: 'Password@123' },
+      },
+    },
+  })
+  @ApiOkResponse({ description: 'Login success' })
+  @ApiNotFoundResponse({ description: 'Account is not registered' })
+  @ApiUnauthorizedResponse({
+    description: 'Account is not active or password is invalid',
+  })
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.login(dto, request, response);
+  }
+
+  @Post('login')
+  @ApiOperation({ summary: 'Login and issue access/refresh token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'password'],
+      properties: {
+        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
+        password: { type: 'string', example: 'Password@123' },
+      },
+    },
+  })
+  @ApiOkResponse({ description: 'Login success' })
+  @ApiNotFoundResponse({ description: 'Account is not registered' })
+  @ApiUnauthorizedResponse({
+    description: 'Account is not active or password is invalid',
+  })
+  async loginWithoutCookie(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.login(dto, request, response);
   }
 }
