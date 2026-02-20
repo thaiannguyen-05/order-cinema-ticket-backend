@@ -15,6 +15,14 @@ export class UserService {
     });
   }
 
+  async getUserById(id: string) {
+    return this.prismaService.user.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+
   async isAvailableEmail(email: string) {
     const user = await this.getUserByEmail(email);
     return user ? true : false;

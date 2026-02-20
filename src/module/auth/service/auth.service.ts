@@ -180,7 +180,6 @@ export class AuthService {
     if (!availableUser) {
       throw new NotFoundException('Account is not registered');
     }
-
     if (availableUser.status !== 'ACTIVE') {
       throw new UnauthorizedException('Account is not active');
     }
@@ -194,14 +193,13 @@ export class AuthService {
     }
 
     const userIp = this.getUserIp(request);
-    const token = await this.tokenService.generateToken(availableUser);
+    const token = await this.tokenService.generateTokens(availableUser);
     const hashRefreshToken = await this.hashPassword(token.refreshToken);
     const session = await this.tokenService.handleSession(
       userIp,
       availableUser.id,
       hashRefreshToken,
     );
-
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     response.cookie('refreshToken', token.refreshToken, {
@@ -210,8 +208,13 @@ export class AuthService {
       sameSite: 'lax',
       path: '/',
     });
-
     response.cookie('accessToken', token.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+    response.cookie('sessionId', session.id, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
@@ -229,5 +232,44 @@ export class AuthService {
         updatedAt: session.updatedAt,
       },
     };
+  }
+
+  async refreshToken(req: Request, res: Response) {
+    const sessionId = req.cookies['sessionId'] as string;
+    if (!sessionId) {
+      throw new NotFoundException('Session ID is missing');
+    }
+    const session = await this.tokenService.getSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    const user = await this.userService.getUserById(session.userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const refreshToken = req.cookies['refreshToken'] as string;
+    if (!refreshToken) {
+      throw new NotFoundException('Refresh token is missing');
+    }
+
+    res.clearCookie('accessToken', { path: '/' });
+    const newAccessToken = await this.tokenService.generateTokens(user);
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+    res.cookie('accessToken', newAccessToken.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    await this.tokenService.updateSession(
+      sessionId,
+      newAccessToken.refreshToken,
+    );
+
+    return true;
   }
 }

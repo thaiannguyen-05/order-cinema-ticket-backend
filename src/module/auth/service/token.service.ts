@@ -13,28 +13,22 @@ export class TokenService {
     private readonly prismaService: PrismaService,
   ) {}
 
-  async generateToken(user: User) {
+  async generateToken(user: User, nameToken: string) {
     const payload: Payload = {
       id: user.id,
       email: user.email,
     };
-    const accessTokenExpiresIn =
-      this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN') ??
-      this.configService.getOrThrow<string>('ACCESS_TOKEN_EXPIRE');
-    const refreshTokenExpiresIn =
-      this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') ??
-      this.configService.getOrThrow<string>('REFRESH_TOKEN_EXPIRE');
+    return this.jwtService.signAsync(payload, {
+      secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      expiresIn: this.configService.getOrThrow<number>(
+        `JWT_${nameToken}_EXPIRES_IN`,
+      ),
+    });
+  }
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-        expiresIn: accessTokenExpiresIn as any,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-        expiresIn: refreshTokenExpiresIn as any,
-      }),
-    ]);
+  async generateTokens(user: User) {
+    const accessToken = await this.generateToken(user, 'ACCESS');
+    const refreshToken = await this.generateToken(user, 'REFRESH');
 
     return { accessToken, refreshToken };
   }
@@ -54,6 +48,19 @@ export class TokenService {
         userIp,
         hashRefreshToken,
       },
+    });
+  }
+
+  async getSessionById(sessionId: string) {
+    return this.prismaService.session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  async updateSession(sessionId: string, hashRefreshToken: string) {
+    return this.prismaService.session.update({
+      where: { id: sessionId },
+      data: { hashRefreshToken },
     });
   }
 }

@@ -190,4 +190,16 @@ export class AuthController {
   ) {
     return this.authService.login(dto, request, response);
   }
+
+  @Patch('refresh-token')
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiOkResponse({ description: 'Token refreshed successfully' })
+  @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
+  @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
+  async refreshToken(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.refreshToken(request, response);
+  }
 }
