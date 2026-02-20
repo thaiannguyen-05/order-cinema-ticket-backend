@@ -202,4 +202,15 @@ export class AuthController {
   ) {
     return this.authService.refreshToken(request, response);
   }
+
+  @Patch('logout')
+  @ApiOperation({ summary: 'Logout and invalidate refresh token' })
+  @ApiOkResponse({ description: 'Logout success' })
+  @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.logout(request, response);
+  }
 }

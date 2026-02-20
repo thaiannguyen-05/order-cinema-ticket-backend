@@ -57,7 +57,7 @@ export class TokenService {
     });
   }
 
-  async updateSession(sessionId: string, hashRefreshToken: string) {
+  async updateSession(sessionId: string, hashRefreshToken: string | null) {
     return this.prismaService.session.update({
       where: { id: sessionId },
       data: { hashRefreshToken },

@@ -272,4 +272,18 @@ export class AuthService {
 
     return true;
   }
+
+  async logout(req: Request, res: Response) {
+    const sessionId = req.cookies['sessionId'] as string;
+    if (!sessionId) {
+      throw new NotFoundException('Session ID is missing');
+    }
+
+    await this.tokenService.updateSession(sessionId, null);
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
+    res.clearCookie('sessionId', { path: '/' });
+
+    return true;
+  }
 }
