@@ -15,3 +15,10 @@ enum SeatStatus {
   BOOKED
   MAINTENANCE
 }
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { hash } from 'argon2';
@@ -11,6 +12,7 @@ import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { MyLogger } from '../../logger/logger.service';
 import { UserWithoutPassword } from './type/return.type';
+import { VreifyEmailDto } from './dto/verify.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -39,7 +41,7 @@ export class AuthService {
     const verificationCode = this.generateCode();
     const key = REDIS_KEY.REGISTER_USER(dto.email);
     await this.redisService.set(key, verificationCode, REDIS_TTL.REGISTER_TTL);
-    this.logger.log(
+    this.logger.debug(
       `Generated verification code for ${dto.email}: ${verificationCode}`,
     );
 
@@ -67,5 +69,32 @@ export class AuthService {
     };
 
     return result;
+  }
+
+  async verifyEmail(dto: VreifyEmailDto) {
+    const availableUser = await this.userService.isAvailableEmail(dto.email);
+    this.logger.debug(`${availableUser}`);
+    if (!availableUser) {
+      throw new NotFoundException('Email is not registered');
+    }
+
+    const key = REDIS_KEY.REGISTER_USER(dto.email);
+    const storedCode = await this.redisService.get(key);
+    if (!storedCode) {
+      throw new BadRequestException('Verification code has expired');
+    }
+    if (storedCode !== dto.code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    await this.userService.updateUserByEmail({
+      email: dto.email,
+      status: 'ACTIVE',
+    });
+
+    await this.redisService.del(key);
+    this.logger.debug(`Deleted verification code for ${dto.email} from Redis`);
+
+    return true;
   }
 }

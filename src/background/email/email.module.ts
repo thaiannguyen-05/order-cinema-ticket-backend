@@ -8,6 +8,18 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { QUEUE_NAME } from './constant/event.type';
 import { EmailWorker } from './email.worker';
 import { EmailConsumer } from './email.consumer';
+import { existsSync } from 'fs';
+
+const resolveTemplateDir = () => {
+  const candidates = [
+    join(__dirname, 'templates'),
+    join(process.cwd(), 'dist/src/background/email/templates'),
+    join(process.cwd(), 'src/background/email/templates'),
+  ];
+
+  return candidates.find((dir) => existsSync(dir)) ?? candidates[0];
+};
+
 @Module({
   imports: [
     MailerModule.forRootAsync({
@@ -26,7 +38,7 @@ import { EmailConsumer } from './email.consumer';
           from: '"No Reply" <noreply@cinemabooking.com>',
         },
         template: {
-          dir: join(__dirname, 'templates'),
+          dir: resolveTemplateDir(),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,

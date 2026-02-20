@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../background/prisma/prisma.service';
 import { CreateUserDto } from './dto/create.user.dto';
+import { UpdateUser } from './dto/update.user.dto';
 
 @Injectable()
 export class UserService {
@@ -27,6 +28,7 @@ export class UserService {
         hashPassword: dto.password,
         dateOfBirth: dto.dateOfBirth,
         address: dto.address,
+        status: 'PENDING',
       },
     });
   }
@@ -35,6 +37,20 @@ export class UserService {
     return this.prismaService.user.delete({
       where: {
         email,
+      },
+    });
+  }
+
+  async updateUserByEmail(dto: UpdateUser) {
+    return this.prismaService.user.update({
+      where: {
+        email: dto.email,
+      },
+      data: {
+        ...(dto.fullname !== undefined && { fullname: dto.fullname }),
+        ...(dto.address !== undefined && { address: dto.address }),
+        ...(dto.dateOfBirth !== undefined && { dateOfBirth: dto.dateOfBirth }),
+        ...(dto.status !== undefined && { status: dto.status }),
       },
     });
   }

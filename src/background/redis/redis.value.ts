@@ -3,5 +3,5 @@ export const REDIS_KEY = {
 };
 
 export const REDIS_TTL = {
-  REGISTER_TTL: 5 * 60, // 5 minutes in seconds
+  REGISTER_TTL: 5 * 60 * 60,
 };
