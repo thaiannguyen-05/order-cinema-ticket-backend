@@ -10,6 +10,7 @@ import { REDIS_KEY, REDIS_TTL } from '../../background/redis/redis.value';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { MyLogger } from '../../logger/logger.service';
+import { UserWithoutPassword } from './type/return.type';
 @Injectable()
 export class AuthService {
   constructor(
@@ -27,7 +28,7 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto): Promise<UserWithoutPassword> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (availableUser) {
       throw new UnauthorizedException('Email is already in use');
@@ -57,9 +58,14 @@ export class AuthService {
       throw new BadRequestException(`${error}`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { hashPassword, ...userWithoutPassword } = newUser;
+    const result: UserWithoutPassword = {
+      id: newUser.id,
+      fullname: newUser.fullname,
+      email: newUser.email,
+      address: newUser.address,
+      dateOfBirth: newUser.dateOfBirth,
+    };
 
-    return userWithoutPassword;
+    return result;
   }
 }
