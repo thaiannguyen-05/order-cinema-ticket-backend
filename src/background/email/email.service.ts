@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -12,15 +12,19 @@ export class EmailService {
   async sendUserConfirmation(email: string, token: string) {
     const url = `${this.configService.get('BASE_URL')}${this.configService.get('SENDING_VERIFY_EMAIL')}?token=${token}`;
 
-    await this.mailerService.sendMail({
-      to: email,
-      subject: 'Welcome to Nice App! Confirm your Email',
-      template: './verification-code',
-      context: {
-        url,
-        token,
-        email,
-      },
-    });
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: 'Welcome to Nice App! Confirm your Email',
+        template: './verification-code',
+        context: {
+          url,
+          token,
+          email,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(`Failed to send email: ${error}`);
+    }
   }
 }

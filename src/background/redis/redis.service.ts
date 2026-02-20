@@ -13,7 +13,7 @@ export class RedisService {
 
   async set<T>(key: string, value: T, ttlInSeconds?: number): Promise<void> {
     if (ttlInSeconds) {
-      await this.cacheManager.set(key, value, ttlInSeconds * 1000);
+      await this.cacheManager.set(key, value, ttlInSeconds);
       return;
     }
 

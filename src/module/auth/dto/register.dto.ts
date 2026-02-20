@@ -1,7 +1,3 @@
-export type RegisterDto = {
-  fullname: string;
-  email: string;
-  password: string;
-  dateOfBirth: Date;
-  address: string;
-};
+import { CreateUserDto } from '../../user/dto/create.user.dto';
+
+export type RegisterDto = Required<CreateUserDto>;

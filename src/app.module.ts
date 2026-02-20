@@ -4,15 +4,16 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { EmailModule } from './background/email/email.module';
+import { PrismaModule } from './background/prisma/prisma.module';
+import { RedisModule } from './background/redis/redis.module';
 import { ErrorExcception } from './core/exception/error.exception';
 import { AuthenticationGuard } from './core/guard/authentication.guard';
 import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
+import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './module/auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { EmailModule } from './email/email.module';
-import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RedisModule } from './redis/redis.module';
     PrismaModule,
     EmailModule,
     RedisModule,
+    LoggerModule,
   ],
   controllers: [AppController],
   providers: [
@@ -49,6 +51,10 @@ import { RedisModule } from './redis/redis.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerBehindProxyGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })

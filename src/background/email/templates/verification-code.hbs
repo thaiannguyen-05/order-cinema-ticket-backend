@@ -16,7 +16,7 @@
     "
   >
     <div style="display: none; max-height: 0; overflow: hidden; opacity: 0">
-      Your verification code is {CODE}. This code will expire shortly.
+      Your verification code is {{token}}. This code will expire shortly.
     </div>
 
     <table
@@ -63,7 +63,7 @@
                 Hi,
                 <br />
                 We received a request to verify the email address:
-                <strong>{EMAIL}</strong>
+                <strong>{{email}}</strong>
               </td>
             </tr>
 
@@ -99,7 +99,7 @@
                         color: #1d4ed8;
                       "
                     >
-                      {CODE}
+                      {{token}}
                     </td>
                   </tr>
                 </table>
