@@ -40,7 +40,7 @@ export class AuthService {
 
     const verificationCode = this.generateCode();
     const key = REDIS_KEY.REGISTER_USER(dto.email);
-    await this.redisService.set(key, verificationCode, REDIS_TTL.REGISTER_TTL);
+    await this.redisService.set(key, verificationCode, REDIS_TTL.SHORT_TL);
     this.logger.debug(
       `Generated verification code for ${dto.email}: ${verificationCode}`,
     );
@@ -71,7 +71,7 @@ export class AuthService {
     return result;
   }
 
-  async verifyEmail(dto: VreifyEmailDto) {
+  async verifyEmail(dto: VreifyEmailDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     this.logger.debug(`${availableUser}`);
     if (!availableUser) {
@@ -94,6 +94,29 @@ export class AuthService {
 
     await this.redisService.del(key);
     this.logger.debug(`Deleted verification code for ${dto.email} from Redis`);
+
+    return true;
+  }
+
+  async forgotPassword(email: string) {
+    const availableUser = await this.userService.isAvailableEmail(email);
+    if (!availableUser) {
+      throw new NotFoundException('Email is not registered');
+    }
+
+    const resetToken = this.generateCode();
+    const key = REDIS_KEY.FOGOT_PASSWORD(email);
+    await this.redisService.set(key, resetToken, REDIS_TTL.SHORT_TL);
+    this.logger.debug(
+      `Generated forgot password token for ${email}: ${resetToken}`,
+    );
+
+    try {
+      this.emailWorker.sendResetPasswordEmail(email, resetToken);
+    } catch (error) {
+      await this.redisService.del(key);
+      throw new BadRequestException(`${error}`);
+    }
 
     return true;
   }

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Patch, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -61,7 +61,7 @@ export class AuthController {
   }
 
   @Public()
-  @Post('verify-email')
+  @Patch('verify-email')
   @ApiOperation({ summary: 'Verify email with 6-digit code' })
   @ApiBody({
     schema: {
@@ -87,5 +87,28 @@ export class AuthController {
   })
   async verifyEmail(@Body() dto: VreifyEmailDto) {
     return this.authService.verifyEmail(dto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset and send reset email' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email'],
+      properties: {
+        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Forgot password email sent successfully',
+  })
+  @ApiNotFoundResponse({ description: 'Email is not registered' })
+  @ApiBadRequestResponse({
+    description: 'Cannot send reset password email',
+  })
+  async forgotPassword(@Body() dto: { email: string }) {
+    return this.authService.forgotPassword(dto.email);
   }
 }

@@ -11,4 +11,11 @@ export class EmailConsumer {
   async sendVerifyCode(@Payload() data: { email: string; code: string }) {
     await this.emailService.sendUserConfirmation(data.email, data.code);
   }
+
+  @MessagePattern(EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL)
+  async sendResetPasswordEmail(
+    @Payload() data: { email: string; token: string },
+  ) {
+    await this.emailService.sendResetPasswordEmail(data.email, data.token);
+  }
 }

@@ -11,4 +11,8 @@ export class EmailWorker {
   sendVerifyCode(email: string, code: string) {
     this.client.emit(EVENT_NAME.SEND_VERIFY_CODE, { email, code });
   }
+
+  sendResetPasswordEmail(email: string, token: string) {
+    this.client.emit(EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL, { email, token });
+  }
 }

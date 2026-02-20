@@ -27,4 +27,23 @@ export class EmailService {
       throw new BadRequestException(`Failed to send email: ${error}`);
     }
   }
+
+  async sendResetPasswordEmail(email: string, token: string) {
+    const url = `${this.configService.get('BASE_URL')}${this.configService.get('SENDING_RESET_PASSWORD_EMAIL')}?token=${token}`;
+
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: 'Reset your password',
+        template: './reset-password',
+        context: {
+          url,
+          token,
+          email,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(`Failed to send email: ${error}`);
+    }
+  }
 }

@@ -4,4 +4,5 @@ export const QUEUE_NAME = {
 
 export const EVENT_NAME = {
   SEND_VERIFY_CODE: 'send_verify_code',
+  SEND_FORGOT_PASSWORD_EMAIL: 'send_forgot_password_email',
 };
