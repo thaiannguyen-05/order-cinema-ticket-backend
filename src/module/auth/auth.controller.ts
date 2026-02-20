@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import type { RegisterDto } from './dto/register.dto';
 import { Public } from '../../core/decorator/ispublic.decorator';
 import type { VreifyEmailDto } from './dto/verify.dto';
+import type { ResetPasswordDto } from './dto/reset.password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -110,5 +111,30 @@ export class AuthController {
   })
   async forgotPassword(@Body() dto: { email: string }) {
     return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Patch('reset-password')
+  @ApiOperation({ summary: 'Reset password using token from email' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'code', 'newPassword'],
+      properties: {
+        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
+        code: { type: 'string', example: '123456' },
+        newPassword: { type: 'string', example: 'NewPassword@123' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Reset password success',
+  })
+  @ApiNotFoundResponse({ description: 'Email is not registered' })
+  @ApiBadRequestResponse({
+    description: 'Invalid reset token or password does not meet requirements',
+  })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

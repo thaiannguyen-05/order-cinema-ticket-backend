@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import { MyLogger } from '../../logger/logger.service';
 import { UserWithoutPassword } from './type/return.type';
 import { VreifyEmailDto } from './dto/verify.dto';
+import { ResetPasswordDto } from './dto/reset.password.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -117,6 +118,35 @@ export class AuthService {
       await this.redisService.del(key);
       throw new BadRequestException(`${error}`);
     }
+
+    return true;
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<boolean> {
+    const availableUser = await this.userService.isAvailableEmail(dto.email);
+    if (!availableUser) {
+      throw new NotFoundException('Email is not registered');
+    }
+
+    const key = REDIS_KEY.FOGOT_PASSWORD(dto.email);
+    const storedToken = await this.redisService.get(key);
+    if (!storedToken) {
+      throw new BadRequestException('Reset token has expired');
+    }
+    if (storedToken !== dto.code) {
+      throw new BadRequestException('Invalid reset token');
+    }
+
+    const hashedPassword = await this.hashPassword(dto.newPassword);
+    await this.userService.updateUserByEmail({
+      email: dto.email,
+      password: hashedPassword,
+    });
+
+    await this.redisService.del(key);
+    this.logger.debug(
+      `Deleted forgot password token for ${dto.email} from Redis`,
+    );
 
     return true;
   }
