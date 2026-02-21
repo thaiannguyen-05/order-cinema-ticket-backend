@@ -28,6 +28,23 @@ async function bootstrap() {
 
   // values
   const port = configService.getOrThrow<string>('PORT');
+  const allowedOrigins = configService
+    .get<string>('CORS_ORIGINS', 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+  });
   const csrfSecret = configService.get<string>(
     'CSRF_SECRET',
     configService.getOrThrow<string>('JWT_SECRET'),
@@ -54,7 +71,6 @@ async function bootstrap() {
 
   // using safety
   app.use(helmet());
-  app.enableCors();
   app.use(cookieParser());
   app.use(doubleCsrfProtection);
 

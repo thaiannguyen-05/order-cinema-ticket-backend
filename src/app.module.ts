@@ -19,6 +19,7 @@ import { AuthModule } from './module/auth/auth.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
     ThrottlerModule.forRoot([
       {
