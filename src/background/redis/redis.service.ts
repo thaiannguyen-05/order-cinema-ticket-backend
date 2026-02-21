@@ -16,7 +16,6 @@ export class RedisService {
       await this.cacheManager.set(key, value, ttlInSeconds);
       return;
     }
-
     await this.cacheManager.set(key, value);
   }
 

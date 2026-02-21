@@ -2,6 +2,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import cookieParser from 'cookie-parser';
+import { doubleCsrf } from 'csrf-csrf';
+import type { Request } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
@@ -26,6 +28,25 @@ async function bootstrap() {
 
   // values
   const port = configService.getOrThrow<string>('PORT');
+  const csrfSecret = configService.get<string>(
+    'CSRF_SECRET',
+    configService.getOrThrow<string>('JWT_SECRET'),
+  );
+
+  const { doubleCsrfProtection } = doubleCsrf({
+    getSecret: () => csrfSecret,
+    getSessionIdentifier: (req: Request) =>
+      `${req.ip ?? ''}-${req.headers['user-agent'] ?? ''}`,
+    cookieName: '__Host-csrf-token',
+    cookieOptions: {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      httpOnly: true,
+      path: '/',
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  });
 
   // apply middleware
   const addHeaderMiddleware = new AddHeaderMiddleware();
@@ -35,6 +56,7 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors();
   app.use(cookieParser());
+  app.use(doubleCsrfProtection);
 
   app.getHttpAdapter().getInstance().set('trust proxy', true);
 
