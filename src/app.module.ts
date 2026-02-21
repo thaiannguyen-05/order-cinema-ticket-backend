@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -14,7 +15,8 @@ import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './module/auth/auth.module';
-
+import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,7 +26,7 @@ import { AuthModule } from './module/auth/auth.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60,
-        limit: 100,
+        limit: 50,
       },
     ]),
     LoggerModule,
@@ -33,6 +35,9 @@ import { AuthModule } from './module/auth/auth.module';
     EmailModule,
     RedisModule,
     LoggerModule,
+    HttpModule,
+    SyncDataCronJobModule,
+    ScheduleModule.forRoot({}),
   ],
   controllers: [AppController],
   providers: [
