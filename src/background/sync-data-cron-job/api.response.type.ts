@@ -1,3 +1,9 @@
+export type UserLocation = {
+  lat: number;
+  lng: number;
+  source: 'fe' | 'ip' | 'default';
+};
+
 export type CinemasNearbyResponse = {
   cinemas: Cinema[];
   status: Status;

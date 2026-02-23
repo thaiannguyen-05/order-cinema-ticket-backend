@@ -1,10 +1,20 @@
 model Theater {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  map       String
-  address   String
-  fax       String
-  hotline   String
+  cinema_id Int @id 
+  cinema_name String
+  address String
+  address2 String
+  city String
+  state String
+  county String
+  country String?
+  postcode String
+  phone String?
+  lat Int
+  lng Int
+  distance Int
+  ticketing Int?
+  directions String?
+  logo_url String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
