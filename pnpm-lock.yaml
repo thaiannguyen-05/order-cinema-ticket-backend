@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@andev2005/movie-glu-sdk':
+        specifier: ^1.0.4
+        version: 1.0.4
       '@keyv/redis':
         specifier: ^5.1.6
         version: 5.1.6(keyv@5.6.0)
@@ -194,6 +197,9 @@ importers:
         version: 8.55.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
 packages:
+
+  '@andev2005/movie-glu-sdk@1.0.4':
+    resolution: {integrity: sha512-3v5ed2vap/knMwuIQaW3YR85D1Z/gby24HBsQBEeDG/UrNY2NNQhv0eDZiTqN9W+FXp1yok6jU2YT0fXvCkJEw==}
 
   '@angular-devkit/core@19.2.17':
     resolution: {integrity: sha512-Ah008x2RJkd0F+NLKqIpA34/vUGwjlprRCkvddjDopAWRzYn6xCkz1Tqwuhn0nR1Dy47wTLKYD999TYl5ONOAQ==}
@@ -4649,6 +4655,8 @@ packages:
     resolution: {integrity: sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA==}
 
 snapshots:
+
+  '@andev2005/movie-glu-sdk@1.0.4': {}
 
   '@angular-devkit/core@19.2.17(chokidar@4.0.3)':
     dependencies:

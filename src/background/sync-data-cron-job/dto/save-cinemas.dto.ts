@@ -1,4 +1,4 @@
-import { Cinema } from '../api.response.type';
+import { Cinema } from '@andev2005/movie-glu-sdk';
 
 export type SaveCinemasDto = {
   cinemas: Cinema[];

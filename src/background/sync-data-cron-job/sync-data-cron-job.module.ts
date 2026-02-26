@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { SyncDataCronJobService } from './sync-data-cron-job.service';
+import { PrismaDatabaseService } from './prisma.database.service';
 import { SyncDataCronJobController } from './sync-data-cron-job.controller';
-import { HttpModule } from '@nestjs/axios';
+import { SyncDataCronJobService } from './sync-data-cron-job.service';
 
 @Module({
-  imports: [HttpModule],
+  imports: [],
   controllers: [SyncDataCronJobController],
-  providers: [SyncDataCronJobService],
+  providers: [SyncDataCronJobService, PrismaDatabaseService],
 })
 export class SyncDataCronJobModule {}
