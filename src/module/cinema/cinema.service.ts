@@ -113,4 +113,33 @@ export class CinemaService {
       nextCursor,
     };
   }
+
+  async upsertCinema(dto: CreateCinemaDto) {
+    return await this.prismaService.cinema.upsert({
+      where: { cinema_id: dto.cinema_id },
+      update: {
+        ...(dto.address && { address: dto.address }),
+        ...(dto.address2 && { address2: dto.address2 }),
+        ...(dto.city && { city: dto.city }),
+        ...(dto.country && { country: dto.country }),
+        ...(dto.logo_url && { logo_url: dto.logo_url }),
+        ...(dto.phone && { phone: dto.phone }),
+        ...(dto.postcode && { postcode: dto.postcode }),
+        ...(dto.cinema_name && { cinema_name: dto.cinema_name }),
+      },
+      create: {
+        cinema_id: dto.cinema_id,
+        cinema_name: dto.cinema_name,
+        address: dto.address,
+        city: dto.city,
+        postcode: dto.postcode,
+        logo_url: dto.logo_url,
+        ...(dto.address2 && {
+          address2: dto.address2,
+        }),
+        ...(dto.country && { country: dto.country }),
+        ...(dto.phone && { phone: dto.phone }),
+      },
+    });
+  }
 }
