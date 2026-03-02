@@ -1,4 +1,4 @@
-import { AccountStatus } from '@prisma/client';
+import { ACCOUNT_STATUS } from '@prisma/client';
 
 export type CreateUserDto = {
   fullname: string;
@@ -6,5 +6,5 @@ export type CreateUserDto = {
   password: string;
   dateOfBirth: Date;
   address: string;
-  status?: AccountStatus;
+  status?: ACCOUNT_STATUS;
 };
