@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -12,7 +12,7 @@ import {
 import { AuthService } from './service/auth.service';
 import type { RegisterDto } from './dto/register.dto';
 import { Public } from '../../core/decorator/ispublic.decorator';
-import type { VreifyEmailDto } from './dto/verify.dto';
+import type { VreifyEmailDto as VerifyEmailDto } from './dto/verify.dto';
 import type { ResetPasswordDto } from './dto/reset.password.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
@@ -59,12 +59,12 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Cannot send verification email or invalid request data',
   })
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
   @Public()
-  @Patch('verify-email')
+  @Post('verify-email')
   @ApiOperation({ summary: 'Verify email with 6-digit code' })
   @ApiBody({
     schema: {
@@ -88,8 +88,8 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Verification code expired or invalid',
   })
-  async verifyEmail(@Body() dto: VreifyEmailDto) {
-    return this.authService.verifyEmail(dto);
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto);
   }
 
   @Public()
@@ -111,12 +111,12 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Cannot send reset password email',
   })
-  async forgotPassword(@Body() dto: { email: string }) {
-    return this.authService.forgotPassword(dto.email);
+  async forgotPassword(@Body() forgotPasswordBody: { email: string }) {
+    return this.authService.forgotPassword(forgotPasswordBody.email);
   }
 
   @Public()
-  @Patch('reset-password')
+  @Post('reset-password')
   @ApiOperation({ summary: 'Reset password using token from email' })
   @ApiBody({
     schema: {
@@ -136,8 +136,8 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Invalid reset token or password does not meet requirements',
   })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @Public()
@@ -159,58 +159,33 @@ export class AuthController {
     description: 'Account is not active or password is invalid',
   })
   async login(
-    @Body() dto: LoginDto,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
+    @Body() loginDto: LoginDto,
+    @Req() httpRequest: Request,
+    @Res({ passthrough: true }) httpResponse: Response,
   ) {
-    return this.authService.login(dto, request, response);
+    return this.authService.login(loginDto, httpRequest, httpResponse);
   }
 
-  @Post('login')
-  @ApiOperation({ summary: 'Login and issue access/refresh token' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email', 'password'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-        password: { type: 'string', example: 'Password@123' },
-      },
-    },
-  })
-  @ApiOkResponse({ description: 'Login success' })
-  @ApiNotFoundResponse({ description: 'Account is not registered' })
-  @ApiUnauthorizedResponse({
-    description: 'Account is not active or password is invalid',
-  })
-  async loginWithoutCookie(
-    @Body() dto: LoginDto,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return this.authService.login(dto, request, response);
-  }
-
-  @Patch('refresh-token')
+  @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiOkResponse({ description: 'Token refreshed successfully' })
   @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
   async refreshToken(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
+    @Req() httpRequest: Request,
+    @Res({ passthrough: true }) httpResponse: Response,
   ) {
-    return this.authService.refreshToken(request, response);
+    return this.authService.refreshToken(httpRequest, httpResponse);
   }
 
-  @Patch('logout')
+  @Post('logout')
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   @ApiOkResponse({ description: 'Logout success' })
   @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
   async logout(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
+    @Req() httpRequest: Request,
+    @Res({ passthrough: true }) httpResponse: Response,
   ) {
-    return this.authService.logout(request, response);
+    return this.authService.logout(httpRequest, httpResponse);
   }
 }
