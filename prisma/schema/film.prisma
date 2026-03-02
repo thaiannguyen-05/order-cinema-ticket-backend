@@ -1,17 +1,22 @@
 model Film {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  author      String
-  performer   String
-  type        FilmType
-  startedTime DateTime
-  length      String
-  lang        String
-  rated       Float
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  film_id Int @id
+  film_name String
+  other_title Json?
+  release_dates Json?
+  age_rating Json?
+  trailers Json?
+  synopsis_long String?
+  images Json?
+  version_type VERSION_TYPE
+  duration_mins Int
+  review_stars Float
+  review_txt String?
+  distributor String?
+  genres Json?
+  cast Json?
+  directors Json?
+  producers Json?
+  writers Json?
 
-  filmOfTheaters FilmOfTheater[]
-  schedules      Schedule[]
+  filmOfCinema FilmOfCinema[]
 }

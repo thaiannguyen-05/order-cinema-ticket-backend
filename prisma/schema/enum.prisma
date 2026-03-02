@@ -1,0 +1,24 @@
+enum VERSION_TYPE {
+    STANDARD
+    DOLBY_CINEMA
+    IMAX
+}
+
+enum ACCOUNT_STATUS {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+    PENDING
+}
+
+enum TICKET_STATUS {
+    BOOKED
+    CANCELLED
+    USED
+}
+
+enum SEAT_STATUS {
+    AVAILABLE
+    BOOKED
+    OCCUPIED
+}

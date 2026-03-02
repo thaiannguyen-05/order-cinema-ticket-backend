@@ -6,7 +6,7 @@ model User {
   hashPassword String
   dateOfBirth DateTime
   address     String
-  status      AccountStatus @default(PENDING)
+  status      ACCOUNT_STATUS @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?

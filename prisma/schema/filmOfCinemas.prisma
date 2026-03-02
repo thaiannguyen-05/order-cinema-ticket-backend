@@ -1,0 +1,19 @@
+model FilmOfCinema {
+    id String @id @default(uuid()) @db.Uuid
+
+    film_name String
+    other_titles Json?
+    version_type VERSION_TYPE
+    age_rating Json?
+    film_image String
+    showings Json?
+    show_dates Json?
+
+    filmId Int @unique
+    cinemaId Int @unique
+
+
+    film Film @relation(fields: [filmId], references: [film_id], onDelete: Cascade, onUpdate: Cascade)
+    cinema Cinema @relation(fields: [cinemaId], references: [cinema_id], onDelete: Cascade, onUpdate: Cascade)
+    seats Seat[]
+}

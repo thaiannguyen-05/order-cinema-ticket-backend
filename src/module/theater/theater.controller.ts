@@ -1,7 +1,12 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { TheaterService } from './theater.service';
 
 @Controller('theater')
 export class TheaterController {
   constructor(private readonly theaterService: TheaterService) {}
+
+  @Get('cinemas')
+  async getCinemas() {
+    return await this.theaterService.getCinemas();
+  }
 }

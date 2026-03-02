@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { MyLogger } from '../../logger/logger.service';
-import { PrismaDatabaseService } from './prisma.database.service';
+import { TheaterService } from '../../module/theater/theater.service';
 @Injectable()
 export class SyncDataCronJobService {
   private readonly client: MovieGluSdk;
@@ -14,7 +14,7 @@ export class SyncDataCronJobService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: MyLogger,
-    private readonly dataBaseService: PrismaDatabaseService,
+    private readonly theaterService: TheaterService,
   ) {
     this.client = createMovieGluClient({
       apiKey: this.configService.getOrThrow<string>('MOVIE_GLU_APIKEY'),
@@ -29,7 +29,7 @@ export class SyncDataCronJobService {
     this.logger.debug(`Data cinema nearby ${JSON.stringify(cinemas)}`);
 
     for (const cinema of cinemas) {
-      await this.dataBaseService.upsertCinema(cinema.cinema_id, cinema);
+      await this.theaterService.upsertCinema(cinema.cinema_id, cinema);
     }
   }
 

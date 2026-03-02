@@ -5,5 +5,6 @@ import { TheaterController } from './theater.controller';
 @Module({
   controllers: [TheaterController],
   providers: [TheaterService],
+  exports: [TheaterService],
 })
 export class TheaterModule {}

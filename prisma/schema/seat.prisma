@@ -1,8 +1,13 @@
 model Seat {
-  id     Int        @id @default(autoincrement())
-  name   String
-  type   SeatType
-  status SeatStatus
+    id String @id @default(uuid()) @db.Uuid
 
-  schedules Schedule[]
+    row Int
+    column Int
+    status SEAT_STATUS @default(AVAILABLE)
+
+    filmId String @db.Uuid
+    cinemaId Int @unique
+
+    film FilmOfCinema @relation(fields: [filmId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    cinema Cinema @relation(fields: [cinemaId], references: [cinema_id], onDelete: Cascade, onUpdate: Cascade)
 }

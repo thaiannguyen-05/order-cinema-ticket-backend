@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PrismaDatabaseService } from './prisma.database.service';
-import { SyncDataCronJobController } from './sync-data-cron-job.controller';
 import { SyncDataCronJobService } from './sync-data-cron-job.service';
+import { TheaterModule } from '../../module/theater/theater.module';
 
 @Module({
-  imports: [],
-  controllers: [SyncDataCronJobController],
-  providers: [SyncDataCronJobService, PrismaDatabaseService],
+  imports: [TheaterModule],
+  controllers: [],
+  providers: [SyncDataCronJobService],
 })
 export class SyncDataCronJobModule {}
