@@ -11,7 +11,7 @@ export class RedisLockService {
     this.redisLock = new Redlock(
       [this.redis as unknown as Redlock.CompatibleRedisClient],
       {
-        retryCount: 0,
+        retryCount: 5,
       },
     );
 
