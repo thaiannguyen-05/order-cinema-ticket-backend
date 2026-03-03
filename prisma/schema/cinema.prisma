@@ -1,7 +1,7 @@
 model Cinema {
   cinema_id Int @id 
   cinema_name String
-  address String
+  address String?
   address2 String?
   city String
   country String?

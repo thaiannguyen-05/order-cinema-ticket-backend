@@ -4,6 +4,8 @@ import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { RedisLockProvider } from './redis-lock.provider';
+import { RedisLockService } from './redis.lock.service';
 
 @Module({
   imports: [
@@ -21,11 +23,13 @@ import { ConfigService } from '@nestjs/config';
   ],
   providers: [
     RedisService,
+    RedisLockProvider,
+    RedisLockService,
     {
       provide: APP_INTERCEPTOR,
       useClass: CacheInterceptor,
     },
   ],
-  exports: [RedisService],
+  exports: [RedisService, RedisLockProvider, RedisLockService],
 })
 export class RedisModule {}

@@ -26,6 +26,19 @@ async function bootstrap() {
     },
   });
 
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [
+        `amqp://${configService.getOrThrow<string>('RABBITMQ_USER')}:${configService.getOrThrow<string>('RABBITMQ_PASS')}@${configService.get<string>('RABBITMQ_HOST', 'localhost')}:${configService.getOrThrow<string>('RABBITMQ_PORT')}/${configService.get<string>('RABBITMQ_VHOST', '')}`,
+      ],
+      queue: QUEUE_NAME.SYNC_DATE_SERVICE,
+      queueOptions: {
+        durable: true,
+      },
+    },
+  });
+
   // values
   const port = configService.getOrThrow<string>('PORT');
   const allowedOrigins = configService
@@ -73,8 +86,6 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.use(doubleCsrfProtection);
-
-  app.getHttpAdapter().getInstance().set('trust proxy', true);
 
   await app.startAllMicroservices();
   await app.listen(port);
