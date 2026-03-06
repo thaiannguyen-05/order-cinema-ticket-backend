@@ -4,10 +4,10 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
-import { EmailModule } from '../../background/email/email.module';
-import { PrismaModule } from '../../background/prisma/prisma.module';
-import { RedisModule } from '../../background/redis/redis.module';
 import { TokenService } from './service/token.service';
+import { EmailModule } from '../../../background/email/email.module';
+import { PrismaModule } from '../../../background/prisma/prisma.module';
+import { RedisModule } from '../../../background/redis/redis.module';
 
 @Module({
   imports: [

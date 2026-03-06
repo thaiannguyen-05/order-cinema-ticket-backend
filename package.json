@@ -21,7 +21,7 @@
     "generate": "prisma generate && prisma db push"
   },
   "dependencies": {
-    "@andev2005/movie-glu-sdk": "^1.0.7",
+    "@andev2005/movie-glu-sdk": "^1.0.8",
     "@keyv/redis": "^5.1.6",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^4.0.1",

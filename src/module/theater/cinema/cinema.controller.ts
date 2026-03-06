@@ -20,9 +20,9 @@ import {
 } from '@nestjs/swagger';
 import { CinemaService } from './cinema.service';
 import type { CreateCinemaDto } from './dto/create-cinema.dto';
-import { Public } from '../../core/decorator/ispublic.decorator';
 import type { FindCinemaDto } from './dto/find-cinema.dto';
 import type { UpdateCinemaDto } from './dto/update-cinema.dto';
+import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Cinema')
 @Public()

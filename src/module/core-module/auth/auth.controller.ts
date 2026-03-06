@@ -11,11 +11,11 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './service/auth.service';
 import type { RegisterDto } from './dto/register.dto';
-import { Public } from '../../core/decorator/ispublic.decorator';
 import type { VreifyEmailDto as VerifyEmailDto } from './dto/verify.dto';
 import type { ResetPasswordDto } from './dto/reset.password.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
+import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')

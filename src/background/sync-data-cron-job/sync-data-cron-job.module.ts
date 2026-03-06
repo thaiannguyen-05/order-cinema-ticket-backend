@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CinemaModule } from '../../module/cinema/cinema.module';
 import { SyncDataCronJobService } from './sync-data-cron-job.service';
 import { QUEUE_NAME } from '../email/constant/event.type';
 import { RedisModule } from '../redis/redis.module';
 import { SyncDateCronJobConsumer } from './sync-data-cron-job.consumer';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { CallMovieGluService } from './call-movie-glu.service';
-import { FilmModule } from '../../module/film/film.module';
+import { CinemaModule } from '../../module/theater/cinema/cinema.module';
+import { FilmModule } from '../../module/theater/film/film.module';
 
 @Module({
   imports: [

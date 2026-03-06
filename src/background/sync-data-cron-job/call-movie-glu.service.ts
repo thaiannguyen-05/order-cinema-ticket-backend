@@ -1,29 +1,19 @@
+import { createMovieGluClient, MovieGluSdk } from '@andev2005/movie-glu-sdk';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MyLogger } from '../../logger/logger.service';
-import { CinemaService } from '../../module/cinema/cinema.service';
+import { CinemaService } from '../../module/theater/cinema/cinema.service';
+import { UpdateCinemaDto } from '../../module/theater/cinema/dto/update-cinema.dto';
+import { FilmService } from '../../module/theater/film/film.service';
 import { RedisLockService } from '../redis/redis.lock.service';
-import { EventCronJobWorkerService } from './event.cron-job.worker';
-import { createMovieGluClient, MovieGluSdk } from '@andev2005/movie-glu-sdk';
-import { UpdateCinemaDto } from '../../module/cinema/dto/update-cinema.dto';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
-import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
+import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncFilmsDetailDto } from './dto/sync.films.detail.dto';
-import { FilmService } from '../../module/film/film.service';
-import { UpdateFilmDto } from '../../module/film/dto/update-film.dto';
-
-type IpApiResponse = {
-  status: 'success' | 'fail';
-  lat?: number;
-  lon?: number;
-  message?: string;
-};
-
-type PublicIpResponse = {
-  ip: string;
-};
+import { EventCronJobWorkerService } from './event.cron-job.worker';
+import { UpdateFilmDto } from '../../module/theater/film/dto/update-film.dto';
+import { IpApiResponse, PublicIpResponse } from './type';
 
 @Injectable()
 export class CallMovieGluService {

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { Payload } from '../../../core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../../background/prisma/prisma.service';
+import { PrismaService } from '../../../../background/prisma/prisma.service';
+import { Payload } from '../../../../core';
 
 @Injectable()
 export class TokenService {

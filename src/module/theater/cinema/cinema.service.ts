@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../background/prisma/prisma.service';
 import { CreateCinemaDto } from './dto/create-cinema.dto';
 import { UpdateCinemaDto } from './dto/update-cinema.dto';
 import { FindCinemaDto } from './dto/find-cinema.dto';
+import { PrismaService } from '../../../background/prisma/prisma.service';
 
 @Injectable()
 export class CinemaService {

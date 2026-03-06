@@ -6,18 +6,18 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
-import { EmailWorker } from '../../../background/email/email.worker';
-import { RedisService } from '../../../background/redis/redis.service';
-import { REDIS_KEY, REDIS_TTL } from '../../../background/redis/redis.value';
 import { UserService } from '../../user/user.service';
 import { RegisterDto } from '../dto/register.dto';
-import { MyLogger } from '../../../logger/logger.service';
 import { UserWithoutPassword } from '../type/return.type';
 import { VreifyEmailDto } from '../dto/verify.dto';
 import { ResetPasswordDto } from '../dto/reset.password.dto';
 import { LoginDto } from '../dto/login.dto';
 import { TokenService } from './token.service';
 import type { Request, Response } from 'express';
+import { EmailWorker } from '../../../../background/email/email.worker';
+import { RedisService } from '../../../../background/redis/redis.service';
+import { MyLogger } from '../../../../logger/logger.service';
+import { REDIS_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
 @Injectable()
 export class AuthService {
   constructor(

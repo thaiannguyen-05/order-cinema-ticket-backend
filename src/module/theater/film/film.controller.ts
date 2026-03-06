@@ -18,11 +18,11 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { Public } from '../../core/decorator/ispublic.decorator';
 import { FilmService } from './film.service';
 import type { CreateFilmDto } from './dto/create-film.dto';
 import type { UpdateFilmDto } from './dto/update-film.dto';
 import type { FindFilmsDto } from './dto/find-films.dto';
+import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Film')
 @Public()
