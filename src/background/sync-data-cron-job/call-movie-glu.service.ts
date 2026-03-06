@@ -3,17 +3,19 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MyLogger } from '../../logger/logger.service';
-import { CinemaService } from '../../module/theater/cinema/cinema.service';
-import { UpdateCinemaDto } from '../../module/theater/cinema/dto/update-cinema.dto';
-import { FilmService } from '../../module/theater/film/film.service';
+import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
+import { UpdateCinemaDto } from '../../module/theater-module/cinema/dto/update-cinema.dto';
+import { FilmService } from '../../module/theater-module/film/film.service';
 import { RedisLockService } from '../redis/redis.lock.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncFilmsDetailDto } from './dto/sync.films.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
-import { UpdateFilmDto } from '../../module/theater/film/dto/update-film.dto';
+import { UpdateFilmDto } from '../../module/theater-module/film/dto/update-film.dto';
 import { IpApiResponse, PublicIpResponse } from './type';
+import { SyncFilmsShowtimeDto } from './dto/sync.films.showtime.dto';
+import { Film as PrismaFilm } from '@prisma/client';
 
 @Injectable()
 export class CallMovieGluService {
@@ -251,5 +253,129 @@ export class CallMovieGluService {
 
       await this.filmService.updateFilm(film.film_id, updateFilmDto);
     }
+  }
+
+  async syncDateFilmsOfCinema(dto: SyncFilmsShowtimeDto): Promise<void> {
+    const processedFilmIds = new Set<number>();
+
+    for (const cinema of dto.cinemas) {
+      const filmsShowTime = await this.cinemaService.getFilmsOfCinema(
+        cinema.cinema_id,
+      );
+
+      for (const cinemaWithFilms of filmsShowTime) {
+        for (const filmElement of cinemaWithFilms.filmOfCinema) {
+          const film = filmElement.film;
+          if (!film) continue;
+          if (processedFilmIds.has(film.film_id)) continue;
+          processedFilmIds.add(film.film_id);
+
+          const updateFilmDto: UpdateFilmDto = {
+            ...(film.film_name && { film_name: film.film_name }),
+            ...(film.other_title && { other_title: film.other_title as never }),
+            ...(film.release_dates && {
+              release_dates: film.release_dates as never,
+            }),
+            ...(film.age_rating && { age_rating: film.age_rating as never }),
+            ...(film.trailers && { trailers: film.trailers as never }),
+            ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
+            ...(film.images && { images: film.images as never }),
+            ...(film.version_type && {
+              version_type: film.version_type as never,
+            }),
+            ...(film.duration_mins != null && {
+              duration_mins: film.duration_mins,
+            }),
+            ...(film.review_stars != null && {
+              review_stars: film.review_stars,
+            }),
+            ...(film.review_txt && { review_txt: film.review_txt }),
+            ...(film.distributor && { distributor: film.distributor }),
+            ...(film.genres && { genres: film.genres as never }),
+            ...(film.cast && { cast: film.cast as never }),
+            ...(film.directors && { director: film.directors as never }),
+            ...(film.producers && { producers: film.producers as never }),
+            ...(film.writers && { writers: film.writers as never }),
+          };
+
+          if (!this.hasFilmChanges(film, updateFilmDto)) continue;
+
+          await this.filmService.updateFilm(film.film_id, updateFilmDto);
+        }
+      }
+    }
+  }
+
+  private hasFilmChanges(film: PrismaFilm, dto: UpdateFilmDto): boolean {
+    if (dto.film_name !== undefined && dto.film_name !== film.film_name) {
+      return true;
+    }
+    if (
+      dto.synopsis_long !== undefined &&
+      dto.synopsis_long !== film.synopsis_long
+    ) {
+      return true;
+    }
+    if (
+      dto.version_type !== undefined &&
+      dto.version_type !== film.version_type
+    ) {
+      return true;
+    }
+    if (
+      dto.duration_mins !== undefined &&
+      dto.duration_mins !== film.duration_mins
+    ) {
+      return true;
+    }
+    if (
+      dto.review_stars !== undefined &&
+      dto.review_stars !== film.review_stars
+    ) {
+      return true;
+    }
+    if (dto.review_txt !== undefined && dto.review_txt !== film.review_txt) {
+      return true;
+    }
+    if (dto.distributor !== undefined && dto.distributor !== film.distributor) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.other_title, film.other_title)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.release_dates, film.release_dates)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.age_rating, film.age_rating)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.trailers, film.trailers)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.images, film.images)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.genres, film.genres)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.cast, film.cast)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.director, film.directors)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.producers, film.producers)) {
+      return true;
+    }
+    if (!this.isSameJsonValue(dto.writers, film.writers)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isSameJsonValue(nextValue: unknown, currentValue: unknown): boolean {
+    if (nextValue === undefined) return true;
+    return JSON.stringify(nextValue) === JSON.stringify(currentValue);
   }
 }

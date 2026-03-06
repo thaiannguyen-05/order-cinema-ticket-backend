@@ -8,11 +8,11 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Cinema.js'
 export type * from './models/Film.js'
-export type * from './models/FilmOfTheater.js'
-export type * from './models/Schedule.js'
+export type * from './models/FilmOfCinema.js'
 export type * from './models/Seat.js'
-export type * from './models/Theater.js'
+export type * from './models/Session.js'
 export type * from './models/Ticket.js'
 export type * from './models/User.js'
 export type * from './commonInputTypes.js'

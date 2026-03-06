@@ -4,8 +4,9 @@ model FilmOfCinema {
     filmId Int 
     cinemaId Int 
 
-
     film Film @relation(fields: [filmId], references: [film_id], onDelete: Cascade, onUpdate: Cascade)
     cinema Cinema @relation(fields: [cinemaId], references: [cinema_id], onDelete: Cascade, onUpdate: Cascade)
     seats Seat[]
+
+    @@unique([filmId, cinemaId])
 }

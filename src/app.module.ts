@@ -18,8 +18,8 @@ import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AuthModule } from './module/core-module/auth/auth.module';
-import { FilmModule } from './module/theater/film/film.module';
-import { CinemaModule } from './module/theater/cinema/cinema.module';
+import { FilmModule } from './module/theater-module/film/film.module';
+import { CinemaModule } from './module/theater-module/cinema/cinema.module';
 import { UserModule } from './module/core-module/user/user.module';
 @Module({
   imports: [

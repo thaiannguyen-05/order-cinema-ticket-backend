@@ -29,8 +29,8 @@ export * from "./enums.js"
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Films
- * const films = await prisma.film.findMany()
+ * // Fetch zero or more Cinemas
+ * const cinemas = await prisma.cinema.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -40,30 +40,30 @@ export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts exten
 export { Prisma }
 
 /**
+ * Model Cinema
+ * 
+ */
+export type Cinema = Prisma.CinemaModel
+/**
  * Model Film
  * 
  */
 export type Film = Prisma.FilmModel
 /**
- * Model FilmOfTheater
+ * Model FilmOfCinema
  * 
  */
-export type FilmOfTheater = Prisma.FilmOfTheaterModel
-/**
- * Model Schedule
- * 
- */
-export type Schedule = Prisma.ScheduleModel
+export type FilmOfCinema = Prisma.FilmOfCinemaModel
 /**
  * Model Seat
  * 
  */
 export type Seat = Prisma.SeatModel
 /**
- * Model Theater
+ * Model Session
  * 
  */
-export type Theater = Prisma.TheaterModel
+export type Session = Prisma.SessionModel
 /**
  * Model Ticket
  * 

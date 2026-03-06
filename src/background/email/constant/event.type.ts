@@ -8,4 +8,5 @@ export const EVENT_NAME = {
   SEND_FORGOT_PASSWORD_EMAIL: 'send_forgot_password_email',
   DETAIL_CINEMA: 'detail_cinema',
   CINEMA_SHOWTIME: 'cinema_showtime',
+  FILM_SHOWTIME: 'film_showtime',
 };

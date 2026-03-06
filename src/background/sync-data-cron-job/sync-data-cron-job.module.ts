@@ -7,8 +7,8 @@ import { RedisModule } from '../redis/redis.module';
 import { SyncDateCronJobConsumer } from './sync-data-cron-job.consumer';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { CallMovieGluService } from './call-movie-glu.service';
-import { CinemaModule } from '../../module/theater/cinema/cinema.module';
-import { FilmModule } from '../../module/theater/film/film.module';
+import { CinemaModule } from '../../module/theater-module/cinema/cinema.module';
+import { FilmModule } from '../../module/theater-module/film/film.module';
 
 @Module({
   imports: [

@@ -27,111 +27,115 @@ export type AggregateFilm = {
 }
 
 export type FilmAvgAggregateOutputType = {
-  rated: number | null
+  film_id: number | null
+  duration_mins: number | null
+  review_stars: number | null
 }
 
 export type FilmSumAggregateOutputType = {
-  rated: number | null
+  film_id: number | null
+  duration_mins: number | null
+  review_stars: number | null
 }
 
 export type FilmMinAggregateOutputType = {
-  id: string | null
-  name: string | null
-  author: string | null
-  performer: string | null
-  type: $Enums.FilmType | null
-  startedTime: Date | null
-  length: string | null
-  lang: string | null
-  rated: number | null
-  description: string | null
-  createdAt: Date | null
-  updatedAt: Date | null
+  film_id: number | null
+  film_name: string | null
+  synopsis_long: string | null
+  version_type: $Enums.VERSION_TYPE | null
+  duration_mins: number | null
+  review_stars: number | null
+  review_txt: string | null
+  distributor: string | null
 }
 
 export type FilmMaxAggregateOutputType = {
-  id: string | null
-  name: string | null
-  author: string | null
-  performer: string | null
-  type: $Enums.FilmType | null
-  startedTime: Date | null
-  length: string | null
-  lang: string | null
-  rated: number | null
-  description: string | null
-  createdAt: Date | null
-  updatedAt: Date | null
+  film_id: number | null
+  film_name: string | null
+  synopsis_long: string | null
+  version_type: $Enums.VERSION_TYPE | null
+  duration_mins: number | null
+  review_stars: number | null
+  review_txt: string | null
+  distributor: string | null
 }
 
 export type FilmCountAggregateOutputType = {
-  id: number
-  name: number
-  author: number
-  performer: number
-  type: number
-  startedTime: number
-  length: number
-  lang: number
-  rated: number
-  description: number
-  createdAt: number
-  updatedAt: number
+  film_id: number
+  film_name: number
+  other_title: number
+  release_dates: number
+  age_rating: number
+  trailers: number
+  synopsis_long: number
+  images: number
+  version_type: number
+  duration_mins: number
+  review_stars: number
+  review_txt: number
+  distributor: number
+  genres: number
+  cast: number
+  directors: number
+  producers: number
+  writers: number
   _all: number
 }
 
 
 export type FilmAvgAggregateInputType = {
-  rated?: true
+  film_id?: true
+  duration_mins?: true
+  review_stars?: true
 }
 
 export type FilmSumAggregateInputType = {
-  rated?: true
+  film_id?: true
+  duration_mins?: true
+  review_stars?: true
 }
 
 export type FilmMinAggregateInputType = {
-  id?: true
-  name?: true
-  author?: true
-  performer?: true
-  type?: true
-  startedTime?: true
-  length?: true
-  lang?: true
-  rated?: true
-  description?: true
-  createdAt?: true
-  updatedAt?: true
+  film_id?: true
+  film_name?: true
+  synopsis_long?: true
+  version_type?: true
+  duration_mins?: true
+  review_stars?: true
+  review_txt?: true
+  distributor?: true
 }
 
 export type FilmMaxAggregateInputType = {
-  id?: true
-  name?: true
-  author?: true
-  performer?: true
-  type?: true
-  startedTime?: true
-  length?: true
-  lang?: true
-  rated?: true
-  description?: true
-  createdAt?: true
-  updatedAt?: true
+  film_id?: true
+  film_name?: true
+  synopsis_long?: true
+  version_type?: true
+  duration_mins?: true
+  review_stars?: true
+  review_txt?: true
+  distributor?: true
 }
 
 export type FilmCountAggregateInputType = {
-  id?: true
-  name?: true
-  author?: true
-  performer?: true
-  type?: true
-  startedTime?: true
-  length?: true
-  lang?: true
-  rated?: true
-  description?: true
-  createdAt?: true
-  updatedAt?: true
+  film_id?: true
+  film_name?: true
+  other_title?: true
+  release_dates?: true
+  age_rating?: true
+  trailers?: true
+  synopsis_long?: true
+  images?: true
+  version_type?: true
+  duration_mins?: true
+  review_stars?: true
+  review_txt?: true
+  distributor?: true
+  genres?: true
+  cast?: true
+  directors?: true
+  producers?: true
+  writers?: true
   _all?: true
 }
 
@@ -222,18 +226,24 @@ export type FilmGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 }
 
 export type FilmGroupByOutputType = {
-  id: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt: Date
-  updatedAt: Date
+  film_id: number
+  film_name: string
+  other_title: runtime.JsonValue | null
+  release_dates: runtime.JsonValue | null
+  age_rating: runtime.JsonValue | null
+  trailers: runtime.JsonValue | null
+  synopsis_long: string | null
+  images: runtime.JsonValue | null
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt: string | null
+  distributor: string | null
+  genres: runtime.JsonValue | null
+  cast: runtime.JsonValue | null
+  directors: runtime.JsonValue | null
+  producers: runtime.JsonValue | null
+  writers: runtime.JsonValue | null
   _count: FilmCountAggregateOutputType | null
   _avg: FilmAvgAggregateOutputType | null
   _sum: FilmSumAggregateOutputType | null
@@ -260,72 +270,93 @@ export type FilmWhereInput = {
   AND?: Prisma.FilmWhereInput | Prisma.FilmWhereInput[]
   OR?: Prisma.FilmWhereInput[]
   NOT?: Prisma.FilmWhereInput | Prisma.FilmWhereInput[]
-  id?: Prisma.UuidFilter<"Film"> | string
-  name?: Prisma.StringFilter<"Film"> | string
-  author?: Prisma.StringFilter<"Film"> | string
-  performer?: Prisma.StringFilter<"Film"> | string
-  type?: Prisma.EnumFilmTypeFilter<"Film"> | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFilter<"Film"> | Date | string
-  length?: Prisma.StringFilter<"Film"> | string
-  lang?: Prisma.StringFilter<"Film"> | string
-  rated?: Prisma.FloatFilter<"Film"> | number
-  description?: Prisma.StringFilter<"Film"> | string
-  createdAt?: Prisma.DateTimeFilter<"Film"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Film"> | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterListRelationFilter
-  schedules?: Prisma.ScheduleListRelationFilter
+  film_id?: Prisma.IntFilter<"Film"> | number
+  film_name?: Prisma.StringFilter<"Film"> | string
+  other_title?: Prisma.JsonNullableFilter<"Film">
+  release_dates?: Prisma.JsonNullableFilter<"Film">
+  age_rating?: Prisma.JsonNullableFilter<"Film">
+  trailers?: Prisma.JsonNullableFilter<"Film">
+  synopsis_long?: Prisma.StringNullableFilter<"Film"> | string | null
+  images?: Prisma.JsonNullableFilter<"Film">
+  version_type?: Prisma.EnumVERSION_TYPEFilter<"Film"> | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFilter<"Film"> | number
+  review_stars?: Prisma.FloatFilter<"Film"> | number
+  review_txt?: Prisma.StringNullableFilter<"Film"> | string | null
+  distributor?: Prisma.StringNullableFilter<"Film"> | string | null
+  genres?: Prisma.JsonNullableFilter<"Film">
+  cast?: Prisma.JsonNullableFilter<"Film">
+  directors?: Prisma.JsonNullableFilter<"Film">
+  producers?: Prisma.JsonNullableFilter<"Film">
+  writers?: Prisma.JsonNullableFilter<"Film">
+  filmOfCinema?: Prisma.FilmOfCinemaListRelationFilter
 }
 
 export type FilmOrderByWithRelationInput = {
-  id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  author?: Prisma.SortOrder
-  performer?: Prisma.SortOrder
-  type?: Prisma.SortOrder
-  startedTime?: Prisma.SortOrder
-  length?: Prisma.SortOrder
-  lang?: Prisma.SortOrder
-  rated?: Prisma.SortOrder
-  description?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
-  updatedAt?: Prisma.SortOrder
-  filmOfTheaters?: Prisma.FilmOfTheaterOrderByRelationAggregateInput
-  schedules?: Prisma.ScheduleOrderByRelationAggregateInput
+  film_id?: Prisma.SortOrder
+  film_name?: Prisma.SortOrder
+  other_title?: Prisma.SortOrderInput | Prisma.SortOrder
+  release_dates?: Prisma.SortOrderInput | Prisma.SortOrder
+  age_rating?: Prisma.SortOrderInput | Prisma.SortOrder
+  trailers?: Prisma.SortOrderInput | Prisma.SortOrder
+  synopsis_long?: Prisma.SortOrderInput | Prisma.SortOrder
+  images?: Prisma.SortOrderInput | Prisma.SortOrder
+  version_type?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
+  review_txt?: Prisma.SortOrderInput | Prisma.SortOrder
+  distributor?: Prisma.SortOrderInput | Prisma.SortOrder
+  genres?: Prisma.SortOrderInput | Prisma.SortOrder
+  cast?: Prisma.SortOrderInput | Prisma.SortOrder
+  directors?: Prisma.SortOrderInput | Prisma.SortOrder
+  producers?: Prisma.SortOrderInput | Prisma.SortOrder
+  writers?: Prisma.SortOrderInput | Prisma.SortOrder
+  filmOfCinema?: Prisma.FilmOfCinemaOrderByRelationAggregateInput
 }
 
 export type FilmWhereUniqueInput = Prisma.AtLeast<{
-  id?: string
+  film_id?: number
   AND?: Prisma.FilmWhereInput | Prisma.FilmWhereInput[]
   OR?: Prisma.FilmWhereInput[]
   NOT?: Prisma.FilmWhereInput | Prisma.FilmWhereInput[]
-  name?: Prisma.StringFilter<"Film"> | string
-  author?: Prisma.StringFilter<"Film"> | string
-  performer?: Prisma.StringFilter<"Film"> | string
-  type?: Prisma.EnumFilmTypeFilter<"Film"> | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFilter<"Film"> | Date | string
-  length?: Prisma.StringFilter<"Film"> | string
-  lang?: Prisma.StringFilter<"Film"> | string
-  rated?: Prisma.FloatFilter<"Film"> | number
-  description?: Prisma.StringFilter<"Film"> | string
-  createdAt?: Prisma.DateTimeFilter<"Film"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Film"> | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterListRelationFilter
-  schedules?: Prisma.ScheduleListRelationFilter
-}, "id">
+  film_name?: Prisma.StringFilter<"Film"> | string
+  other_title?: Prisma.JsonNullableFilter<"Film">
+  release_dates?: Prisma.JsonNullableFilter<"Film">
+  age_rating?: Prisma.JsonNullableFilter<"Film">
+  trailers?: Prisma.JsonNullableFilter<"Film">
+  synopsis_long?: Prisma.StringNullableFilter<"Film"> | string | null
+  images?: Prisma.JsonNullableFilter<"Film">
+  version_type?: Prisma.EnumVERSION_TYPEFilter<"Film"> | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFilter<"Film"> | number
+  review_stars?: Prisma.FloatFilter<"Film"> | number
+  review_txt?: Prisma.StringNullableFilter<"Film"> | string | null
+  distributor?: Prisma.StringNullableFilter<"Film"> | string | null
+  genres?: Prisma.JsonNullableFilter<"Film">
+  cast?: Prisma.JsonNullableFilter<"Film">
+  directors?: Prisma.JsonNullableFilter<"Film">
+  producers?: Prisma.JsonNullableFilter<"Film">
+  writers?: Prisma.JsonNullableFilter<"Film">
+  filmOfCinema?: Prisma.FilmOfCinemaListRelationFilter
+}, "film_id">
 
 export type FilmOrderByWithAggregationInput = {
-  id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  author?: Prisma.SortOrder
-  performer?: Prisma.SortOrder
-  type?: Prisma.SortOrder
-  startedTime?: Prisma.SortOrder
-  length?: Prisma.SortOrder
-  lang?: Prisma.SortOrder
-  rated?: Prisma.SortOrder
-  description?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
-  updatedAt?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  film_name?: Prisma.SortOrder
+  other_title?: Prisma.SortOrderInput | Prisma.SortOrder
+  release_dates?: Prisma.SortOrderInput | Prisma.SortOrder
+  age_rating?: Prisma.SortOrderInput | Prisma.SortOrder
+  trailers?: Prisma.SortOrderInput | Prisma.SortOrder
+  synopsis_long?: Prisma.SortOrderInput | Prisma.SortOrder
+  images?: Prisma.SortOrderInput | Prisma.SortOrder
+  version_type?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
+  review_txt?: Prisma.SortOrderInput | Prisma.SortOrder
+  distributor?: Prisma.SortOrderInput | Prisma.SortOrder
+  genres?: Prisma.SortOrderInput | Prisma.SortOrder
+  cast?: Prisma.SortOrderInput | Prisma.SortOrder
+  directors?: Prisma.SortOrderInput | Prisma.SortOrder
+  producers?: Prisma.SortOrderInput | Prisma.SortOrder
+  writers?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.FilmCountOrderByAggregateInput
   _avg?: Prisma.FilmAvgOrderByAggregateInput
   _max?: Prisma.FilmMaxOrderByAggregateInput
@@ -337,184 +368,230 @@ export type FilmScalarWhereWithAggregatesInput = {
   AND?: Prisma.FilmScalarWhereWithAggregatesInput | Prisma.FilmScalarWhereWithAggregatesInput[]
   OR?: Prisma.FilmScalarWhereWithAggregatesInput[]
   NOT?: Prisma.FilmScalarWhereWithAggregatesInput | Prisma.FilmScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Film"> | string
-  name?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  author?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  performer?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  type?: Prisma.EnumFilmTypeWithAggregatesFilter<"Film"> | $Enums.FilmType
-  startedTime?: Prisma.DateTimeWithAggregatesFilter<"Film"> | Date | string
-  length?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  lang?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  rated?: Prisma.FloatWithAggregatesFilter<"Film"> | number
-  description?: Prisma.StringWithAggregatesFilter<"Film"> | string
-  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Film"> | Date | string
-  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Film"> | Date | string
+  film_id?: Prisma.IntWithAggregatesFilter<"Film"> | number
+  film_name?: Prisma.StringWithAggregatesFilter<"Film"> | string
+  other_title?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  release_dates?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  age_rating?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  trailers?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  synopsis_long?: Prisma.StringNullableWithAggregatesFilter<"Film"> | string | null
+  images?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  version_type?: Prisma.EnumVERSION_TYPEWithAggregatesFilter<"Film"> | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntWithAggregatesFilter<"Film"> | number
+  review_stars?: Prisma.FloatWithAggregatesFilter<"Film"> | number
+  review_txt?: Prisma.StringNullableWithAggregatesFilter<"Film"> | string | null
+  distributor?: Prisma.StringNullableWithAggregatesFilter<"Film"> | string | null
+  genres?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  cast?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  directors?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  producers?: Prisma.JsonNullableWithAggregatesFilter<"Film">
+  writers?: Prisma.JsonNullableWithAggregatesFilter<"Film">
 }
 
 export type FilmCreateInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterCreateNestedManyWithoutFilmInput
-  schedules?: Prisma.ScheduleCreateNestedManyWithoutFilmInput
+  film_id: number
+  film_name: string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt?: string | null
+  distributor?: string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  filmOfCinema?: Prisma.FilmOfCinemaCreateNestedManyWithoutFilmInput
 }
 
 export type FilmUncheckedCreateInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUncheckedCreateNestedManyWithoutFilmInput
-  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutFilmInput
+  film_id: number
+  film_name: string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt?: string | null
+  distributor?: string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  filmOfCinema?: Prisma.FilmOfCinemaUncheckedCreateNestedManyWithoutFilmInput
 }
 
 export type FilmUpdateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUpdateManyWithoutFilmNestedInput
-  schedules?: Prisma.ScheduleUpdateManyWithoutFilmNestedInput
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  filmOfCinema?: Prisma.FilmOfCinemaUpdateManyWithoutFilmNestedInput
 }
 
 export type FilmUncheckedUpdateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUncheckedUpdateManyWithoutFilmNestedInput
-  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutFilmNestedInput
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  filmOfCinema?: Prisma.FilmOfCinemaUncheckedUpdateManyWithoutFilmNestedInput
 }
 
 export type FilmCreateManyInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
+  film_id: number
+  film_name: string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt?: string | null
+  distributor?: string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type FilmUpdateManyMutationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type FilmUncheckedUpdateManyInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type FilmCountOrderByAggregateInput = {
-  id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  author?: Prisma.SortOrder
-  performer?: Prisma.SortOrder
-  type?: Prisma.SortOrder
-  startedTime?: Prisma.SortOrder
-  length?: Prisma.SortOrder
-  lang?: Prisma.SortOrder
-  rated?: Prisma.SortOrder
-  description?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
-  updatedAt?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  film_name?: Prisma.SortOrder
+  other_title?: Prisma.SortOrder
+  release_dates?: Prisma.SortOrder
+  age_rating?: Prisma.SortOrder
+  trailers?: Prisma.SortOrder
+  synopsis_long?: Prisma.SortOrder
+  images?: Prisma.SortOrder
+  version_type?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
+  review_txt?: Prisma.SortOrder
+  distributor?: Prisma.SortOrder
+  genres?: Prisma.SortOrder
+  cast?: Prisma.SortOrder
+  directors?: Prisma.SortOrder
+  producers?: Prisma.SortOrder
+  writers?: Prisma.SortOrder
 }
 
 export type FilmAvgOrderByAggregateInput = {
-  rated?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
 }
 
 export type FilmMaxOrderByAggregateInput = {
-  id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  author?: Prisma.SortOrder
-  performer?: Prisma.SortOrder
-  type?: Prisma.SortOrder
-  startedTime?: Prisma.SortOrder
-  length?: Prisma.SortOrder
-  lang?: Prisma.SortOrder
-  rated?: Prisma.SortOrder
-  description?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
-  updatedAt?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  film_name?: Prisma.SortOrder
+  synopsis_long?: Prisma.SortOrder
+  version_type?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
+  review_txt?: Prisma.SortOrder
+  distributor?: Prisma.SortOrder
 }
 
 export type FilmMinOrderByAggregateInput = {
-  id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  author?: Prisma.SortOrder
-  performer?: Prisma.SortOrder
-  type?: Prisma.SortOrder
-  startedTime?: Prisma.SortOrder
-  length?: Prisma.SortOrder
-  lang?: Prisma.SortOrder
-  rated?: Prisma.SortOrder
-  description?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
-  updatedAt?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  film_name?: Prisma.SortOrder
+  synopsis_long?: Prisma.SortOrder
+  version_type?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
+  review_txt?: Prisma.SortOrder
+  distributor?: Prisma.SortOrder
 }
 
 export type FilmSumOrderByAggregateInput = {
-  rated?: Prisma.SortOrder
+  film_id?: Prisma.SortOrder
+  duration_mins?: Prisma.SortOrder
+  review_stars?: Prisma.SortOrder
 }
 
 export type FilmScalarRelationFilter = {
@@ -522,16 +599,8 @@ export type FilmScalarRelationFilter = {
   isNot?: Prisma.FilmWhereInput
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
-}
-
-export type EnumFilmTypeFieldUpdateOperationsInput = {
-  set?: $Enums.FilmType
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
+export type EnumVERSION_TYPEFieldUpdateOperationsInput = {
+  set?: $Enums.VERSION_TYPE
 }
 
 export type FloatFieldUpdateOperationsInput = {
@@ -542,192 +611,118 @@ export type FloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type FilmCreateNestedOneWithoutFilmOfTheatersInput = {
-  create?: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedCreateWithoutFilmOfTheatersInput>
-  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutFilmOfTheatersInput
+export type FilmCreateNestedOneWithoutFilmOfCinemaInput = {
+  create?: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedCreateWithoutFilmOfCinemaInput>
+  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutFilmOfCinemaInput
   connect?: Prisma.FilmWhereUniqueInput
 }
 
-export type FilmUpdateOneRequiredWithoutFilmOfTheatersNestedInput = {
-  create?: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedCreateWithoutFilmOfTheatersInput>
-  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutFilmOfTheatersInput
-  upsert?: Prisma.FilmUpsertWithoutFilmOfTheatersInput
+export type FilmUpdateOneRequiredWithoutFilmOfCinemaNestedInput = {
+  create?: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedCreateWithoutFilmOfCinemaInput>
+  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutFilmOfCinemaInput
+  upsert?: Prisma.FilmUpsertWithoutFilmOfCinemaInput
   connect?: Prisma.FilmWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.FilmUpdateToOneWithWhereWithoutFilmOfTheatersInput, Prisma.FilmUpdateWithoutFilmOfTheatersInput>, Prisma.FilmUncheckedUpdateWithoutFilmOfTheatersInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FilmUpdateToOneWithWhereWithoutFilmOfCinemaInput, Prisma.FilmUpdateWithoutFilmOfCinemaInput>, Prisma.FilmUncheckedUpdateWithoutFilmOfCinemaInput>
 }
 
-export type FilmCreateNestedOneWithoutSchedulesInput = {
-  create?: Prisma.XOR<Prisma.FilmCreateWithoutSchedulesInput, Prisma.FilmUncheckedCreateWithoutSchedulesInput>
-  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutSchedulesInput
-  connect?: Prisma.FilmWhereUniqueInput
+export type FilmCreateWithoutFilmOfCinemaInput = {
+  film_id: number
+  film_name: string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt?: string | null
+  distributor?: string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
-export type FilmUpdateOneRequiredWithoutSchedulesNestedInput = {
-  create?: Prisma.XOR<Prisma.FilmCreateWithoutSchedulesInput, Prisma.FilmUncheckedCreateWithoutSchedulesInput>
-  connectOrCreate?: Prisma.FilmCreateOrConnectWithoutSchedulesInput
-  upsert?: Prisma.FilmUpsertWithoutSchedulesInput
-  connect?: Prisma.FilmWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.FilmUpdateToOneWithWhereWithoutSchedulesInput, Prisma.FilmUpdateWithoutSchedulesInput>, Prisma.FilmUncheckedUpdateWithoutSchedulesInput>
+export type FilmUncheckedCreateWithoutFilmOfCinemaInput = {
+  film_id: number
+  film_name: string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type: $Enums.VERSION_TYPE
+  duration_mins: number
+  review_stars: number
+  review_txt?: string | null
+  distributor?: string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
-export type FilmCreateWithoutFilmOfTheatersInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  schedules?: Prisma.ScheduleCreateNestedManyWithoutFilmInput
-}
-
-export type FilmUncheckedCreateWithoutFilmOfTheatersInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutFilmInput
-}
-
-export type FilmCreateOrConnectWithoutFilmOfTheatersInput = {
+export type FilmCreateOrConnectWithoutFilmOfCinemaInput = {
   where: Prisma.FilmWhereUniqueInput
-  create: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedCreateWithoutFilmOfTheatersInput>
+  create: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedCreateWithoutFilmOfCinemaInput>
 }
 
-export type FilmUpsertWithoutFilmOfTheatersInput = {
-  update: Prisma.XOR<Prisma.FilmUpdateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedUpdateWithoutFilmOfTheatersInput>
-  create: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedCreateWithoutFilmOfTheatersInput>
+export type FilmUpsertWithoutFilmOfCinemaInput = {
+  update: Prisma.XOR<Prisma.FilmUpdateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedUpdateWithoutFilmOfCinemaInput>
+  create: Prisma.XOR<Prisma.FilmCreateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedCreateWithoutFilmOfCinemaInput>
   where?: Prisma.FilmWhereInput
 }
 
-export type FilmUpdateToOneWithWhereWithoutFilmOfTheatersInput = {
+export type FilmUpdateToOneWithWhereWithoutFilmOfCinemaInput = {
   where?: Prisma.FilmWhereInput
-  data: Prisma.XOR<Prisma.FilmUpdateWithoutFilmOfTheatersInput, Prisma.FilmUncheckedUpdateWithoutFilmOfTheatersInput>
+  data: Prisma.XOR<Prisma.FilmUpdateWithoutFilmOfCinemaInput, Prisma.FilmUncheckedUpdateWithoutFilmOfCinemaInput>
 }
 
-export type FilmUpdateWithoutFilmOfTheatersInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  schedules?: Prisma.ScheduleUpdateManyWithoutFilmNestedInput
+export type FilmUpdateWithoutFilmOfCinemaInput = {
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
-export type FilmUncheckedUpdateWithoutFilmOfTheatersInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutFilmNestedInput
-}
-
-export type FilmCreateWithoutSchedulesInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterCreateNestedManyWithoutFilmInput
-}
-
-export type FilmUncheckedCreateWithoutSchedulesInput = {
-  id?: string
-  name: string
-  author: string
-  performer: string
-  type: $Enums.FilmType
-  startedTime: Date | string
-  length: string
-  lang: string
-  rated: number
-  description: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUncheckedCreateNestedManyWithoutFilmInput
-}
-
-export type FilmCreateOrConnectWithoutSchedulesInput = {
-  where: Prisma.FilmWhereUniqueInput
-  create: Prisma.XOR<Prisma.FilmCreateWithoutSchedulesInput, Prisma.FilmUncheckedCreateWithoutSchedulesInput>
-}
-
-export type FilmUpsertWithoutSchedulesInput = {
-  update: Prisma.XOR<Prisma.FilmUpdateWithoutSchedulesInput, Prisma.FilmUncheckedUpdateWithoutSchedulesInput>
-  create: Prisma.XOR<Prisma.FilmCreateWithoutSchedulesInput, Prisma.FilmUncheckedCreateWithoutSchedulesInput>
-  where?: Prisma.FilmWhereInput
-}
-
-export type FilmUpdateToOneWithWhereWithoutSchedulesInput = {
-  where?: Prisma.FilmWhereInput
-  data: Prisma.XOR<Prisma.FilmUpdateWithoutSchedulesInput, Prisma.FilmUncheckedUpdateWithoutSchedulesInput>
-}
-
-export type FilmUpdateWithoutSchedulesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUpdateManyWithoutFilmNestedInput
-}
-
-export type FilmUncheckedUpdateWithoutSchedulesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  author?: Prisma.StringFieldUpdateOperationsInput | string
-  performer?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFilmTypeFieldUpdateOperationsInput | $Enums.FilmType
-  startedTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  length?: Prisma.StringFieldUpdateOperationsInput | string
-  lang?: Prisma.StringFieldUpdateOperationsInput | string
-  rated?: Prisma.FloatFieldUpdateOperationsInput | number
-  description?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  filmOfTheaters?: Prisma.FilmOfTheaterUncheckedUpdateManyWithoutFilmNestedInput
+export type FilmUncheckedUpdateWithoutFilmOfCinemaInput = {
+  film_id?: Prisma.IntFieldUpdateOperationsInput | number
+  film_name?: Prisma.StringFieldUpdateOperationsInput | string
+  other_title?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  release_dates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  age_rating?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  trailers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  synopsis_long?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  images?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  version_type?: Prisma.EnumVERSION_TYPEFieldUpdateOperationsInput | $Enums.VERSION_TYPE
+  duration_mins?: Prisma.IntFieldUpdateOperationsInput | number
+  review_stars?: Prisma.FloatFieldUpdateOperationsInput | number
+  review_txt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  distributor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  genres?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cast?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  directors?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  producers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  writers?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 
@@ -736,13 +731,11 @@ export type FilmUncheckedUpdateWithoutSchedulesInput = {
  */
 
 export type FilmCountOutputType = {
-  filmOfTheaters: number
-  schedules: number
+  filmOfCinema: number
 }
 
 export type FilmCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  filmOfTheaters?: boolean | FilmCountOutputTypeCountFilmOfTheatersArgs
-  schedules?: boolean | FilmCountOutputTypeCountSchedulesArgs
+  filmOfCinema?: boolean | FilmCountOutputTypeCountFilmOfCinemaArgs
 }
 
 /**
@@ -758,85 +751,100 @@ export type FilmCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * FilmCountOutputType without action
  */
-export type FilmCountOutputTypeCountFilmOfTheatersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.FilmOfTheaterWhereInput
-}
-
-/**
- * FilmCountOutputType without action
- */
-export type FilmCountOutputTypeCountSchedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ScheduleWhereInput
+export type FilmCountOutputTypeCountFilmOfCinemaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FilmOfCinemaWhereInput
 }
 
 
 export type FilmSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  name?: boolean
-  author?: boolean
-  performer?: boolean
-  type?: boolean
-  startedTime?: boolean
-  length?: boolean
-  lang?: boolean
-  rated?: boolean
-  description?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-  filmOfTheaters?: boolean | Prisma.Film$filmOfTheatersArgs<ExtArgs>
-  schedules?: boolean | Prisma.Film$schedulesArgs<ExtArgs>
+  film_id?: boolean
+  film_name?: boolean
+  other_title?: boolean
+  release_dates?: boolean
+  age_rating?: boolean
+  trailers?: boolean
+  synopsis_long?: boolean
+  images?: boolean
+  version_type?: boolean
+  duration_mins?: boolean
+  review_stars?: boolean
+  review_txt?: boolean
+  distributor?: boolean
+  genres?: boolean
+  cast?: boolean
+  directors?: boolean
+  producers?: boolean
+  writers?: boolean
+  filmOfCinema?: boolean | Prisma.Film$filmOfCinemaArgs<ExtArgs>
   _count?: boolean | Prisma.FilmCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["film"]>
 
 export type FilmSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  name?: boolean
-  author?: boolean
-  performer?: boolean
-  type?: boolean
-  startedTime?: boolean
-  length?: boolean
-  lang?: boolean
-  rated?: boolean
-  description?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
+  film_id?: boolean
+  film_name?: boolean
+  other_title?: boolean
+  release_dates?: boolean
+  age_rating?: boolean
+  trailers?: boolean
+  synopsis_long?: boolean
+  images?: boolean
+  version_type?: boolean
+  duration_mins?: boolean
+  review_stars?: boolean
+  review_txt?: boolean
+  distributor?: boolean
+  genres?: boolean
+  cast?: boolean
+  directors?: boolean
+  producers?: boolean
+  writers?: boolean
 }, ExtArgs["result"]["film"]>
 
 export type FilmSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  name?: boolean
-  author?: boolean
-  performer?: boolean
-  type?: boolean
-  startedTime?: boolean
-  length?: boolean
-  lang?: boolean
-  rated?: boolean
-  description?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
+  film_id?: boolean
+  film_name?: boolean
+  other_title?: boolean
+  release_dates?: boolean
+  age_rating?: boolean
+  trailers?: boolean
+  synopsis_long?: boolean
+  images?: boolean
+  version_type?: boolean
+  duration_mins?: boolean
+  review_stars?: boolean
+  review_txt?: boolean
+  distributor?: boolean
+  genres?: boolean
+  cast?: boolean
+  directors?: boolean
+  producers?: boolean
+  writers?: boolean
 }, ExtArgs["result"]["film"]>
 
 export type FilmSelectScalar = {
-  id?: boolean
-  name?: boolean
-  author?: boolean
-  performer?: boolean
-  type?: boolean
-  startedTime?: boolean
-  length?: boolean
-  lang?: boolean
-  rated?: boolean
-  description?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
+  film_id?: boolean
+  film_name?: boolean
+  other_title?: boolean
+  release_dates?: boolean
+  age_rating?: boolean
+  trailers?: boolean
+  synopsis_long?: boolean
+  images?: boolean
+  version_type?: boolean
+  duration_mins?: boolean
+  review_stars?: boolean
+  review_txt?: boolean
+  distributor?: boolean
+  genres?: boolean
+  cast?: boolean
+  directors?: boolean
+  producers?: boolean
+  writers?: boolean
 }
 
-export type FilmOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "author" | "performer" | "type" | "startedTime" | "length" | "lang" | "rated" | "description" | "createdAt" | "updatedAt", ExtArgs["result"]["film"]>
+export type FilmOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"film_id" | "film_name" | "other_title" | "release_dates" | "age_rating" | "trailers" | "synopsis_long" | "images" | "version_type" | "duration_mins" | "review_stars" | "review_txt" | "distributor" | "genres" | "cast" | "directors" | "producers" | "writers", ExtArgs["result"]["film"]>
 export type FilmInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  filmOfTheaters?: boolean | Prisma.Film$filmOfTheatersArgs<ExtArgs>
-  schedules?: boolean | Prisma.Film$schedulesArgs<ExtArgs>
+  filmOfCinema?: boolean | Prisma.Film$filmOfCinemaArgs<ExtArgs>
   _count?: boolean | Prisma.FilmCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FilmIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -845,22 +853,27 @@ export type FilmIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $FilmPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Film"
   objects: {
-    filmOfTheaters: Prisma.$FilmOfTheaterPayload<ExtArgs>[]
-    schedules: Prisma.$SchedulePayload<ExtArgs>[]
+    filmOfCinema: Prisma.$FilmOfCinemaPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    id: string
-    name: string
-    author: string
-    performer: string
-    type: $Enums.FilmType
-    startedTime: Date
-    length: string
-    lang: string
-    rated: number
-    description: string
-    createdAt: Date
-    updatedAt: Date
+    film_id: number
+    film_name: string
+    other_title: runtime.JsonValue | null
+    release_dates: runtime.JsonValue | null
+    age_rating: runtime.JsonValue | null
+    trailers: runtime.JsonValue | null
+    synopsis_long: string | null
+    images: runtime.JsonValue | null
+    version_type: $Enums.VERSION_TYPE
+    duration_mins: number
+    review_stars: number
+    review_txt: string | null
+    distributor: string | null
+    genres: runtime.JsonValue | null
+    cast: runtime.JsonValue | null
+    directors: runtime.JsonValue | null
+    producers: runtime.JsonValue | null
+    writers: runtime.JsonValue | null
   }, ExtArgs["result"]["film"]>
   composites: {}
 }
@@ -944,8 +957,8 @@ export interface FilmDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    * // Get first 10 Films
    * const films = await prisma.film.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const filmWithIdOnly = await prisma.film.findMany({ select: { id: true } })
+   * // Only select the `film_id`
+   * const filmWithFilm_idOnly = await prisma.film.findMany({ select: { film_id: true } })
    * 
    */
   findMany<T extends FilmFindManyArgs>(args?: Prisma.SelectSubset<T, FilmFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FilmPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -989,9 +1002,9 @@ export interface FilmDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    *   ]
    * })
    * 
-   * // Create many Films and only return the `id`
-   * const filmWithIdOnly = await prisma.film.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Films and only return the `film_id`
+   * const filmWithFilm_idOnly = await prisma.film.createManyAndReturn({
+   *   select: { film_id: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1080,9 +1093,9 @@ export interface FilmDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    *   ]
    * })
    * 
-   * // Update zero or more Films and only return the `id`
-   * const filmWithIdOnly = await prisma.film.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Films and only return the `film_id`
+   * const filmWithFilm_idOnly = await prisma.film.updateManyAndReturn({
+   *   select: { film_id: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1255,8 +1268,7 @@ readonly fields: FilmFieldRefs;
  */
 export interface Prisma__FilmClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  filmOfTheaters<T extends Prisma.Film$filmOfTheatersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Film$filmOfTheatersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FilmOfTheaterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  schedules<T extends Prisma.Film$schedulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Film$schedulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  filmOfCinema<T extends Prisma.Film$filmOfCinemaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Film$filmOfCinemaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FilmOfCinemaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1286,18 +1298,24 @@ export interface Prisma__FilmClient<T, Null = never, ExtArgs extends runtime.Typ
  * Fields of the Film model
  */
 export interface FilmFieldRefs {
-  readonly id: Prisma.FieldRef<"Film", 'String'>
-  readonly name: Prisma.FieldRef<"Film", 'String'>
-  readonly author: Prisma.FieldRef<"Film", 'String'>
-  readonly performer: Prisma.FieldRef<"Film", 'String'>
-  readonly type: Prisma.FieldRef<"Film", 'FilmType'>
-  readonly startedTime: Prisma.FieldRef<"Film", 'DateTime'>
-  readonly length: Prisma.FieldRef<"Film", 'String'>
-  readonly lang: Prisma.FieldRef<"Film", 'String'>
-  readonly rated: Prisma.FieldRef<"Film", 'Float'>
-  readonly description: Prisma.FieldRef<"Film", 'String'>
-  readonly createdAt: Prisma.FieldRef<"Film", 'DateTime'>
-  readonly updatedAt: Prisma.FieldRef<"Film", 'DateTime'>
+  readonly film_id: Prisma.FieldRef<"Film", 'Int'>
+  readonly film_name: Prisma.FieldRef<"Film", 'String'>
+  readonly other_title: Prisma.FieldRef<"Film", 'Json'>
+  readonly release_dates: Prisma.FieldRef<"Film", 'Json'>
+  readonly age_rating: Prisma.FieldRef<"Film", 'Json'>
+  readonly trailers: Prisma.FieldRef<"Film", 'Json'>
+  readonly synopsis_long: Prisma.FieldRef<"Film", 'String'>
+  readonly images: Prisma.FieldRef<"Film", 'Json'>
+  readonly version_type: Prisma.FieldRef<"Film", 'VERSION_TYPE'>
+  readonly duration_mins: Prisma.FieldRef<"Film", 'Int'>
+  readonly review_stars: Prisma.FieldRef<"Film", 'Float'>
+  readonly review_txt: Prisma.FieldRef<"Film", 'String'>
+  readonly distributor: Prisma.FieldRef<"Film", 'String'>
+  readonly genres: Prisma.FieldRef<"Film", 'Json'>
+  readonly cast: Prisma.FieldRef<"Film", 'Json'>
+  readonly directors: Prisma.FieldRef<"Film", 'Json'>
+  readonly producers: Prisma.FieldRef<"Film", 'Json'>
+  readonly writers: Prisma.FieldRef<"Film", 'Json'>
 }
     
 
@@ -1686,51 +1704,27 @@ export type FilmDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * Film.filmOfTheaters
+ * Film.filmOfCinema
  */
-export type Film$filmOfTheatersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Film$filmOfCinemaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the FilmOfTheater
+   * Select specific fields to fetch from the FilmOfCinema
    */
-  select?: Prisma.FilmOfTheaterSelect<ExtArgs> | null
+  select?: Prisma.FilmOfCinemaSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the FilmOfTheater
+   * Omit specific fields from the FilmOfCinema
    */
-  omit?: Prisma.FilmOfTheaterOmit<ExtArgs> | null
+  omit?: Prisma.FilmOfCinemaOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.FilmOfTheaterInclude<ExtArgs> | null
-  where?: Prisma.FilmOfTheaterWhereInput
-  orderBy?: Prisma.FilmOfTheaterOrderByWithRelationInput | Prisma.FilmOfTheaterOrderByWithRelationInput[]
-  cursor?: Prisma.FilmOfTheaterWhereUniqueInput
+  include?: Prisma.FilmOfCinemaInclude<ExtArgs> | null
+  where?: Prisma.FilmOfCinemaWhereInput
+  orderBy?: Prisma.FilmOfCinemaOrderByWithRelationInput | Prisma.FilmOfCinemaOrderByWithRelationInput[]
+  cursor?: Prisma.FilmOfCinemaWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.FilmOfTheaterScalarFieldEnum | Prisma.FilmOfTheaterScalarFieldEnum[]
-}
-
-/**
- * Film.schedules
- */
-export type Film$schedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Schedule
-   */
-  select?: Prisma.ScheduleSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Schedule
-   */
-  omit?: Prisma.ScheduleOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ScheduleInclude<ExtArgs> | null
-  where?: Prisma.ScheduleWhereInput
-  orderBy?: Prisma.ScheduleOrderByWithRelationInput | Prisma.ScheduleOrderByWithRelationInput[]
-  cursor?: Prisma.ScheduleWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ScheduleScalarFieldEnum | Prisma.ScheduleScalarFieldEnum[]
+  distinct?: Prisma.FilmOfCinemaScalarFieldEnum | Prisma.FilmOfCinemaScalarFieldEnum[]
 }
 
 /**

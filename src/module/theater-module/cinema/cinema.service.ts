@@ -142,4 +142,19 @@ export class CinemaService {
       },
     });
   }
+
+  async getFilmsOfCinema(cinema_id: number) {
+    return await this.prismaService.cinema.findMany({
+      where: {
+        cinema_id,
+      },
+      select: {
+        filmOfCinema: {
+          include: {
+            film: true,
+          },
+        },
+      },
+    });
+  }
 }

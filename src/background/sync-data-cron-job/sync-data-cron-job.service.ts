@@ -7,8 +7,8 @@ import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { CallMovieGluService } from './call-movie-glu.service';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
-import { CinemaService } from '../../module/theater/cinema/cinema.service';
-import { FilmService } from '../../module/theater/film/film.service';
+import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
+import { FilmService } from '../../module/theater-module/film/film.service';
 
 @Injectable()
 export class SyncDataCronJobService {
@@ -70,6 +70,7 @@ export class SyncDataCronJobService {
         };
 
         this.eventCronJobService.callSyncDataWithCinemaDetail(payload);
+        this.eventCronJobService.callSyncDataWithFilmShowTime(payload);
       },
     );
 

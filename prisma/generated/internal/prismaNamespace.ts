@@ -384,11 +384,11 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  Cinema: 'Cinema',
   Film: 'Film',
-  FilmOfTheater: 'FilmOfTheater',
-  Schedule: 'Schedule',
+  FilmOfCinema: 'FilmOfCinema',
   Seat: 'Seat',
-  Theater: 'Theater',
+  Session: 'Session',
   Ticket: 'Ticket',
   User: 'User'
 } as const
@@ -406,10 +406,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "film" | "filmOfTheater" | "schedule" | "seat" | "theater" | "ticket" | "user"
+    modelProps: "cinema" | "film" | "filmOfCinema" | "seat" | "session" | "ticket" | "user"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    Cinema: {
+      payload: Prisma.$CinemaPayload<ExtArgs>
+      fields: Prisma.CinemaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CinemaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CinemaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        findFirst: {
+          args: Prisma.CinemaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CinemaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        findMany: {
+          args: Prisma.CinemaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>[]
+        }
+        create: {
+          args: Prisma.CinemaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        createMany: {
+          args: Prisma.CinemaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CinemaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>[]
+        }
+        delete: {
+          args: Prisma.CinemaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        update: {
+          args: Prisma.CinemaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        deleteMany: {
+          args: Prisma.CinemaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CinemaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CinemaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>[]
+        }
+        upsert: {
+          args: Prisma.CinemaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CinemaPayload>
+        }
+        aggregate: {
+          args: Prisma.CinemaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCinema>
+        }
+        groupBy: {
+          args: Prisma.CinemaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CinemaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CinemaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CinemaCountAggregateOutputType> | number
+        }
+      }
+    }
     Film: {
       payload: Prisma.$FilmPayload<ExtArgs>
       fields: Prisma.FilmFieldRefs
@@ -484,151 +558,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    FilmOfTheater: {
-      payload: Prisma.$FilmOfTheaterPayload<ExtArgs>
-      fields: Prisma.FilmOfTheaterFieldRefs
+    FilmOfCinema: {
+      payload: Prisma.$FilmOfCinemaPayload<ExtArgs>
+      fields: Prisma.FilmOfCinemaFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.FilmOfTheaterFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload> | null
+          args: Prisma.FilmOfCinemaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.FilmOfTheaterFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         findFirst: {
-          args: Prisma.FilmOfTheaterFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload> | null
+          args: Prisma.FilmOfCinemaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.FilmOfTheaterFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         findMany: {
-          args: Prisma.FilmOfTheaterFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>[]
+          args: Prisma.FilmOfCinemaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>[]
         }
         create: {
-          args: Prisma.FilmOfTheaterCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         createMany: {
-          args: Prisma.FilmOfTheaterCreateManyArgs<ExtArgs>
+          args: Prisma.FilmOfCinemaCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.FilmOfTheaterCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>[]
+          args: Prisma.FilmOfCinemaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>[]
         }
         delete: {
-          args: Prisma.FilmOfTheaterDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         update: {
-          args: Prisma.FilmOfTheaterUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         deleteMany: {
-          args: Prisma.FilmOfTheaterDeleteManyArgs<ExtArgs>
+          args: Prisma.FilmOfCinemaDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.FilmOfTheaterUpdateManyArgs<ExtArgs>
+          args: Prisma.FilmOfCinemaUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.FilmOfTheaterUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>[]
+          args: Prisma.FilmOfCinemaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>[]
         }
         upsert: {
-          args: Prisma.FilmOfTheaterUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfTheaterPayload>
+          args: Prisma.FilmOfCinemaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilmOfCinemaPayload>
         }
         aggregate: {
-          args: Prisma.FilmOfTheaterAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateFilmOfTheater>
+          args: Prisma.FilmOfCinemaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFilmOfCinema>
         }
         groupBy: {
-          args: Prisma.FilmOfTheaterGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FilmOfTheaterGroupByOutputType>[]
+          args: Prisma.FilmOfCinemaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FilmOfCinemaGroupByOutputType>[]
         }
         count: {
-          args: Prisma.FilmOfTheaterCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FilmOfTheaterCountAggregateOutputType> | number
-        }
-      }
-    }
-    Schedule: {
-      payload: Prisma.$SchedulePayload<ExtArgs>
-      fields: Prisma.ScheduleFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.ScheduleFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.ScheduleFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        findFirst: {
-          args: Prisma.ScheduleFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.ScheduleFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        findMany: {
-          args: Prisma.ScheduleFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>[]
-        }
-        create: {
-          args: Prisma.ScheduleCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        createMany: {
-          args: Prisma.ScheduleCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.ScheduleCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>[]
-        }
-        delete: {
-          args: Prisma.ScheduleDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        update: {
-          args: Prisma.ScheduleUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        deleteMany: {
-          args: Prisma.ScheduleDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.ScheduleUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.ScheduleUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>[]
-        }
-        upsert: {
-          args: Prisma.ScheduleUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SchedulePayload>
-        }
-        aggregate: {
-          args: Prisma.ScheduleAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSchedule>
-        }
-        groupBy: {
-          args: Prisma.ScheduleGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ScheduleGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.ScheduleCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ScheduleCountAggregateOutputType> | number
+          args: Prisma.FilmOfCinemaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FilmOfCinemaCountAggregateOutputType> | number
         }
       }
     }
@@ -706,77 +706,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    Theater: {
-      payload: Prisma.$TheaterPayload<ExtArgs>
-      fields: Prisma.TheaterFieldRefs
+    Session: {
+      payload: Prisma.$SessionPayload<ExtArgs>
+      fields: Prisma.SessionFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.TheaterFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload> | null
+          args: Prisma.SessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.TheaterFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         findFirst: {
-          args: Prisma.TheaterFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload> | null
+          args: Prisma.SessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.TheaterFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         findMany: {
-          args: Prisma.TheaterFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>[]
+          args: Prisma.SessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
         }
         create: {
-          args: Prisma.TheaterCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         createMany: {
-          args: Prisma.TheaterCreateManyArgs<ExtArgs>
+          args: Prisma.SessionCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.TheaterCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>[]
+          args: Prisma.SessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
         }
         delete: {
-          args: Prisma.TheaterDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         update: {
-          args: Prisma.TheaterUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         deleteMany: {
-          args: Prisma.TheaterDeleteManyArgs<ExtArgs>
+          args: Prisma.SessionDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.TheaterUpdateManyArgs<ExtArgs>
+          args: Prisma.SessionUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.TheaterUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>[]
+          args: Prisma.SessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
         }
         upsert: {
-          args: Prisma.TheaterUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TheaterPayload>
+          args: Prisma.SessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
         }
         aggregate: {
-          args: Prisma.TheaterAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTheater>
+          args: Prisma.SessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSession>
         }
         groupBy: {
-          args: Prisma.TheaterGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TheaterGroupByOutputType>[]
+          args: Prisma.SessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SessionGroupByOutputType>[]
         }
         count: {
-          args: Prisma.TheaterCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TheaterCountAggregateOutputType> | number
+          args: Prisma.SessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SessionCountAggregateOutputType> | number
         }
       }
     }
@@ -967,69 +967,78 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const FilmScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  author: 'author',
-  performer: 'performer',
-  type: 'type',
-  startedTime: 'startedTime',
-  length: 'length',
-  lang: 'lang',
-  rated: 'rated',
-  description: 'description',
+export const CinemaScalarFieldEnum = {
+  cinema_id: 'cinema_id',
+  cinema_name: 'cinema_name',
+  address: 'address',
+  address2: 'address2',
+  city: 'city',
+  country: 'country',
+  postcode: 'postcode',
+  phone: 'phone',
+  logo_url: 'logo_url',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+} as const
+
+export type CinemaScalarFieldEnum = (typeof CinemaScalarFieldEnum)[keyof typeof CinemaScalarFieldEnum]
+
+
+export const FilmScalarFieldEnum = {
+  film_id: 'film_id',
+  film_name: 'film_name',
+  other_title: 'other_title',
+  release_dates: 'release_dates',
+  age_rating: 'age_rating',
+  trailers: 'trailers',
+  synopsis_long: 'synopsis_long',
+  images: 'images',
+  version_type: 'version_type',
+  duration_mins: 'duration_mins',
+  review_stars: 'review_stars',
+  review_txt: 'review_txt',
+  distributor: 'distributor',
+  genres: 'genres',
+  cast: 'cast',
+  directors: 'directors',
+  producers: 'producers',
+  writers: 'writers'
 } as const
 
 export type FilmScalarFieldEnum = (typeof FilmScalarFieldEnum)[keyof typeof FilmScalarFieldEnum]
 
 
-export const FilmOfTheaterScalarFieldEnum = {
+export const FilmOfCinemaScalarFieldEnum = {
   id: 'id',
-  time: 'time',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  theaterId: 'theaterId',
-  filmId: 'filmId'
-} as const
-
-export type FilmOfTheaterScalarFieldEnum = (typeof FilmOfTheaterScalarFieldEnum)[keyof typeof FilmOfTheaterScalarFieldEnum]
-
-
-export const ScheduleScalarFieldEnum = {
-  id: 'id',
-  date: 'date',
-  day: 'day',
   filmId: 'filmId',
-  seatId: 'seatId'
+  cinemaId: 'cinemaId'
 } as const
 
-export type ScheduleScalarFieldEnum = (typeof ScheduleScalarFieldEnum)[keyof typeof ScheduleScalarFieldEnum]
+export type FilmOfCinemaScalarFieldEnum = (typeof FilmOfCinemaScalarFieldEnum)[keyof typeof FilmOfCinemaScalarFieldEnum]
 
 
 export const SeatScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  type: 'type',
-  status: 'status'
+  row: 'row',
+  column: 'column',
+  status: 'status',
+  filmId: 'filmId',
+  cinemaId: 'cinemaId'
 } as const
 
 export type SeatScalarFieldEnum = (typeof SeatScalarFieldEnum)[keyof typeof SeatScalarFieldEnum]
 
 
-export const TheaterScalarFieldEnum = {
+export const SessionScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  map: 'map',
-  address: 'address',
-  fax: 'fax',
-  hotline: 'hotline',
+  userId: 'userId',
+  hashRefreshToken: 'hashRefreshToken',
+  userIp: 'userIp',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type TheaterScalarFieldEnum = (typeof TheaterScalarFieldEnum)[keyof typeof TheaterScalarFieldEnum]
+export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
 
 
 export const TicketScalarFieldEnum = {
@@ -1052,6 +1061,7 @@ export const UserScalarFieldEnum = {
   hashPassword: 'hashPassword',
   dateOfBirth: 'dateOfBirth',
   address: 'address',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'
@@ -1066,6 +1076,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1084,10 +1102,33 @@ export const NullsOrder = {
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
 
 /**
  * Field references
  */
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
 
 
 /**
@@ -1101,20 +1142,6 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
-    
-
-
-/**
- * Reference to a field of type 'FilmType'
- */
-export type EnumFilmTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FilmType'>
-    
-
-
-/**
- * Reference to a field of type 'FilmType[]'
- */
-export type ListEnumFilmTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FilmType[]'>
     
 
 
@@ -1133,6 +1160,34 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'VERSION_TYPE'
+ */
+export type EnumVERSION_TYPEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VERSION_TYPE'>
+    
+
+
+/**
+ * Reference to a field of type 'VERSION_TYPE[]'
+ */
+export type ListEnumVERSION_TYPEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VERSION_TYPE[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1147,44 +1202,16 @@ export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMode
 
 
 /**
- * Reference to a field of type 'Int'
+ * Reference to a field of type 'SEAT_STATUS'
  */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+export type EnumSEAT_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SEAT_STATUS'>
     
 
 
 /**
- * Reference to a field of type 'Int[]'
+ * Reference to a field of type 'SEAT_STATUS[]'
  */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'SeatType'
- */
-export type EnumSeatTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeatType'>
-    
-
-
-/**
- * Reference to a field of type 'SeatType[]'
- */
-export type ListEnumSeatTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeatType[]'>
-    
-
-
-/**
- * Reference to a field of type 'SeatStatus'
- */
-export type EnumSeatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeatStatus'>
-    
-
-
-/**
- * Reference to a field of type 'SeatStatus[]'
- */
-export type ListEnumSeatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeatStatus[]'>
+export type ListEnumSEAT_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SEAT_STATUS[]'>
     
 
 
@@ -1192,6 +1219,20 @@ export type ListEnumSeatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'ACCOUNT_STATUS'
+ */
+export type EnumACCOUNT_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ACCOUNT_STATUS'>
+    
+
+
+/**
+ * Reference to a field of type 'ACCOUNT_STATUS[]'
+ */
+export type ListEnumACCOUNT_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ACCOUNT_STATUS[]'>
     
 
 /**
@@ -1289,11 +1330,11 @@ export type PrismaClientOptions = ({
   comments?: runtime.SqlCommenterPlugin[]
 }
 export type GlobalOmitConfig = {
+  cinema?: Prisma.CinemaOmit
   film?: Prisma.FilmOmit
-  filmOfTheater?: Prisma.FilmOfTheaterOmit
-  schedule?: Prisma.ScheduleOmit
+  filmOfCinema?: Prisma.FilmOfCinemaOmit
   seat?: Prisma.SeatOmit
-  theater?: Prisma.TheaterOmit
+  session?: Prisma.SessionOmit
   ticket?: Prisma.TicketOmit
   user?: Prisma.UserOmit
 }

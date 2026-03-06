@@ -18,4 +18,9 @@ export class SyncDateCronJobConsumer {
   async handleSyncEventCinemaShowtime(@Payload() dto: SyncCinemaShowtimeDto) {
     await this.callMovieGluService.syncDataCinemaShowtime(dto);
   }
+
+  @EventPattern(EVENT_NAME.FILM_SHOWTIME)
+  async handleSyncEventFilmShowtime(@Payload() dto: SyncCinemaShowtimeDto) {
+    await this.callMovieGluService.syncDateFilmsOfCinema(dto);
+  }
 }

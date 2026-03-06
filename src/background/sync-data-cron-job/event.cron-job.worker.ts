@@ -18,4 +18,8 @@ export class EventCronJobWorkerService {
   callSyncDataWithCinemaShowTime(dto: SyncCinemaShowtimeDto) {
     this.clientProxy.emit(EVENT_NAME.CINEMA_SHOWTIME, dto);
   }
+
+  callSyncDataWithFilmShowTime(dto: SyncCinemaShowtimeDto) {
+    this.clientProxy.emit(EVENT_NAME.FILM_SHOWTIME, dto);
+  }
 }

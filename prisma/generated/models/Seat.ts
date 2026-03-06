@@ -27,63 +27,83 @@ export type AggregateSeat = {
 }
 
 export type SeatAvgAggregateOutputType = {
-  id: number | null
+  row: number | null
+  column: number | null
+  cinemaId: number | null
 }
 
 export type SeatSumAggregateOutputType = {
-  id: number | null
+  row: number | null
+  column: number | null
+  cinemaId: number | null
 }
 
 export type SeatMinAggregateOutputType = {
-  id: number | null
-  name: string | null
-  type: $Enums.SeatType | null
-  status: $Enums.SeatStatus | null
+  id: string | null
+  row: number | null
+  column: number | null
+  status: $Enums.SEAT_STATUS | null
+  filmId: string | null
+  cinemaId: number | null
 }
 
 export type SeatMaxAggregateOutputType = {
-  id: number | null
-  name: string | null
-  type: $Enums.SeatType | null
-  status: $Enums.SeatStatus | null
+  id: string | null
+  row: number | null
+  column: number | null
+  status: $Enums.SEAT_STATUS | null
+  filmId: string | null
+  cinemaId: number | null
 }
 
 export type SeatCountAggregateOutputType = {
   id: number
-  name: number
-  type: number
+  row: number
+  column: number
   status: number
+  filmId: number
+  cinemaId: number
   _all: number
 }
 
 
 export type SeatAvgAggregateInputType = {
-  id?: true
+  row?: true
+  column?: true
+  cinemaId?: true
 }
 
 export type SeatSumAggregateInputType = {
-  id?: true
+  row?: true
+  column?: true
+  cinemaId?: true
 }
 
 export type SeatMinAggregateInputType = {
   id?: true
-  name?: true
-  type?: true
+  row?: true
+  column?: true
   status?: true
+  filmId?: true
+  cinemaId?: true
 }
 
 export type SeatMaxAggregateInputType = {
   id?: true
-  name?: true
-  type?: true
+  row?: true
+  column?: true
   status?: true
+  filmId?: true
+  cinemaId?: true
 }
 
 export type SeatCountAggregateInputType = {
   id?: true
-  name?: true
-  type?: true
+  row?: true
+  column?: true
   status?: true
+  filmId?: true
+  cinemaId?: true
   _all?: true
 }
 
@@ -174,10 +194,12 @@ export type SeatGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 }
 
 export type SeatGroupByOutputType = {
-  id: number
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
+  id: string
+  row: number
+  column: number
+  status: $Enums.SEAT_STATUS
+  filmId: string
+  cinemaId: number
   _count: SeatCountAggregateOutputType | null
   _avg: SeatAvgAggregateOutputType | null
   _sum: SeatSumAggregateOutputType | null
@@ -204,37 +226,48 @@ export type SeatWhereInput = {
   AND?: Prisma.SeatWhereInput | Prisma.SeatWhereInput[]
   OR?: Prisma.SeatWhereInput[]
   NOT?: Prisma.SeatWhereInput | Prisma.SeatWhereInput[]
-  id?: Prisma.IntFilter<"Seat"> | number
-  name?: Prisma.StringFilter<"Seat"> | string
-  type?: Prisma.EnumSeatTypeFilter<"Seat"> | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFilter<"Seat"> | $Enums.SeatStatus
-  schedules?: Prisma.ScheduleListRelationFilter
+  id?: Prisma.UuidFilter<"Seat"> | string
+  row?: Prisma.IntFilter<"Seat"> | number
+  column?: Prisma.IntFilter<"Seat"> | number
+  status?: Prisma.EnumSEAT_STATUSFilter<"Seat"> | $Enums.SEAT_STATUS
+  filmId?: Prisma.UuidFilter<"Seat"> | string
+  cinemaId?: Prisma.IntFilter<"Seat"> | number
+  film?: Prisma.XOR<Prisma.FilmOfCinemaScalarRelationFilter, Prisma.FilmOfCinemaWhereInput>
+  cinema?: Prisma.XOR<Prisma.CinemaScalarRelationFilter, Prisma.CinemaWhereInput>
 }
 
 export type SeatOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  schedules?: Prisma.ScheduleOrderByRelationAggregateInput
+  filmId?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
+  film?: Prisma.FilmOfCinemaOrderByWithRelationInput
+  cinema?: Prisma.CinemaOrderByWithRelationInput
 }
 
 export type SeatWhereUniqueInput = Prisma.AtLeast<{
-  id?: number
+  id?: string
+  cinemaId?: number
   AND?: Prisma.SeatWhereInput | Prisma.SeatWhereInput[]
   OR?: Prisma.SeatWhereInput[]
   NOT?: Prisma.SeatWhereInput | Prisma.SeatWhereInput[]
-  name?: Prisma.StringFilter<"Seat"> | string
-  type?: Prisma.EnumSeatTypeFilter<"Seat"> | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFilter<"Seat"> | $Enums.SeatStatus
-  schedules?: Prisma.ScheduleListRelationFilter
-}, "id">
+  row?: Prisma.IntFilter<"Seat"> | number
+  column?: Prisma.IntFilter<"Seat"> | number
+  status?: Prisma.EnumSEAT_STATUSFilter<"Seat"> | $Enums.SEAT_STATUS
+  filmId?: Prisma.UuidFilter<"Seat"> | string
+  film?: Prisma.XOR<Prisma.FilmOfCinemaScalarRelationFilter, Prisma.FilmOfCinemaWhereInput>
+  cinema?: Prisma.XOR<Prisma.CinemaScalarRelationFilter, Prisma.CinemaWhereInput>
+}, "id" | "cinemaId">
 
 export type SeatOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  filmId?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
   _count?: Prisma.SeatCountOrderByAggregateInput
   _avg?: Prisma.SeatAvgOrderByAggregateInput
   _max?: Prisma.SeatMaxOrderByAggregateInput
@@ -246,239 +279,443 @@ export type SeatScalarWhereWithAggregatesInput = {
   AND?: Prisma.SeatScalarWhereWithAggregatesInput | Prisma.SeatScalarWhereWithAggregatesInput[]
   OR?: Prisma.SeatScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SeatScalarWhereWithAggregatesInput | Prisma.SeatScalarWhereWithAggregatesInput[]
-  id?: Prisma.IntWithAggregatesFilter<"Seat"> | number
-  name?: Prisma.StringWithAggregatesFilter<"Seat"> | string
-  type?: Prisma.EnumSeatTypeWithAggregatesFilter<"Seat"> | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusWithAggregatesFilter<"Seat"> | $Enums.SeatStatus
+  id?: Prisma.UuidWithAggregatesFilter<"Seat"> | string
+  row?: Prisma.IntWithAggregatesFilter<"Seat"> | number
+  column?: Prisma.IntWithAggregatesFilter<"Seat"> | number
+  status?: Prisma.EnumSEAT_STATUSWithAggregatesFilter<"Seat"> | $Enums.SEAT_STATUS
+  filmId?: Prisma.UuidWithAggregatesFilter<"Seat"> | string
+  cinemaId?: Prisma.IntWithAggregatesFilter<"Seat"> | number
 }
 
 export type SeatCreateInput = {
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
-  schedules?: Prisma.ScheduleCreateNestedManyWithoutSeatInput
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  film: Prisma.FilmOfCinemaCreateNestedOneWithoutSeatsInput
+  cinema: Prisma.CinemaCreateNestedOneWithoutSeatsInput
 }
 
 export type SeatUncheckedCreateInput = {
-  id?: number
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
-  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutSeatInput
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  filmId: string
+  cinemaId: number
 }
 
 export type SeatUpdateInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
-  schedules?: Prisma.ScheduleUpdateManyWithoutSeatNestedInput
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  film?: Prisma.FilmOfCinemaUpdateOneRequiredWithoutSeatsNestedInput
+  cinema?: Prisma.CinemaUpdateOneRequiredWithoutSeatsNestedInput
 }
 
 export type SeatUncheckedUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
-  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutSeatNestedInput
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  filmId?: Prisma.StringFieldUpdateOperationsInput | string
+  cinemaId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type SeatCreateManyInput = {
-  id?: number
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  filmId: string
+  cinemaId: number
 }
 
 export type SeatUpdateManyMutationInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
 }
 
 export type SeatUncheckedUpdateManyInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  filmId?: Prisma.StringFieldUpdateOperationsInput | string
+  cinemaId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type SeatScalarRelationFilter = {
-  is?: Prisma.SeatWhereInput
-  isNot?: Prisma.SeatWhereInput
+export type SeatListRelationFilter = {
+  every?: Prisma.SeatWhereInput
+  some?: Prisma.SeatWhereInput
+  none?: Prisma.SeatWhereInput
+}
+
+export type SeatOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type SeatCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  filmId?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
 }
 
 export type SeatAvgOrderByAggregateInput = {
-  id?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
 }
 
 export type SeatMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  filmId?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
 }
 
 export type SeatMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  filmId?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
 }
 
 export type SeatSumOrderByAggregateInput = {
-  id?: Prisma.SortOrder
+  row?: Prisma.SortOrder
+  column?: Prisma.SortOrder
+  cinemaId?: Prisma.SortOrder
 }
 
-export type SeatCreateNestedOneWithoutSchedulesInput = {
-  create?: Prisma.XOR<Prisma.SeatCreateWithoutSchedulesInput, Prisma.SeatUncheckedCreateWithoutSchedulesInput>
-  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutSchedulesInput
-  connect?: Prisma.SeatWhereUniqueInput
+export type SeatCreateNestedManyWithoutCinemaInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput> | Prisma.SeatCreateWithoutCinemaInput[] | Prisma.SeatUncheckedCreateWithoutCinemaInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutCinemaInput | Prisma.SeatCreateOrConnectWithoutCinemaInput[]
+  createMany?: Prisma.SeatCreateManyCinemaInputEnvelope
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
 }
 
-export type SeatUpdateOneRequiredWithoutSchedulesNestedInput = {
-  create?: Prisma.XOR<Prisma.SeatCreateWithoutSchedulesInput, Prisma.SeatUncheckedCreateWithoutSchedulesInput>
-  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutSchedulesInput
-  upsert?: Prisma.SeatUpsertWithoutSchedulesInput
-  connect?: Prisma.SeatWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SeatUpdateToOneWithWhereWithoutSchedulesInput, Prisma.SeatUpdateWithoutSchedulesInput>, Prisma.SeatUncheckedUpdateWithoutSchedulesInput>
+export type SeatUncheckedCreateNestedManyWithoutCinemaInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput> | Prisma.SeatCreateWithoutCinemaInput[] | Prisma.SeatUncheckedCreateWithoutCinemaInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutCinemaInput | Prisma.SeatCreateOrConnectWithoutCinemaInput[]
+  createMany?: Prisma.SeatCreateManyCinemaInputEnvelope
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
 }
 
-export type EnumSeatTypeFieldUpdateOperationsInput = {
-  set?: $Enums.SeatType
+export type SeatUpdateManyWithoutCinemaNestedInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput> | Prisma.SeatCreateWithoutCinemaInput[] | Prisma.SeatUncheckedCreateWithoutCinemaInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutCinemaInput | Prisma.SeatCreateOrConnectWithoutCinemaInput[]
+  upsert?: Prisma.SeatUpsertWithWhereUniqueWithoutCinemaInput | Prisma.SeatUpsertWithWhereUniqueWithoutCinemaInput[]
+  createMany?: Prisma.SeatCreateManyCinemaInputEnvelope
+  set?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  disconnect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  delete?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  update?: Prisma.SeatUpdateWithWhereUniqueWithoutCinemaInput | Prisma.SeatUpdateWithWhereUniqueWithoutCinemaInput[]
+  updateMany?: Prisma.SeatUpdateManyWithWhereWithoutCinemaInput | Prisma.SeatUpdateManyWithWhereWithoutCinemaInput[]
+  deleteMany?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
 }
 
-export type EnumSeatStatusFieldUpdateOperationsInput = {
-  set?: $Enums.SeatStatus
+export type SeatUncheckedUpdateManyWithoutCinemaNestedInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput> | Prisma.SeatCreateWithoutCinemaInput[] | Prisma.SeatUncheckedCreateWithoutCinemaInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutCinemaInput | Prisma.SeatCreateOrConnectWithoutCinemaInput[]
+  upsert?: Prisma.SeatUpsertWithWhereUniqueWithoutCinemaInput | Prisma.SeatUpsertWithWhereUniqueWithoutCinemaInput[]
+  createMany?: Prisma.SeatCreateManyCinemaInputEnvelope
+  set?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  disconnect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  delete?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  update?: Prisma.SeatUpdateWithWhereUniqueWithoutCinemaInput | Prisma.SeatUpdateWithWhereUniqueWithoutCinemaInput[]
+  updateMany?: Prisma.SeatUpdateManyWithWhereWithoutCinemaInput | Prisma.SeatUpdateManyWithWhereWithoutCinemaInput[]
+  deleteMany?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
 }
 
-export type SeatCreateWithoutSchedulesInput = {
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
+export type SeatCreateNestedManyWithoutFilmInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput> | Prisma.SeatCreateWithoutFilmInput[] | Prisma.SeatUncheckedCreateWithoutFilmInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutFilmInput | Prisma.SeatCreateOrConnectWithoutFilmInput[]
+  createMany?: Prisma.SeatCreateManyFilmInputEnvelope
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
 }
 
-export type SeatUncheckedCreateWithoutSchedulesInput = {
-  id?: number
-  name: string
-  type: $Enums.SeatType
-  status: $Enums.SeatStatus
+export type SeatUncheckedCreateNestedManyWithoutFilmInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput> | Prisma.SeatCreateWithoutFilmInput[] | Prisma.SeatUncheckedCreateWithoutFilmInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutFilmInput | Prisma.SeatCreateOrConnectWithoutFilmInput[]
+  createMany?: Prisma.SeatCreateManyFilmInputEnvelope
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
 }
 
-export type SeatCreateOrConnectWithoutSchedulesInput = {
+export type SeatUpdateManyWithoutFilmNestedInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput> | Prisma.SeatCreateWithoutFilmInput[] | Prisma.SeatUncheckedCreateWithoutFilmInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutFilmInput | Prisma.SeatCreateOrConnectWithoutFilmInput[]
+  upsert?: Prisma.SeatUpsertWithWhereUniqueWithoutFilmInput | Prisma.SeatUpsertWithWhereUniqueWithoutFilmInput[]
+  createMany?: Prisma.SeatCreateManyFilmInputEnvelope
+  set?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  disconnect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  delete?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  update?: Prisma.SeatUpdateWithWhereUniqueWithoutFilmInput | Prisma.SeatUpdateWithWhereUniqueWithoutFilmInput[]
+  updateMany?: Prisma.SeatUpdateManyWithWhereWithoutFilmInput | Prisma.SeatUpdateManyWithWhereWithoutFilmInput[]
+  deleteMany?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
+}
+
+export type SeatUncheckedUpdateManyWithoutFilmNestedInput = {
+  create?: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput> | Prisma.SeatCreateWithoutFilmInput[] | Prisma.SeatUncheckedCreateWithoutFilmInput[]
+  connectOrCreate?: Prisma.SeatCreateOrConnectWithoutFilmInput | Prisma.SeatCreateOrConnectWithoutFilmInput[]
+  upsert?: Prisma.SeatUpsertWithWhereUniqueWithoutFilmInput | Prisma.SeatUpsertWithWhereUniqueWithoutFilmInput[]
+  createMany?: Prisma.SeatCreateManyFilmInputEnvelope
+  set?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  disconnect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  delete?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  connect?: Prisma.SeatWhereUniqueInput | Prisma.SeatWhereUniqueInput[]
+  update?: Prisma.SeatUpdateWithWhereUniqueWithoutFilmInput | Prisma.SeatUpdateWithWhereUniqueWithoutFilmInput[]
+  updateMany?: Prisma.SeatUpdateManyWithWhereWithoutFilmInput | Prisma.SeatUpdateManyWithWhereWithoutFilmInput[]
+  deleteMany?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
+}
+
+export type EnumSEAT_STATUSFieldUpdateOperationsInput = {
+  set?: $Enums.SEAT_STATUS
+}
+
+export type SeatCreateWithoutCinemaInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  film: Prisma.FilmOfCinemaCreateNestedOneWithoutSeatsInput
+}
+
+export type SeatUncheckedCreateWithoutCinemaInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  filmId: string
+}
+
+export type SeatCreateOrConnectWithoutCinemaInput = {
   where: Prisma.SeatWhereUniqueInput
-  create: Prisma.XOR<Prisma.SeatCreateWithoutSchedulesInput, Prisma.SeatUncheckedCreateWithoutSchedulesInput>
+  create: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput>
 }
 
-export type SeatUpsertWithoutSchedulesInput = {
-  update: Prisma.XOR<Prisma.SeatUpdateWithoutSchedulesInput, Prisma.SeatUncheckedUpdateWithoutSchedulesInput>
-  create: Prisma.XOR<Prisma.SeatCreateWithoutSchedulesInput, Prisma.SeatUncheckedCreateWithoutSchedulesInput>
-  where?: Prisma.SeatWhereInput
+export type SeatCreateManyCinemaInputEnvelope = {
+  data: Prisma.SeatCreateManyCinemaInput | Prisma.SeatCreateManyCinemaInput[]
+  skipDuplicates?: boolean
 }
 
-export type SeatUpdateToOneWithWhereWithoutSchedulesInput = {
-  where?: Prisma.SeatWhereInput
-  data: Prisma.XOR<Prisma.SeatUpdateWithoutSchedulesInput, Prisma.SeatUncheckedUpdateWithoutSchedulesInput>
+export type SeatUpsertWithWhereUniqueWithoutCinemaInput = {
+  where: Prisma.SeatWhereUniqueInput
+  update: Prisma.XOR<Prisma.SeatUpdateWithoutCinemaInput, Prisma.SeatUncheckedUpdateWithoutCinemaInput>
+  create: Prisma.XOR<Prisma.SeatCreateWithoutCinemaInput, Prisma.SeatUncheckedCreateWithoutCinemaInput>
 }
 
-export type SeatUpdateWithoutSchedulesInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
+export type SeatUpdateWithWhereUniqueWithoutCinemaInput = {
+  where: Prisma.SeatWhereUniqueInput
+  data: Prisma.XOR<Prisma.SeatUpdateWithoutCinemaInput, Prisma.SeatUncheckedUpdateWithoutCinemaInput>
 }
 
-export type SeatUncheckedUpdateWithoutSchedulesInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumSeatTypeFieldUpdateOperationsInput | $Enums.SeatType
-  status?: Prisma.EnumSeatStatusFieldUpdateOperationsInput | $Enums.SeatStatus
+export type SeatUpdateManyWithWhereWithoutCinemaInput = {
+  where: Prisma.SeatScalarWhereInput
+  data: Prisma.XOR<Prisma.SeatUpdateManyMutationInput, Prisma.SeatUncheckedUpdateManyWithoutCinemaInput>
 }
 
-
-/**
- * Count Type SeatCountOutputType
- */
-
-export type SeatCountOutputType = {
-  schedules: number
+export type SeatScalarWhereInput = {
+  AND?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
+  OR?: Prisma.SeatScalarWhereInput[]
+  NOT?: Prisma.SeatScalarWhereInput | Prisma.SeatScalarWhereInput[]
+  id?: Prisma.UuidFilter<"Seat"> | string
+  row?: Prisma.IntFilter<"Seat"> | number
+  column?: Prisma.IntFilter<"Seat"> | number
+  status?: Prisma.EnumSEAT_STATUSFilter<"Seat"> | $Enums.SEAT_STATUS
+  filmId?: Prisma.UuidFilter<"Seat"> | string
+  cinemaId?: Prisma.IntFilter<"Seat"> | number
 }
 
-export type SeatCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  schedules?: boolean | SeatCountOutputTypeCountSchedulesArgs
+export type SeatCreateWithoutFilmInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  cinema: Prisma.CinemaCreateNestedOneWithoutSeatsInput
 }
 
-/**
- * SeatCountOutputType without action
- */
-export type SeatCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the SeatCountOutputType
-   */
-  select?: Prisma.SeatCountOutputTypeSelect<ExtArgs> | null
+export type SeatUncheckedCreateWithoutFilmInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  cinemaId: number
 }
 
-/**
- * SeatCountOutputType without action
- */
-export type SeatCountOutputTypeCountSchedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ScheduleWhereInput
+export type SeatCreateOrConnectWithoutFilmInput = {
+  where: Prisma.SeatWhereUniqueInput
+  create: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput>
 }
+
+export type SeatCreateManyFilmInputEnvelope = {
+  data: Prisma.SeatCreateManyFilmInput | Prisma.SeatCreateManyFilmInput[]
+  skipDuplicates?: boolean
+}
+
+export type SeatUpsertWithWhereUniqueWithoutFilmInput = {
+  where: Prisma.SeatWhereUniqueInput
+  update: Prisma.XOR<Prisma.SeatUpdateWithoutFilmInput, Prisma.SeatUncheckedUpdateWithoutFilmInput>
+  create: Prisma.XOR<Prisma.SeatCreateWithoutFilmInput, Prisma.SeatUncheckedCreateWithoutFilmInput>
+}
+
+export type SeatUpdateWithWhereUniqueWithoutFilmInput = {
+  where: Prisma.SeatWhereUniqueInput
+  data: Prisma.XOR<Prisma.SeatUpdateWithoutFilmInput, Prisma.SeatUncheckedUpdateWithoutFilmInput>
+}
+
+export type SeatUpdateManyWithWhereWithoutFilmInput = {
+  where: Prisma.SeatScalarWhereInput
+  data: Prisma.XOR<Prisma.SeatUpdateManyMutationInput, Prisma.SeatUncheckedUpdateManyWithoutFilmInput>
+}
+
+export type SeatCreateManyCinemaInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  filmId: string
+}
+
+export type SeatUpdateWithoutCinemaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  film?: Prisma.FilmOfCinemaUpdateOneRequiredWithoutSeatsNestedInput
+}
+
+export type SeatUncheckedUpdateWithoutCinemaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  filmId?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type SeatUncheckedUpdateManyWithoutCinemaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  filmId?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type SeatCreateManyFilmInput = {
+  id?: string
+  row: number
+  column: number
+  status?: $Enums.SEAT_STATUS
+  cinemaId: number
+}
+
+export type SeatUpdateWithoutFilmInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  cinema?: Prisma.CinemaUpdateOneRequiredWithoutSeatsNestedInput
+}
+
+export type SeatUncheckedUpdateWithoutFilmInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  cinemaId?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
+export type SeatUncheckedUpdateManyWithoutFilmInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  row?: Prisma.IntFieldUpdateOperationsInput | number
+  column?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumSEAT_STATUSFieldUpdateOperationsInput | $Enums.SEAT_STATUS
+  cinemaId?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
 
 
 export type SeatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  name?: boolean
-  type?: boolean
+  row?: boolean
+  column?: boolean
   status?: boolean
-  schedules?: boolean | Prisma.Seat$schedulesArgs<ExtArgs>
-  _count?: boolean | Prisma.SeatCountOutputTypeDefaultArgs<ExtArgs>
+  filmId?: boolean
+  cinemaId?: boolean
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["seat"]>
 
 export type SeatSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  name?: boolean
-  type?: boolean
+  row?: boolean
+  column?: boolean
   status?: boolean
+  filmId?: boolean
+  cinemaId?: boolean
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["seat"]>
 
 export type SeatSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  name?: boolean
-  type?: boolean
+  row?: boolean
+  column?: boolean
   status?: boolean
+  filmId?: boolean
+  cinemaId?: boolean
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["seat"]>
 
 export type SeatSelectScalar = {
   id?: boolean
-  name?: boolean
-  type?: boolean
+  row?: boolean
+  column?: boolean
   status?: boolean
+  filmId?: boolean
+  cinemaId?: boolean
 }
 
-export type SeatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "status", ExtArgs["result"]["seat"]>
+export type SeatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "row" | "column" | "status" | "filmId" | "cinemaId", ExtArgs["result"]["seat"]>
 export type SeatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  schedules?: boolean | Prisma.Seat$schedulesArgs<ExtArgs>
-  _count?: boolean | Prisma.SeatCountOutputTypeDefaultArgs<ExtArgs>
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
 }
-export type SeatIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type SeatIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type SeatIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
+}
+export type SeatIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  film?: boolean | Prisma.FilmOfCinemaDefaultArgs<ExtArgs>
+  cinema?: boolean | Prisma.CinemaDefaultArgs<ExtArgs>
+}
 
 export type $SeatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Seat"
   objects: {
-    schedules: Prisma.$SchedulePayload<ExtArgs>[]
+    film: Prisma.$FilmOfCinemaPayload<ExtArgs>
+    cinema: Prisma.$CinemaPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    id: number
-    name: string
-    type: $Enums.SeatType
-    status: $Enums.SeatStatus
+    id: string
+    row: number
+    column: number
+    status: $Enums.SEAT_STATUS
+    filmId: string
+    cinemaId: number
   }, ExtArgs["result"]["seat"]>
   composites: {}
 }
@@ -873,7 +1110,8 @@ readonly fields: SeatFieldRefs;
  */
 export interface Prisma__SeatClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  schedules<T extends Prisma.Seat$schedulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Seat$schedulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  film<T extends Prisma.FilmOfCinemaDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FilmOfCinemaDefaultArgs<ExtArgs>>): Prisma.Prisma__FilmOfCinemaClient<runtime.Types.Result.GetResult<Prisma.$FilmOfCinemaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  cinema<T extends Prisma.CinemaDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CinemaDefaultArgs<ExtArgs>>): Prisma.Prisma__CinemaClient<runtime.Types.Result.GetResult<Prisma.$CinemaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -903,10 +1141,12 @@ export interface Prisma__SeatClient<T, Null = never, ExtArgs extends runtime.Typ
  * Fields of the Seat model
  */
 export interface SeatFieldRefs {
-  readonly id: Prisma.FieldRef<"Seat", 'Int'>
-  readonly name: Prisma.FieldRef<"Seat", 'String'>
-  readonly type: Prisma.FieldRef<"Seat", 'SeatType'>
-  readonly status: Prisma.FieldRef<"Seat", 'SeatStatus'>
+  readonly id: Prisma.FieldRef<"Seat", 'String'>
+  readonly row: Prisma.FieldRef<"Seat", 'Int'>
+  readonly column: Prisma.FieldRef<"Seat", 'Int'>
+  readonly status: Prisma.FieldRef<"Seat", 'SEAT_STATUS'>
+  readonly filmId: Prisma.FieldRef<"Seat", 'String'>
+  readonly cinemaId: Prisma.FieldRef<"Seat", 'Int'>
 }
     
 
@@ -1156,6 +1396,10 @@ export type SeatCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    */
   data: Prisma.SeatCreateManyInput | Prisma.SeatCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SeatIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1226,6 +1470,10 @@ export type SeatUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many Seats to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SeatIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1292,30 +1540,6 @@ export type SeatDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Limit how many Seats to delete.
    */
   limit?: number
-}
-
-/**
- * Seat.schedules
- */
-export type Seat$schedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Schedule
-   */
-  select?: Prisma.ScheduleSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Schedule
-   */
-  omit?: Prisma.ScheduleOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ScheduleInclude<ExtArgs> | null
-  where?: Prisma.ScheduleWhereInput
-  orderBy?: Prisma.ScheduleOrderByWithRelationInput | Prisma.ScheduleOrderByWithRelationInput[]
-  cursor?: Prisma.ScheduleWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ScheduleScalarFieldEnum | Prisma.ScheduleScalarFieldEnum[]
 }
 
 /**

@@ -51,11 +51,11 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  Cinema: 'Cinema',
   Film: 'Film',
-  FilmOfTheater: 'FilmOfTheater',
-  Schedule: 'Schedule',
+  FilmOfCinema: 'FilmOfCinema',
   Seat: 'Seat',
-  Theater: 'Theater',
+  Session: 'Session',
   Ticket: 'Ticket',
   User: 'User'
 } as const
@@ -76,69 +76,78 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const FilmScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  author: 'author',
-  performer: 'performer',
-  type: 'type',
-  startedTime: 'startedTime',
-  length: 'length',
-  lang: 'lang',
-  rated: 'rated',
-  description: 'description',
+export const CinemaScalarFieldEnum = {
+  cinema_id: 'cinema_id',
+  cinema_name: 'cinema_name',
+  address: 'address',
+  address2: 'address2',
+  city: 'city',
+  country: 'country',
+  postcode: 'postcode',
+  phone: 'phone',
+  logo_url: 'logo_url',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+} as const
+
+export type CinemaScalarFieldEnum = (typeof CinemaScalarFieldEnum)[keyof typeof CinemaScalarFieldEnum]
+
+
+export const FilmScalarFieldEnum = {
+  film_id: 'film_id',
+  film_name: 'film_name',
+  other_title: 'other_title',
+  release_dates: 'release_dates',
+  age_rating: 'age_rating',
+  trailers: 'trailers',
+  synopsis_long: 'synopsis_long',
+  images: 'images',
+  version_type: 'version_type',
+  duration_mins: 'duration_mins',
+  review_stars: 'review_stars',
+  review_txt: 'review_txt',
+  distributor: 'distributor',
+  genres: 'genres',
+  cast: 'cast',
+  directors: 'directors',
+  producers: 'producers',
+  writers: 'writers'
 } as const
 
 export type FilmScalarFieldEnum = (typeof FilmScalarFieldEnum)[keyof typeof FilmScalarFieldEnum]
 
 
-export const FilmOfTheaterScalarFieldEnum = {
+export const FilmOfCinemaScalarFieldEnum = {
   id: 'id',
-  time: 'time',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  theaterId: 'theaterId',
-  filmId: 'filmId'
-} as const
-
-export type FilmOfTheaterScalarFieldEnum = (typeof FilmOfTheaterScalarFieldEnum)[keyof typeof FilmOfTheaterScalarFieldEnum]
-
-
-export const ScheduleScalarFieldEnum = {
-  id: 'id',
-  date: 'date',
-  day: 'day',
   filmId: 'filmId',
-  seatId: 'seatId'
+  cinemaId: 'cinemaId'
 } as const
 
-export type ScheduleScalarFieldEnum = (typeof ScheduleScalarFieldEnum)[keyof typeof ScheduleScalarFieldEnum]
+export type FilmOfCinemaScalarFieldEnum = (typeof FilmOfCinemaScalarFieldEnum)[keyof typeof FilmOfCinemaScalarFieldEnum]
 
 
 export const SeatScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  type: 'type',
-  status: 'status'
+  row: 'row',
+  column: 'column',
+  status: 'status',
+  filmId: 'filmId',
+  cinemaId: 'cinemaId'
 } as const
 
 export type SeatScalarFieldEnum = (typeof SeatScalarFieldEnum)[keyof typeof SeatScalarFieldEnum]
 
 
-export const TheaterScalarFieldEnum = {
+export const SessionScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  map: 'map',
-  address: 'address',
-  fax: 'fax',
-  hotline: 'hotline',
+  userId: 'userId',
+  hashRefreshToken: 'hashRefreshToken',
+  userIp: 'userIp',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type TheaterScalarFieldEnum = (typeof TheaterScalarFieldEnum)[keyof typeof TheaterScalarFieldEnum]
+export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
 
 
 export const TicketScalarFieldEnum = {
@@ -161,6 +170,7 @@ export const UserScalarFieldEnum = {
   hashPassword: 'hashPassword',
   dateOfBirth: 'dateOfBirth',
   address: 'address',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'
@@ -177,6 +187,14 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -191,4 +209,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
