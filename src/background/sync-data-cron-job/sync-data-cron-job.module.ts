@@ -7,6 +7,7 @@ import { QUEUE_NAME } from '../email/constant/event.type';
 import { RedisModule } from '../redis/redis.module';
 import { SyncDateCronJobConsumer } from './sync-data-cron-job.consumer';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
+import { CallMovieGluService } from './call-movie-glu.service';
 
 @Module({
   imports: [
@@ -32,6 +33,10 @@ import { EventCronJobWorkerService } from './event.cron-job.worker';
     ]),
   ],
   controllers: [SyncDateCronJobConsumer],
-  providers: [SyncDataCronJobService, EventCronJobWorkerService],
+  providers: [
+    SyncDataCronJobService,
+    EventCronJobWorkerService,
+    CallMovieGluService,
+  ],
 })
 export class SyncDataCronJobModule {}
