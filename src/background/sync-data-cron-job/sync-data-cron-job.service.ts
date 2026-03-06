@@ -8,6 +8,7 @@ import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { CallMovieGluService } from './call-movie-glu.service';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
+import { FilmService } from '../../module/film/film.service';
 
 @Injectable()
 export class SyncDataCronJobService {
@@ -18,6 +19,7 @@ export class SyncDataCronJobService {
     private readonly redisLockService: RedisLockService,
     private readonly eventCronJobService: EventCronJobWorkerService,
     private readonly callMovieGluService: CallMovieGluService,
+    private readonly filmService: FilmService,
   ) {}
 
   @Cron(CronExpression.EVERY_2_HOURS)
@@ -127,6 +129,40 @@ export class SyncDataCronJobService {
 
     if (lockResult === null) {
       this.logger.debug('Skip because lock is already held');
+    }
+  }
+
+  @Cron(CronExpression.EVERY_2_HOURS)
+  async syncFilmsDetails() {
+    const lockResult = await this.redisLockService.runExclusive<void>(
+      REDIS_LOCK_KEY.CINEMA_FILM_DETAIL,
+      REDIS_TTL.LOCK_SERVICE,
+      async () => {
+        const deviceDatetime = new Date().toISOString();
+        const userIp = await this.callMovieGluService.getServerPublicIp();
+        const geolocation =
+          await this.callMovieGluService.getGeolocationByUserIp(userIp);
+        const client = this.callMovieGluService.createMovieGluClientAtCall(
+          deviceDatetime,
+          geolocation,
+        );
+
+        const films = await this.filmService.getAllFilms();
+
+        for (const film of films) {
+          const updatedFilm = await client.films.details(film.film_id);
+          this.logger.debug(`Data film details ${JSON.stringify(updatedFilm)}`);
+
+          await this.callMovieGluService.updateFilmsDetail({
+            film: [updatedFilm],
+          });
+        }
+      },
+    );
+
+    if (lockResult === null) {
+      this.logger.debug('Skip because lock is already held');
+      return;
     }
   }
 }

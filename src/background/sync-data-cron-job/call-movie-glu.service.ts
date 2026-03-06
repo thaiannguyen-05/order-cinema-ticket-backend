@@ -10,6 +10,9 @@ import { UpdateCinemaDto } from '../../module/cinema/dto/update-cinema.dto';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
+import { SyncFilmsDetailDto } from './dto/sync.films.detail.dto';
+import { FilmService } from '../../module/film/film.service';
+import { UpdateFilmDto } from '../../module/film/dto/update-film.dto';
 
 type IpApiResponse = {
   status: 'success' | 'fail';
@@ -30,6 +33,7 @@ export class CallMovieGluService {
     private readonly cinemaService: CinemaService,
     private readonly redisLockService: RedisLockService,
     private readonly eventCronJobService: EventCronJobWorkerService,
+    private readonly filmService: FilmService,
   ) {}
 
   createMovieGluClientAtCall(
@@ -220,6 +224,42 @@ export class CallMovieGluService {
       this.logger.debug(
         'Skip syncDataCinemaShowtime because lock is already held',
       );
+    }
+  }
+
+  async updateFilmsDetail(dto: SyncFilmsDetailDto): Promise<void> {
+    for (const film of dto.film) {
+      const parsedReviewStars =
+        typeof film.review_stars === 'string'
+          ? Number(film.review_stars)
+          : film.review_stars;
+
+      const updateFilmDto: UpdateFilmDto = {
+        ...(film.film_name && { film_name: film.film_name }),
+        ...(film.other_titles && { other_title: film.other_titles }),
+        ...(film.release_dates && { release_dates: film.release_dates }),
+        ...(film.age_rating && { age_rating: film.age_rating as never }),
+        ...(film.trailers && { trailers: film.trailers as never }),
+        ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
+        ...(film.images && { images: film.images as never }),
+        ...(film.version_type && { version_type: film.version_type as never }),
+        ...(film.duration_mins != null && {
+          duration_mins: film.duration_mins,
+        }),
+        ...(parsedReviewStars != null &&
+          !Number.isNaN(parsedReviewStars) && {
+            review_stars: parsedReviewStars,
+          }),
+        ...(film.review_txt && { review_txt: film.review_txt }),
+        ...(film.distributor && { distributor: film.distributor }),
+        ...(film.genres && { genres: film.genres }),
+        ...(film.cast && { cast: film.cast }),
+        ...(film.directors && { director: film.directors as never }),
+        ...(film.producers && { producers: film.producers }),
+        ...(film.writers && { writers: film.writers }),
+      };
+
+      await this.filmService.updateFilm(film.film_id, updateFilmDto);
     }
   }
 }

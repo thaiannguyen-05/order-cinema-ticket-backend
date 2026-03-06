@@ -63,6 +63,10 @@ export class FilmService {
     });
   }
 
+  async getAllFilms() {
+    return await this.prismaService.film.findMany();
+  }
+
   async deleteFilm(film_id: number) {
     return await this.prismaService.film.delete({
       where: { film_id },

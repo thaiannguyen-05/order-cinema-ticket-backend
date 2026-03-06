@@ -8,11 +8,13 @@ import { RedisModule } from '../redis/redis.module';
 import { SyncDateCronJobConsumer } from './sync-data-cron-job.consumer';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { CallMovieGluService } from './call-movie-glu.service';
+import { FilmModule } from '../../module/film/film.module';
 
 @Module({
   imports: [
     CinemaModule,
     RedisModule,
+    FilmModule,
     ClientsModule.registerAsync([
       {
         name: QUEUE_NAME.SYNC_DATE_SERVICE,
