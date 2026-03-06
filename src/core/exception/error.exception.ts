@@ -2,6 +2,7 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
+  HttpException,
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -12,9 +13,30 @@ export class ErrorExcception implements ExceptionFilter {
     const context = host.switchToHttp();
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
-    const status = HttpStatus.INTERNAL_SERVER_ERROR;
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const exceptionResponse =
+      exception instanceof HttpException ? exception.getResponse() : null;
+    const exceptionMessage =
+      exceptionResponse &&
+      typeof exceptionResponse === 'object' &&
+      'message' in exceptionResponse
+        ? exceptionResponse.message
+        : null;
+
     const message =
-      exception instanceof Error ? exception.message : 'Internal Server Error';
+      typeof exceptionResponse === 'string'
+        ? exceptionResponse
+        : Array.isArray(exceptionMessage)
+          ? exceptionMessage.join(', ')
+          : typeof exceptionMessage === 'string'
+            ? exceptionMessage
+            : exception instanceof Error
+              ? exception.message
+              : 'Internal Server Error';
 
     const responseMapping: ExceptionResponseMapping = {
       success: false,

@@ -58,25 +58,8 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   });
-  const csrfSecret = configService.get<string>(
-    'CSRF_SECRET',
-    configService.getOrThrow<string>('JWT_SECRET'),
-  );
-
-  const { doubleCsrfProtection } = doubleCsrf({
-    getSecret: () => csrfSecret,
-    getSessionIdentifier: (req: Request) =>
-      `${req.ip ?? ''}-${req.headers['user-agent'] ?? ''}`,
-    cookieName: '__Host-csrf-token',
-    cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      httpOnly: true,
-      path: '/',
-    },
-    size: 64,
-    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-  });
+  const isDevelopment =
+    configService.get<string>('NODE_ENV', 'development') === 'development';
 
   // apply middleware
   const addHeaderMiddleware = new AddHeaderMiddleware();
@@ -85,7 +68,29 @@ async function bootstrap() {
   // using safety
   app.use(helmet());
   app.use(cookieParser());
-  app.use(doubleCsrfProtection);
+  if (!isDevelopment) {
+    const csrfSecret = configService.get<string>(
+      'CSRF_SECRET',
+      configService.getOrThrow<string>('JWT_SECRET'),
+    );
+
+    const { doubleCsrfProtection } = doubleCsrf({
+      getSecret: () => csrfSecret,
+      getSessionIdentifier: (req: Request) =>
+        `${req.ip ?? ''}-${req.headers['user-agent'] ?? ''}`,
+      cookieName: '__Host-csrf-token',
+      cookieOptions: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+        path: '/',
+      },
+      size: 64,
+      ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    });
+
+    app.use(doubleCsrfProtection);
+  }
 
   await app.startAllMicroservices();
   await app.listen(port);

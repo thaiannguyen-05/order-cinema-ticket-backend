@@ -4,9 +4,9 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { map, Observable } from 'rxjs';
 import { ResponseMapping } from '../type';
-import type { Request } from 'express';
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
   T,
@@ -18,7 +18,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
   ): Observable<ResponseMapping<T>> {
     const contextRequest = context.switchToHttp();
     const request = contextRequest.getRequest<Request>();
-
     return next.handle().pipe(
       map((data: T): ResponseMapping<T> => {
         return {

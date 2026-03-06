@@ -17,6 +17,7 @@ import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './module/auth/auth.module';
 import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,6 +39,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     HttpModule,
     SyncDataCronJobModule,
     ScheduleModule.forRoot({}),
+    PrometheusModule.register({
+      global: true,
+    }),
   ],
   controllers: [AppController],
   providers: [
