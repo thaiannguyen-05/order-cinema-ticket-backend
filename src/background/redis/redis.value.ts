@@ -14,4 +14,5 @@ export const REDIS_LOCK_KEY = {
   CINEMA_NERBY: 'lock:cron:sync-data-cinema-nearby',
   CINEMA_DETAIL: 'lock:cron:sync-data-cinema-detail',
   CINEMA_SHOWTIME: 'lock:cron:sync-data-cinema-showtime',
+  CINEMA_NOWSHOWING: 'lock:cron:sync-data-films-now-showing',
 };

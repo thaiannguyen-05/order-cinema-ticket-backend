@@ -4,7 +4,7 @@ import {
 } from '@andev2005/movie-glu-sdk';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { MyLogger } from '../../logger/logger.service';
 import { CinemaService } from '../../module/cinema/cinema.service';
@@ -128,7 +128,7 @@ export class SyncDataCronJobService {
     }
   }
 
-  @Cron('0 0 */2 * * *')
+  @Cron(CronExpression.EVERY_2_HOURS)
   async syncDataCinemaNearBy(): Promise<void> {
     const lockResult = await this.redisLockService.runExclusive<void>(
       REDIS_LOCK_KEY.CINEMA_NERBY,
@@ -281,6 +281,56 @@ export class SyncDataCronJobService {
       this.logger.debug(
         'Skip syncDataCinemaShowtime because lock is already held',
       );
+    }
+  }
+
+  @Cron(CronExpression.EVERY_2_HOURS)
+  async syncNowShowingFilms() {
+    const lockResult = await this.redisLockService.runExclusive<void>(
+      REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
+      REDIS_TTL.LOCK_SERVICE,
+      async () => {
+        const deviceDatetime = new Date().toISOString();
+        const userIp = await this.getServerPublicIp();
+        const geolocation = await this.getGeolocationByUserIp(userIp);
+        const client = this.createMovieGluClientAtCall(
+          deviceDatetime,
+          geolocation,
+        );
+        const quantity = 100;
+
+        const { films } = await client.films.nowShowing({ limit: quantity });
+        this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
+      },
+    );
+
+    if (lockResult === null) {
+      this.logger.debug('Skip because lock is already held');
+    }
+  }
+
+  @Cron(CronExpression.EVERY_2_HOURS)
+  async asyncNowFilmsComingSoon() {
+    const lockResult = await this.redisLockService.runExclusive<void>(
+      REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
+      REDIS_TTL.LOCK_SERVICE,
+      async () => {
+        const deviceDatetime = new Date().toISOString();
+        const userIp = await this.getServerPublicIp();
+        const geolocation = await this.getGeolocationByUserIp(userIp);
+        const client = this.createMovieGluClientAtCall(
+          deviceDatetime,
+          geolocation,
+        );
+        const quantity = 100;
+
+        const { films } = await client.films.comingSoon({ limit: quantity });
+        this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
+      },
+    );
+
+    if (lockResult === null) {
+      this.logger.debug('Skip because lock is already held');
     }
   }
 }
