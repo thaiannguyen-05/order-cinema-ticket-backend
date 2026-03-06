@@ -9,8 +9,8 @@ model FilmOfCinema {
     showings Json?
     show_dates Json?
 
-    filmId Int @unique
-    cinemaId Int @unique
+    filmId Int 
+    cinemaId Int 
 
 
     film Film @relation(fields: [filmId], references: [film_id], onDelete: Cascade, onUpdate: Cascade)
