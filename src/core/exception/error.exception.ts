@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ExceptionResponseMapping } from '../type';
+import { ExceptionResponseMapping } from '../type/type';
 @Catch()
 export class ErrorExcception implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
