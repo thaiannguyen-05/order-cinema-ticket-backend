@@ -11,15 +11,18 @@ export class EventCronJobWorkerService {
     private readonly clientProxy: ClientProxy,
   ) {}
 
-  callSyncDataWithCinemaDetail(dto: SyncCinemaDetailDto) {
+  callSyncDataWithCinemaDetail(dto: SyncCinemaDetailDto): Promise<void> {
     this.clientProxy.emit(EVENT_NAME.DETAIL_CINEMA, dto);
+    return Promise.resolve();
   }
 
-  callSyncDataWithCinemaShowTime(dto: SyncCinemaShowtimeDto) {
+  callSyncDataWithCinemaShowTime(dto: SyncCinemaShowtimeDto): Promise<void> {
     this.clientProxy.emit(EVENT_NAME.CINEMA_SHOWTIME, dto);
+    return Promise.resolve();
   }
 
-  callSyncDataWithFilmShowTime(dto: SyncCinemaShowtimeDto) {
+  callSyncDataWithFilmShowTime(dto: SyncCinemaShowtimeDto): Promise<void> {
     this.clientProxy.emit(EVENT_NAME.FILM_SHOWTIME, dto);
+    return Promise.resolve();
   }
 }

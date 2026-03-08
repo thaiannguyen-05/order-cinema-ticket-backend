@@ -69,8 +69,10 @@ export class SyncDataCronJobService {
           quantity: quantity,
         };
 
-        this.eventCronJobService.callSyncDataWithCinemaDetail(payload);
-        this.eventCronJobService.callSyncDataWithFilmShowTime(payload);
+        await Promise.all([
+          this.eventCronJobService.callSyncDataWithCinemaDetail(payload),
+          this.eventCronJobService.callSyncDataWithFilmShowTime(payload),
+        ]);
       },
     );
 
