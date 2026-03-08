@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { doubleCsrf } from 'csrf-csrf';
 import type { Request } from 'express';
@@ -91,6 +92,43 @@ async function bootstrap() {
 
     app.use(doubleCsrfProtection);
   }
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Order Cinema Ticket Backend API')
+    .setDescription('REST API documentation for Order Cinema Ticket Backend')
+    .setVersion('1.0.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Input JWT access token',
+      },
+      'access-token',
+    )
+    .addCookieAuth('refreshToken', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'refreshToken',
+      description: 'HTTP-only refresh token cookie',
+    })
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
+    deepScanRoutes: true,
+  });
+
+  SwaggerModule.setup('docs', app, swaggerDocument, {
+    jsonDocumentUrl: 'docs/json',
+    yamlDocumentUrl: 'docs/yaml',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
 
   await app.startAllMicroservices();
   await app.listen(port);

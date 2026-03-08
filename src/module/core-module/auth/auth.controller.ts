@@ -1,7 +1,9 @@
 import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -16,6 +18,7 @@ import type { ResetPasswordDto } from './dto/reset.password.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
 import { Public } from '../../../core/decorator/ispublic.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -166,8 +169,11 @@ export class AuthController {
     return this.authService.login(loginDto, httpRequest, httpResponse);
   }
 
+  @Throttle({ debugger: { limit: 5, ttl: 30 } })
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiCookieAuth('refreshToken')
+  @ApiBearerAuth('access-token')
   @ApiOkResponse({ description: 'Token refreshed successfully' })
   @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
@@ -180,6 +186,8 @@ export class AuthController {
 
   @Post('logout')
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
+  @ApiCookieAuth('refreshToken')
+  @ApiBearerAuth('access-token')
   @ApiOkResponse({ description: 'Logout success' })
   @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
   async logout(
