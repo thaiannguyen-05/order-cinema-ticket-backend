@@ -16,8 +16,8 @@ import { TokenService } from './token.service';
 import type { Request, Response } from 'express';
 import { EmailWorker } from '../../../../background/email/email.worker';
 import { RedisService } from '../../../../background/redis/redis.service';
-import { MyLogger } from '../../../../logger/logger.service';
 import { REDIS_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
+import { MyLogger } from '../../../../core/logger/logger.service';
 @Injectable()
 export class AuthService {
   constructor(

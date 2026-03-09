@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { MyLogger } from '../../logger/logger.service';
 import { RedisLockService } from '../redis/redis.lock.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { CallMovieGluService } from './call-movie-glu.service';
@@ -9,6 +8,7 @@ import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
 import { FilmService } from '../../module/theater-module/film/film.service';
+import { MyLogger } from '../../core/logger/logger.service';
 
 @Injectable()
 export class SyncDataCronJobService {
@@ -21,7 +21,9 @@ export class SyncDataCronJobService {
     private readonly callMovieGluService: CallMovieGluService,
     private readonly filmService: FilmService,
   ) {}
-
+  /*
+    
+  */
   @Cron(CronExpression.EVERY_2_HOURS)
   async syncDataCinemaNearBy(): Promise<void> {
     const lockResult = await this.redisLockService.runExclusive<void>(

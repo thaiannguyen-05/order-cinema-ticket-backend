@@ -4,10 +4,10 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { MyLogger } from '../../logger/logger.service';
 import { Request, Response } from 'express';
 import { tap } from 'rxjs';
 import { inspect } from 'util';
+import { MyLogger } from '../logger/logger.service';
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: MyLogger) {}

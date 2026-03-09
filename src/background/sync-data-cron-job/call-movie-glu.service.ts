@@ -2,7 +2,6 @@ import { createMovieGluClient, MovieGluSdk } from '@andev2005/movie-glu-sdk';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { MyLogger } from '../../logger/logger.service';
 import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
 import { UpdateCinemaDto } from '../../module/theater-module/cinema/dto/update-cinema.dto';
 import { FilmService } from '../../module/theater-module/film/film.service';
@@ -16,6 +15,7 @@ import { UpdateFilmDto } from '../../module/theater-module/film/dto/update-film.
 import { IpApiResponse, PublicIpResponse } from './type';
 import { SyncFilmsShowtimeDto } from './dto/sync.films.showtime.dto';
 import { Film as PrismaFilm } from '@prisma/client';
+import { MyLogger } from '../../core/logger/logger.service';
 
 @Injectable()
 export class CallMovieGluService {
@@ -162,7 +162,7 @@ export class CallMovieGluService {
           client: dto.client,
           quantity: dto.quantity,
         };
-        this.eventCronJobService.callSyncDataWithCinemaShowTime(payload);
+        await this.eventCronJobService.callSyncDataWithCinemaShowTime(payload);
       },
     );
 

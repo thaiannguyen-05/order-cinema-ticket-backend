@@ -13,7 +13,6 @@ import { AuthenticationGuard } from './core/guard/authentication.guard';
 import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
 import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
-import { LoggerModule } from './logger/logger.module';
 import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
@@ -21,6 +20,7 @@ import { AuthModule } from './module/core-module/auth/auth.module';
 import { FilmModule } from './module/theater-module/film/film.module';
 import { CinemaModule } from './module/theater-module/cinema/cinema.module';
 import { UserModule } from './module/core-module/user/user.module';
+import { LoggerModule } from './core/logger/logger.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,7 +38,6 @@ import { UserModule } from './module/core-module/user/user.module';
     PrismaModule,
     EmailModule,
     RedisModule,
-    LoggerModule,
     HttpModule,
     FilmModule,
     CinemaModule,
