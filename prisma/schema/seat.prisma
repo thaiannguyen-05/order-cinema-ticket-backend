@@ -8,6 +8,7 @@ model Seat {
     filmId String @db.Uuid
     cinemaId Int @unique
 
+    ticket Ticket?
     film FilmOfCinema @relation(fields: [filmId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     cinema Cinema @relation(fields: [cinemaId], references: [cinema_id], onDelete: Cascade, onUpdate: Cascade)
 }

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@andev2005/momo-sdk':
+        specifier: ^1.0.4
+        version: 1.0.4
       '@andev2005/movie-glu-sdk':
         specifier: ^1.0.8
         version: 1.0.8
@@ -215,6 +218,10 @@ importers:
         version: 8.55.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
 packages:
+
+  '@andev2005/momo-sdk@1.0.4':
+    resolution: {integrity: sha512-uYfbp61ibdtDpARrT8ttM3oEcth85Z3jIqHZ+z5qn71WkZrvhHZxjHDOqpV1uM1bwUMX2jgql8pWxydutMkxvA==}
+    engines: {node: '>=18'}
 
   '@andev2005/movie-glu-sdk@1.0.8':
     resolution: {integrity: sha512-fCfiKzi2+shKm+f+VYJPXVvijbwERyiqQkDYoBtXVGRyVnS88UO0giqke6Y8m7mszkJlaAFwwRATWBuPZ1+gPg==}
@@ -4725,6 +4732,8 @@ packages:
     resolution: {integrity: sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA==}
 
 snapshots:
+
+  '@andev2005/momo-sdk@1.0.4': {}
 
   '@andev2005/movie-glu-sdk@1.0.8': {}
 

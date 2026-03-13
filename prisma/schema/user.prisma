@@ -13,5 +13,6 @@ model User {
 
   sessions    Session[]
   tickets     Ticket[]
+  payments    Payment[]
   @@index([email])
 }
