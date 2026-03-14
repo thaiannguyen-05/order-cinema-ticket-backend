@@ -171,7 +171,7 @@ async function main() {
     });
   });
 
-  await runStep('create seats', async () => {
+  const createdSeats = await runStep('create seats', async () => {
     const firstFilmPerCinema = new Map<number, string>();
     for (const item of filmOfCinemaData) {
       if (!firstFilmPerCinema.has(item.cinemaId)) {
@@ -187,7 +187,17 @@ async function main() {
       cinemaId: cinema.cinema_id,
     }));
 
-    return prisma.seat.createMany({ data: seatsData });
+    await prisma.seat.createMany({ data: seatsData });
+
+    return prisma.seat.findMany({
+      select: {
+        id: true,
+        filmId: true,
+      },
+      orderBy: {
+        cinemaId: 'asc',
+      },
+    });
   });
 
   await runStep('create users', async () =>
@@ -214,27 +224,26 @@ async function main() {
     return prisma.session.createMany({ data: sessionsData });
   });
 
+  const ticketSeedCount = Math.min(TICKET_COUNT, createdSeats.length);
+
   await runStep('create tickets', async () => {
-    const ticketsData = Array.from({ length: TICKET_COUNT }, (_, index) => ({
-      code: `SEED-TICKET-${String(index + 1).padStart(6, '0')}`,
-      time: new Date(
-        Date.UTC(
-          2026,
-          (index % 12) + 1,
-          ((index % 27) + 1),
-          8 + (index % 12),
-          (index % 6) * 10,
-          0,
-        ),
-      ),
-      userId: createdUsers[index % createdUsers.length].id,
-    }));
+    const ticketsData = Array.from({ length: ticketSeedCount }, (_, index) => {
+      const seat = createdSeats[index];
+
+      return {
+        code: `SEED-TICKET-${String(index + 1).padStart(6, '0')}`,
+        price: 65000 + (index % 8) * 5000,
+        filmOfCinemaId: seat.filmId,
+        seatId: seat.id,
+        userId: createdUsers[index % createdUsers.length].id,
+      };
+    });
 
     return prisma.ticket.createMany({ data: ticketsData });
   });
 
   logInfo(
-    `SEED SUMMARY cinemas=${CINEMA_COUNT} films=${FILM_COUNT} filmOfCinema=${filmOfCinemaData.length} seats=${CINEMA_COUNT} users=${USER_COUNT} sessions=${USER_COUNT} tickets=${TICKET_COUNT}`,
+    `SEED SUMMARY cinemas=${CINEMA_COUNT} films=${FILM_COUNT} filmOfCinema=${filmOfCinemaData.length} seats=${createdSeats.length} users=${USER_COUNT} sessions=${USER_COUNT} tickets=${ticketSeedCount}`,
   );
   logInfo(`SEED DONE (${Date.now() - seedStartTime}ms)`);
 }
