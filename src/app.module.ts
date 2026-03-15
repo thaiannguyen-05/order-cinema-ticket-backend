@@ -21,6 +21,7 @@ import { FilmModule } from './module/theater-module/film/film.module';
 import { CinemaModule } from './module/theater-module/cinema/cinema.module';
 import { UserModule } from './module/core-module/user/user.module';
 import { LoggerModule } from './core/logger/logger.module';
+import { MomoModule } from './module/payment/momo/momo.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +44,7 @@ import { LoggerModule } from './core/logger/logger.module';
     CinemaModule,
     UserModule,
     SyncDataCronJobModule,
+    MomoModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,

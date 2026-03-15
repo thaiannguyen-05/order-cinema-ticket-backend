@@ -62,7 +62,7 @@ function buildFilmPayload(index: number) {
     synopsis_long: `Synopsis for Film ${filmId}`,
     version_type: versionType,
     duration_mins: 85 + (index % 70),
-    review_stars: 3.5 + ((index % 16) * 0.1),
+    review_stars: 3.5 + (index % 16) * 0.1,
     review_txt: `Review text for Film ${filmId}`,
     distributor: `Distributor ${(index % 12) + 1}`,
     genres: ['Action', 'Drama', `Genre-${(index % 8) + 1}`],
@@ -117,6 +117,7 @@ async function main() {
   logInfo('SEED START');
 
   await runStep('cleanup old data', async () => {
+    await prisma.momoPayment.deleteMany();
     await prisma.ticket.deleteMany();
     await prisma.session.deleteMany();
     await prisma.seat.deleteMany();
@@ -179,13 +180,22 @@ async function main() {
       }
     }
 
-    const seatsData = cinemasData.map((cinema, index) => ({
-      row: (index % 8) + 1,
-      column: (index % 12) + 1,
-      status: index % 3 === 0 ? SEAT_STATUS.BOOKED : SEAT_STATUS.AVAILABLE,
-      filmId: firstFilmPerCinema.get(cinema.cinema_id)!,
-      cinemaId: cinema.cinema_id,
-    }));
+    const seatsData = cinemasData.map((cinema, index) => {
+      const filmOfCinemaId = firstFilmPerCinema.get(cinema.cinema_id);
+      if (!filmOfCinemaId) {
+        throw new Error(
+          `Missing FilmOfCinema relation for cinemaId=${cinema.cinema_id}`,
+        );
+      }
+
+      return {
+        row: (index % 8) + 1,
+        column: (index % 12) + 1,
+        status: index % 3 === 0 ? SEAT_STATUS.BOOKED : SEAT_STATUS.AVAILABLE,
+        filmId: filmOfCinemaId,
+        cinemaId: cinema.cinema_id,
+      };
+    });
 
     await prisma.seat.createMany({ data: seatsData });
 
