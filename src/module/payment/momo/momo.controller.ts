@@ -11,6 +11,7 @@ import { MomoService } from './momo.service';
 import type { MomoIPNHandler } from './dto/momo-ipn.handler';
 import type { CreateMomoPaymentDto } from './dto/create.momoPayment';
 import { Public } from '../../../core/decorator/ispublic.decorator';
+import { User } from '../../../core/decorator/user.decorator';
 
 @Controller('momo')
 export class MomoController {
@@ -27,10 +28,12 @@ export class MomoController {
     return this.momoService.checkMomoPaymentStatus(orderId);
   }
 
-  @Public()
   @Post('create_payment')
-  async createPayment(@Body() dto: CreateMomoPaymentDto) {
-    return this.momoService.createMomoPayment(dto);
+  async createPayment(
+    @User('id') userId: string,
+    @Body() dto: CreateMomoPaymentDto,
+  ) {
+    return this.momoService.createMomoPayment(userId, dto);
   }
 
   @Public()

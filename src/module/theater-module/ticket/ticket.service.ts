@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../background/prisma/prisma.service';
+import { PrismaService } from '../../../background/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { RedisLockService } from '../../background/redis/redis.lock.service';
-import { MyLogger } from '../../core/logger/logger.service';
-import { REDIS_LOCK_KEY, REDIS_TTL } from '../../background/redis/redis.value';
+import { RedisLockService } from '../../../background/redis/redis.lock.service';
+import { MyLogger } from '../../../core/logger/logger.service';
+import {
+  REDIS_LOCK_KEY,
+  REDIS_TTL,
+} from '../../../background/redis/redis.value';
 
 @Injectable()
 export class TicketService {

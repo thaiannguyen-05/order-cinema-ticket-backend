@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { TicketService } from './ticket.service';
 import type { CreateTicketDto } from './dto/create-ticket.dto';
-import { User } from '../../core/decorator/user.decorator';
+import { User } from '../../../core/decorator/user.decorator';
 
 @Controller('ticket')
 export class TicketController {

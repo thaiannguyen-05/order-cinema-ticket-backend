@@ -48,8 +48,8 @@ export class MomoService {
     return new MomoClient(config);
   }
 
-  async createMomoPayment(dto: CreateMomoPaymentDto) {
-    const lockKey = REDIS_LOCK_KEY.MOMO_PAYMENT(dto.userId, dto.ticketId);
+  async createMomoPayment(userId: string, dto: CreateMomoPaymentDto) {
+    const lockKey = REDIS_LOCK_KEY.MOMO_PAYMENT(userId, dto.ticketId);
 
     const result = await this.redisLockService.runExclusive(
       lockKey,
@@ -75,7 +75,7 @@ export class MomoService {
           throw new NotFoundException('Ticket not found');
         }
 
-        if (ticket.userId !== dto.userId) {
+        if (ticket.userId !== userId) {
           throw new BadRequestException('Ticket does not belong to this user');
         }
 
@@ -128,7 +128,7 @@ export class MomoService {
             extraData,
             lang,
             signature: String(momoResponse.signature ?? ''),
-            userId: dto.userId,
+            userId: userId,
             ticketId: dto.ticketId,
             paymentStatus: PAYMENT_STATUS.PENDING,
           },
@@ -147,7 +147,7 @@ export class MomoService {
             extraData,
             lang,
             signature: String(momoResponse.signature ?? ''),
-            userId: dto.userId,
+            userId: userId,
             paymentStatus: PAYMENT_STATUS.PENDING,
           },
         });

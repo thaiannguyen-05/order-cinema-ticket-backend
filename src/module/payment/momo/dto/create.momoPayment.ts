@@ -4,6 +4,5 @@ export type CreateMomoPaymentDto = {
   orderInfo: string;
   extraData?: string;
   lang?: 'vi' | 'en';
-  userId: string;
   ticketId: string;
 };
