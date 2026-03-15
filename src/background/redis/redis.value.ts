@@ -18,4 +18,6 @@ export const REDIS_LOCK_KEY = {
   CINEMA_FILM_DETAIL: 'lock:cron:sync-data-film-detail',
   ORDER_TICKET: (userId: string, seatId: string) =>
     `lock:order-ticket:${userId}:${seatId}`,
+  MOMO_PAYMENT: (userId: string, ticketId: string) =>
+    `lock:momo-payment:${userId}:${ticketId}`,
 };

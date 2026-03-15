@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@andev2005/momo-sdk':
-        specifier: ^1.0.4
-        version: 1.0.4
+        specifier: ^1.1.1
+        version: 1.1.1
       '@andev2005/movie-glu-sdk':
         specifier: ^1.0.8
         version: 1.0.8
@@ -219,8 +219,8 @@ importers:
 
 packages:
 
-  '@andev2005/momo-sdk@1.0.4':
-    resolution: {integrity: sha512-uYfbp61ibdtDpARrT8ttM3oEcth85Z3jIqHZ+z5qn71WkZrvhHZxjHDOqpV1uM1bwUMX2jgql8pWxydutMkxvA==}
+  '@andev2005/momo-sdk@1.1.1':
+    resolution: {integrity: sha512-ptdN1rbsiuJ+eYIk76l8nMDz5GupVa3lMx2tIQ/xtYI+slIq4LGPi5q/dBTvGk99XUAzti27zODyF0jq+Y7pDw==}
     engines: {node: '>=18'}
 
   '@andev2005/movie-glu-sdk@1.0.8':
@@ -4733,7 +4733,7 @@ packages:
 
 snapshots:
 
-  '@andev2005/momo-sdk@1.0.4': {}
+  '@andev2005/momo-sdk@1.1.1': {}
 
   '@andev2005/movie-glu-sdk@1.0.8': {}
 

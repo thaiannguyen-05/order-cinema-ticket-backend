@@ -1,6 +1,12 @@
 export const QUEUE_NAME = {
   GMAIL_SERVICE: 'GMAIL_SERVICE',
   SYNC_DATE_SERVICE: 'SYNC_SERVICE',
+  PAYMENT_SERVICE: 'PAYMENT_SERVICE',
+};
+
+export const PAYMENT_EVENT = {
+  CREATE_PAYMENT: 'create_payment',
+  UPDATE_PAYMENT: 'update_payment',
 };
 
 export const EVENT_NAME = {

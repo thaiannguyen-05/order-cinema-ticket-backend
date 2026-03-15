@@ -39,6 +39,7 @@ async function bootstrap() {
       },
     },
   });
+
   {
     // values
     const port = configService.getOrThrow<string>('PORT');
@@ -49,7 +50,10 @@ async function bootstrap() {
       .filter(Boolean);
 
     app.enableCors({
-      origin: (origin, callback) => {
+      origin: (
+        origin: string | undefined,
+        callback: (error: Error | null, allow?: boolean) => void,
+      ) => {
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {

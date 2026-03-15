@@ -25,7 +25,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-     "@andev2005/momo-sdk": "^1.0.4",
+     "@andev2005/momo-sdk": "^1.1.1",
     "@andev2005/movie-glu-sdk": "^1.0.8",
     "@keyv/redis": "^5.1.6",
     "@nestjs-modules/mailer": "^2.0.2",
