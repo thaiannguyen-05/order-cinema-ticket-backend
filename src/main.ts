@@ -2,24 +2,118 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { connect as connectAmqp } from 'amqplib';
 import cookieParser from 'cookie-parser';
 import { doubleCsrf } from 'csrf-csrf';
 import type { Request } from 'express';
 import helmet from 'helmet';
+import Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
 import { QUEUE_NAME } from './background/email/constant/event.type';
+import { MyLogger } from './core/logger/logger.service';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForRabbitMQConnection(
+  rabbitUrl: string,
+  logger: MyLogger,
+  timeoutMs = 120_000,
+  retryDelayMs = 3_000,
+): Promise<void> {
+  const start = Date.now();
+  let attempt = 0;
+
+  while (Date.now() - start < timeoutMs) {
+    attempt += 1;
+    try {
+      const connection = await connectAmqp(rabbitUrl);
+      await connection.close();
+      return;
+    } catch (error) {
+      if (attempt === 1 || attempt % 5 === 0) {
+        logger.warn(
+          `[bootstrap] Waiting for RabbitMQ (attempt ${attempt}): ${String(error)}`,
+          'Bootstrap',
+        );
+      }
+      await sleep(retryDelayMs);
+    }
+  }
+
+  throw new Error(
+    `RabbitMQ is not reachable after ${Math.floor(timeoutMs / 1000)}s: ${rabbitUrl}`,
+  );
+}
+
+async function waitForRedisConnection(
+  redisUrl: string,
+  logger: MyLogger,
+  timeoutMs = 120_000,
+  retryDelayMs = 3_000,
+): Promise<void> {
+  const start = Date.now();
+  let attempt = 0;
+
+  while (Date.now() - start < timeoutMs) {
+    attempt += 1;
+    const client = new Redis(redisUrl, {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 1,
+    });
+    client.on('error', () => {});
+    try {
+      await client.connect();
+      await client.ping();
+      await client.quit();
+      return;
+    } catch (error) {
+      await client.disconnect();
+      if (attempt === 1 || attempt % 5 === 0) {
+        logger.warn(
+          `[bootstrap] Waiting for Redis (attempt ${attempt}): ${String(error)}`,
+          'Bootstrap',
+        );
+      }
+      await sleep(retryDelayMs);
+    }
+  }
+
+  throw new Error(
+    `Redis is not reachable after ${Math.floor(timeoutMs / 1000)}s: ${redisUrl}`,
+  );
+}
 
 async function bootstrap() {
+  const bootstrapLogger = new MyLogger();
+  const rabbitUser = process.env.RABBITMQ_USER;
+  const rabbitPass = process.env.RABBITMQ_PASS;
+  const rabbitPort = process.env.RABBITMQ_PORT;
+  const rabbitHost = process.env.RABBITMQ_HOST || 'localhost';
+  const rabbitVhost = process.env.RABBITMQ_VHOST || '';
+  const redisHost = process.env.REDIS_HOST || 'localhost';
+  const redisPort = process.env.REDIS_PORT;
+
+  if (!rabbitUser || !rabbitPass || !rabbitPort || !redisPort) {
+    throw new Error(
+      'Missing required env vars before bootstrap: RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_PORT, REDIS_PORT',
+    );
+  }
+
+  const rabbitUrl = `amqp://${rabbitUser}:${rabbitPass}@${rabbitHost}:${rabbitPort}/${rabbitVhost}`;
+  const redisUrl = `redis://${redisHost}:${redisPort}`;
+
+  await waitForRabbitMQConnection(rabbitUrl, bootstrapLogger);
+  await waitForRedisConnection(redisUrl, bootstrapLogger);
+
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [
-        `amqp://${configService.getOrThrow<string>('RABBITMQ_USER')}:${configService.getOrThrow<string>('RABBITMQ_PASS')}@${configService.get<string>('RABBITMQ_HOST', 'localhost')}:${configService.getOrThrow<string>('RABBITMQ_PORT')}/${configService.get<string>('RABBITMQ_VHOST', '')}`,
-      ],
+      urls: [rabbitUrl],
       queue: QUEUE_NAME.GMAIL_SERVICE,
       queueOptions: {
         durable: true,
@@ -30,9 +124,7 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: [
-        `amqp://${configService.getOrThrow<string>('RABBITMQ_USER')}:${configService.getOrThrow<string>('RABBITMQ_PASS')}@${configService.get<string>('RABBITMQ_HOST', 'localhost')}:${configService.getOrThrow<string>('RABBITMQ_PORT')}/${configService.get<string>('RABBITMQ_VHOST', '')}`,
-      ],
+      urls: [rabbitUrl],
       queue: QUEUE_NAME.SYNC_DATE_SERVICE,
       queueOptions: {
         durable: true,
