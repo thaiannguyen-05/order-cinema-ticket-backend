@@ -1,165 +1,62 @@
-# Database Schema
+## Database Schema
 
-## ER Diagram (DBML)
+```mermaid
+flowchart TD
 
-```dbml
-Enum VERSION_TYPE {
-  STANDARD
-  DOLBY_CINEMA
-  IMAX
-}
+    Cinema["Cinema
+    - cinema_id (PK)
+    - cinema_name
+    - city"]
 
-Enum ACCOUNT_STATUS {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-  PENDING
-}
+    Film["Film
+    - film_id (PK)
+    - film_name"]
 
-Enum TICKET_STATUS {
-  BOOKED
-  CANCELLED
-  AVAILABLE
-  USED
-}
+    FilmOfCinema["FilmOfCinema
+    - id (PK)
+    - filmId (FK)
+    - cinemaId (FK)"]
 
-Enum PAYMENT_STATUS {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
+    Seat["Seat
+    - id (PK)
+    - row
+    - column
+    - filmId (FK)
+    - cinemaId (FK)"]
 
-Enum SEAT_STATUS {
-  AVAILABLE
-  BOOKED
-  OCCUPIED
-}
+    Ticket["Ticket
+    - id (PK)
+    - code
+    - price
+    - userId (FK)
+    - filmOfCinemaId (FK)
+    - seatId (FK)"]
 
-Table User {
-  id uuid [pk]
-  fullname text
-  email text [unique]
-  isActive boolean
-  hashPassword text
-  dateOfBirth timestamp
-  address text
-  status ACCOUNT_STATUS
-  createdAt timestamp
-  updatedAt timestamp
-  deletedAt timestamp
+    MomoPayment["MomoPayment
+    - requestId (PK)
+    - amount
+    - userId (FK)
+    - ticketId (FK)"]
 
-  Indexes {
-    email
-  }
-}
+    User["User
+    - id (PK)
+    - email"]
 
-Table Session {
-  id uuid [pk]
-  userId uuid
-  hashRefreshToken text
-  userIp text [unique]
-  createdAt timestamp
-  updatedAt timestamp
+    Session["Session
+    - id (PK)
+    - userId (FK)"]
 
-  Indexes {
-    userId
-    (userId, userIp) [unique]
-  }
-}
+    Cinema --> FilmOfCinema
+    Film --> FilmOfCinema
 
-Table Cinema {
-  cinema_id int [pk]
-  cinema_name text
-  address text
-  address2 text
-  city text
-  country text
-  postcode text
-  phone text
-  logo_url text
-  createdAt timestamp
-  updatedAt timestamp
-}
+    FilmOfCinema --> Ticket
+    Seat --> Ticket
 
-Table Film {
-  film_id int [pk]
-  film_name text
-  other_title json
-  release_dates json
-  age_rating json
-  trailers json
-  synopsis_long text
-  images json
-  version_type VERSION_TYPE
-  duration_mins int
-  review_stars float
-  review_txt text
-  distributor text
-  genres json
-  cast json
-  directors json
-  producers json
-  writers json
-}
+    Cinema --> Seat
+    Film --> Seat
 
-Table FilmOfCinema {
-  id uuid [pk]
-  filmId int
-  cinemaId int
+    User --> Ticket
+    User --> Session
+    User --> MomoPayment
 
-  Indexes {
-    (filmId, cinemaId) [unique]
-  }
-}
-
-Table Seat {
-  id uuid [pk]
-  row int
-  column int
-  status SEAT_STATUS
-  filmId uuid
-  cinemaId int [unique]
-
-  Indexes {
-    (filmId, cinemaId)
-  }
-}
-
-Table Ticket {
-  id uuid [pk]
-  code text
-  price double
-  createdAt timestamp
-  updatedAt timestamp
-  userId uuid
-  filmOfCinemaId uuid
-  seatId uuid [unique]
-  status TICKET_STATUS
-
-  Indexes {
-    (userId, seatId)
-  }
-}
-
-Table MomoPayment {
-  requestId text [pk]
-  partnerCode text
-  partnerName text
-  storeId text
-  amount decimal
-  orderId text
-  orderInfo text
-  autoCapture boolean
-  redirectUrl text
-  ipnUrl text
-  requestType text
-  extraData text
-  lang text
-  signature text
-  userId uuid
-  paymentStatus PAYMENT_STATUS
-  ticketId uuid [unique]
-  createdAt timestamp
-  updatedAt timestamp
-}
+    Ticket --> MomoPayment
