@@ -30,7 +30,13 @@ describe('SeatService', () => {
     prismaService.seat.create.mockResolvedValue({ id: 's1' });
 
     await expect(
-      service.createSeat({ row: 1, column: 2, filmId: 'f1', cinemaId: 1, status: 'AVAILABLE' } as never),
+      service.createSeat({
+        row: 1,
+        column: 2,
+        filmId: 'f1',
+        cinemaId: 1,
+        status: 'AVAILABLE',
+      } as never),
     ).resolves.toEqual({ id: 's1' });
 
     expect(prismaService.seat.create).toHaveBeenCalledWith({
@@ -56,9 +62,17 @@ describe('SeatService', () => {
   });
 
   it('finds seats by cursor pagination', async () => {
-    prismaService.seat.findMany.mockResolvedValue([{ id: 's1' }, { id: 's2' }, { id: 's3' }]);
+    prismaService.seat.findMany.mockResolvedValue([
+      { id: 's1' },
+      { id: 's2' },
+      { id: 's3' },
+    ]);
 
-    const result = await service.findSeats({ limit: 2, cursor: 's0', filmId: 'f1' } as never);
+    const result = await service.findSeats({
+      limit: 2,
+      cursor: 's0',
+      filmId: 'f1',
+    } as never);
 
     expect(prismaService.seat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -67,7 +81,10 @@ describe('SeatService', () => {
         cursor: { id: 's0' },
       }),
     );
-    expect(result).toEqual({ seats: [{ id: 's1' }, { id: 's2' }], nextCursor: 's3' });
+    expect(result).toEqual({
+      seats: [{ id: 's1' }, { id: 's2' }],
+      nextCursor: 's3',
+    });
   });
 
   it('finds seats by page pagination defaults', async () => {
@@ -87,7 +104,9 @@ describe('SeatService', () => {
   it('gets seats by showtime', async () => {
     prismaService.seat.findMany.mockResolvedValue([{ id: 's1' }]);
 
-    await expect(service.getSeatsByShowtimeId('film-1', 101)).resolves.toEqual([{ id: 's1' }]);
+    await expect(service.getSeatsByShowtimeId('film-1', 101)).resolves.toEqual([
+      { id: 's1' },
+    ]);
     expect(prismaService.seat.findMany).toHaveBeenCalledWith({
       where: { cinemaId: 101, filmId: 'film-1' },
     });

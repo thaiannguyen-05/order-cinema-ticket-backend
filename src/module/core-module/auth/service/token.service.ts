@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../../background/prisma/prisma.service';
 import { Payload } from '../../../../core';
+import { UserGenerateTokens } from '../type/type';
 
 @Injectable()
 export class TokenService {
@@ -13,7 +13,7 @@ export class TokenService {
     private readonly prismaService: PrismaService,
   ) {}
 
-  async generateToken(user: User, nameToken: string) {
+  async generateToken(user: UserGenerateTokens, nameToken: string) {
     const payload: Payload = {
       id: user.id,
       email: user.email,
@@ -26,7 +26,7 @@ export class TokenService {
     });
   }
 
-  async generateTokens(user: User) {
+  async generateTokens(user: UserGenerateTokens) {
     const accessToken = await this.generateToken(user, 'ACCESS');
     const refreshToken = await this.generateToken(user, 'REFRESH');
 
@@ -62,5 +62,13 @@ export class TokenService {
       where: { id: sessionId },
       data: { hashRefreshToken },
     });
+  }
+
+  async verifyToken(token: string) {
+    const payload: Payload = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.getOrThrow('JWT_SECRET'),
+    });
+
+    return payload;
   }
 }

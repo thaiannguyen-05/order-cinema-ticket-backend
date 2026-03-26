@@ -27,14 +27,18 @@ describe('UserService', () => {
   it('gets user by email', async () => {
     prismaService.user.findUnique.mockResolvedValue({ id: 'u1' });
 
-    await expect(service.getUserByEmail('a@example.com')).resolves.toEqual({ id: 'u1' });
+    await expect(service.getUserByEmail('a@example.com')).resolves.toEqual({
+      id: 'u1',
+    });
     expect(prismaService.user.findUnique).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
     });
   });
 
   it('returns true when email is available', async () => {
-    jest.spyOn(service, 'getUserByEmail').mockResolvedValue({ id: 'u1' } as never);
+    jest
+      .spyOn(service, 'getUserByEmail')
+      .mockResolvedValue({ id: 'u1' } as never);
 
     await expect(service.isAvailableEmail('a@example.com')).resolves.toBe(true);
   });
@@ -42,7 +46,9 @@ describe('UserService', () => {
   it('returns false when email is not available', async () => {
     jest.spyOn(service, 'getUserByEmail').mockResolvedValue(null as never);
 
-    await expect(service.isAvailableEmail('a@example.com')).resolves.toBe(false);
+    await expect(service.isAvailableEmail('a@example.com')).resolves.toBe(
+      false,
+    );
   });
 
   it('creates user with hashPassword and pending status', async () => {

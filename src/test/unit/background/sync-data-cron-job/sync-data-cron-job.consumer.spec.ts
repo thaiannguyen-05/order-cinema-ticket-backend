@@ -5,13 +5,14 @@ jest.mock('@andev2005/movie-glu-sdk', () => ({
   createMovieGluClient: jest.fn(),
 }));
 
-const { SyncDateCronJobConsumer } = require('../../../../background/sync-data-cron-job/sync-data-cron-job.consumer') as {
-  SyncDateCronJobConsumer: new (...args: never[]) => {
-    handleSyncEventCinemaDetail: (dto: unknown) => Promise<void>;
-    handleSyncEventCinemaShowtime: (dto: unknown) => Promise<void>;
-    handleSyncEventFilmShowtime: (dto: unknown) => Promise<void>;
+const { SyncDateCronJobConsumer } =
+  require('../../../../background/sync-data-cron-job/sync-data-cron-job.consumer') as {
+    SyncDateCronJobConsumer: new (...args: never[]) => {
+      handleSyncEventCinemaDetail: (dto: unknown) => Promise<void>;
+      handleSyncEventCinemaShowtime: (dto: unknown) => Promise<void>;
+      handleSyncEventFilmShowtime: (dto: unknown) => Promise<void>;
+    };
   };
-};
 
 describe('SyncDateCronJobConsumer', () => {
   it('delegates event handlers to callMovieGlu service', async () => {

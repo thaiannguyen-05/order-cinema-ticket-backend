@@ -18,18 +18,22 @@ const { createMovieGluClient } = require('@andev2005/movie-glu-sdk') as {
 };
 const axios = require('axios').default as { get: jest.Mock };
 
-const { CallMovieGluService } = require('../../../../background/sync-data-cron-job/call-movie-glu.service') as {
-  CallMovieGluService: new (...args: never[]) => {
-    createMovieGluClientAtCall: (deviceDatetime: string, geolocation: string) => unknown;
-    sanitizeIpAddress: (rawIp: string) => string;
-    isPrivateIpAddress: (ip: string) => boolean;
-    getServerPublicIp: () => Promise<string>;
-    getGeolocationByUserIp: (ip: string) => Promise<string>;
-    syncDataCinemaDetail: (dto: any) => Promise<void>;
-    updateFilmsDetail: (dto: any) => Promise<void>;
-    syncDateFilmsOfCinema: (dto: any) => Promise<void>;
+const { CallMovieGluService } =
+  require('../../../../background/sync-data-cron-job/call-movie-glu.service') as {
+    CallMovieGluService: new (...args: never[]) => {
+      createMovieGluClientAtCall: (
+        deviceDatetime: string,
+        geolocation: string,
+      ) => unknown;
+      sanitizeIpAddress: (rawIp: string) => string;
+      isPrivateIpAddress: (ip: string) => boolean;
+      getServerPublicIp: () => Promise<string>;
+      getGeolocationByUserIp: (ip: string) => Promise<string>;
+      syncDataCinemaDetail: (dto: any) => Promise<void>;
+      updateFilmsDetail: (dto: any) => Promise<void>;
+      syncDateFilmsOfCinema: (dto: any) => Promise<void>;
+    };
   };
-};
 
 describe('CallMovieGluService', () => {
   const configService = {
@@ -56,9 +60,13 @@ describe('CallMovieGluService', () => {
     logger = { debug: jest.fn(), warn: jest.fn() };
     cinemaService = { updateCinema: jest.fn(), getFilmsOfCinema: jest.fn() };
     redisLockService = {
-      runExclusive: jest.fn(async (_key: string, _ttl: number, fn: () => Promise<void>) => fn()),
+      runExclusive: jest.fn(
+        async (_key: string, _ttl: number, fn: () => Promise<void>) => fn(),
+      ),
     };
-    eventCronJobService = { callSyncDataWithCinemaShowTime: jest.fn().mockResolvedValue(undefined) };
+    eventCronJobService = {
+      callSyncDataWithCinemaShowTime: jest.fn().mockResolvedValue(undefined),
+    };
     filmService = { updateFilm: jest.fn().mockResolvedValue(undefined) };
 
     service = new CallMovieGluService(
@@ -74,7 +82,10 @@ describe('CallMovieGluService', () => {
   it('creates movie glu client with headers', () => {
     createMovieGluClient.mockReturnValue({ sdk: true });
 
-    const result = service.createMovieGluClientAtCall('2026-01-01T00:00:00.000Z', '10;10');
+    const result = service.createMovieGluClientAtCall(
+      '2026-01-01T00:00:00.000Z',
+      '10;10',
+    );
 
     expect(result).toEqual({ sdk: true });
     expect(createMovieGluClient).toHaveBeenCalledWith(
@@ -97,11 +108,15 @@ describe('CallMovieGluService', () => {
 
     await expect(service.getServerPublicIp()).resolves.toBe('8.8.8.8');
     await expect(service.getServerPublicIp()).resolves.toBe('');
-    expect(logger.warn).toHaveBeenCalledWith('Failed to resolve server public IP');
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Failed to resolve server public IP',
+    );
   });
 
   it('returns fallback geolocation for private ip', async () => {
-    await expect(service.getGeolocationByUserIp('127.0.0.1')).resolves.toBe('-22.0;14.0');
+    await expect(service.getGeolocationByUserIp('127.0.0.1')).resolves.toBe(
+      '-22.0;14.0',
+    );
   });
 
   it('syncs cinema detail and emits next event', async () => {
@@ -117,7 +132,9 @@ describe('CallMovieGluService', () => {
     await service.syncDataCinemaDetail(dto as never);
 
     expect(cinemaService.updateCinema).toHaveBeenCalledTimes(2);
-    expect(eventCronJobService.callSyncDataWithCinemaShowTime).toHaveBeenCalledWith(dto);
+    expect(
+      eventCronJobService.callSyncDataWithCinemaShowTime,
+    ).toHaveBeenCalledWith(dto);
   });
 
   it('parses and updates film details', async () => {
@@ -136,7 +153,10 @@ describe('CallMovieGluService', () => {
 
     expect(filmService.updateFilm).toHaveBeenCalledWith(
       100,
-      expect.objectContaining({ review_stars: 4.5, director: [{ name: 'D1' }] }),
+      expect.objectContaining({
+        review_stars: 4.5,
+        director: [{ name: 'D1' }],
+      }),
     );
   });
 
@@ -192,7 +212,9 @@ describe('CallMovieGluService', () => {
       },
     ]);
 
-    await service.syncDateFilmsOfCinema({ cinemas: [{ cinema_id: 1 }] } as never);
+    await service.syncDateFilmsOfCinema({
+      cinemas: [{ cinema_id: 1 }],
+    } as never);
 
     expect(cinemaService.getFilmsOfCinema).toHaveBeenCalledWith(1);
     expect(filmService.updateFilm).not.toHaveBeenCalled();

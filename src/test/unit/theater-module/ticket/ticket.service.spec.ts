@@ -1,4 +1,7 @@
-import { REDIS_LOCK_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
+import {
+  REDIS_LOCK_KEY,
+  REDIS_TTL,
+} from '../../../../background/redis/redis.value';
 
 jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
@@ -12,14 +15,15 @@ jest.mock('../../../../background/redis/redis.lock.service', () => ({
   RedisLockService: class RedisLockService {},
 }));
 
-const { TicketService } = require('../../../../module/theater-module/ticket/ticket.service') as {
-  TicketService: new (...args: never[]) => {
-    createTicket: (dto: unknown, userId: string) => Promise<unknown>;
-    getTicketById: (id: string) => Promise<unknown>;
-    getTicketsByUserId: (userId: string, seatId: string) => Promise<unknown>;
-    orderTicket: (dto: { seatId: string }, userId: string) => Promise<void>;
+const { TicketService } =
+  require('../../../../module/theater-module/ticket/ticket.service') as {
+    TicketService: new (...args: never[]) => {
+      createTicket: (dto: unknown, userId: string) => Promise<unknown>;
+      getTicketById: (id: string) => Promise<unknown>;
+      getTicketsByUserId: (userId: string, seatId: string) => Promise<unknown>;
+      orderTicket: (dto: { seatId: string }, userId: string) => Promise<void>;
+    };
   };
-};
 
 describe('TicketService', () => {
   let service: InstanceType<typeof TicketService>;
@@ -45,14 +49,20 @@ describe('TicketService', () => {
     };
 
     redisLockService = {
-      runExclusive: jest.fn(async (_key: string, _ttl: number, fn: () => Promise<void>) => fn()),
+      runExclusive: jest.fn(
+        async (_key: string, _ttl: number, fn: () => Promise<void>) => fn(),
+      ),
     };
 
     logger = {
       debug: jest.fn(),
     };
 
-    service = new TicketService(prismaService as never, redisLockService as never, logger as never);
+    service = new TicketService(
+      prismaService as never,
+      redisLockService as never,
+      logger as never,
+    );
   });
 
   it('creates ticket with generated code', async () => {
@@ -80,7 +90,9 @@ describe('TicketService', () => {
       .mockResolvedValueOnce({ id: 't2' });
 
     await expect(service.getTicketById('t1')).resolves.toEqual({ id: 't1' });
-    await expect(service.getTicketsByUserId('user-1', 'seat-1')).resolves.toEqual({ id: 't2' });
+    await expect(
+      service.getTicketsByUserId('user-1', 'seat-1'),
+    ).resolves.toEqual({ id: 't2' });
 
     expect(prismaService.ticket.findUnique).toHaveBeenNthCalledWith(1, {
       where: { id: 't1' },
@@ -91,7 +103,9 @@ describe('TicketService', () => {
   });
 
   it('orders ticket under redis lock', async () => {
-    jest.spyOn(service, 'createTicket').mockResolvedValue({ id: 't1' } as never);
+    jest
+      .spyOn(service, 'createTicket')
+      .mockResolvedValue({ id: 't1' } as never);
 
     await service.orderTicket({ seatId: 'seat-1' } as never, 'user-1');
 
@@ -100,7 +114,10 @@ describe('TicketService', () => {
       REDIS_TTL.LOCK_SERVICE,
       expect.any(Function),
     );
-    expect(service.createTicket).toHaveBeenCalledWith({ seatId: 'seat-1' }, 'user-1');
+    expect(service.createTicket).toHaveBeenCalledWith(
+      { seatId: 'seat-1' },
+      'user-1',
+    );
   });
 
   it('logs debug when lock acquisition fails', async () => {
@@ -108,6 +125,8 @@ describe('TicketService', () => {
 
     await service.orderTicket({ seatId: 'seat-1' } as never, 'user-1');
 
-    expect(logger.debug).toHaveBeenCalledWith('User user-1 is ordering seat seat-1');
+    expect(logger.debug).toHaveBeenCalledWith(
+      'User user-1 is ordering seat seat-1',
+    );
   });
 });

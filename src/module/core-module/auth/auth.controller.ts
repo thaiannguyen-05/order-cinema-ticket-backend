@@ -12,10 +12,10 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './service/auth.service';
-import type { RegisterDto } from './dto/register.dto';
-import type { VreifyEmailDto as VerifyEmailDto } from './dto/verify.dto';
-import type { ResetPasswordDto } from './dto/reset.password.dto';
-import type { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { VreifyEmailDto as VerifyEmailDto } from './dto/verify.dto';
+import { ResetPasswordDto } from './dto/reset.password.dto';
+import { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Throttle } from '@nestjs/throttler';

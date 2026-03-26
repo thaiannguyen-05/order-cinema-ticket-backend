@@ -19,7 +19,9 @@ describe('ResponseInterceptor', () => {
       handle: () => of('ok'),
     };
 
-    const result = await lastValueFrom(interceptor.intercept(context as never, next as never));
+    const result = await lastValueFrom(
+      interceptor.intercept(context as never, next as never),
+    );
 
     expect(result.success).toBe(true);
     expect(result.data).toEqual(['ok']);

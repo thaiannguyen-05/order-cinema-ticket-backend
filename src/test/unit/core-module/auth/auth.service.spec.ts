@@ -14,17 +14,18 @@ jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
-const { AuthService } = require('../../../../module/core-module/auth/service/auth.service') as {
-  AuthService: new (...args: never[]) => {
-    register: (dto: unknown) => Promise<unknown>;
-    verifyEmail: (dto: unknown) => Promise<unknown>;
-    forgotPassword: (email: string) => Promise<unknown>;
-    resetPassword: (dto: unknown) => Promise<unknown>;
-    login: (dto: unknown, req: unknown, res: unknown) => Promise<unknown>;
-    refreshToken: (req: unknown, res: unknown) => Promise<unknown>;
-    logout: (req: unknown, res: unknown) => Promise<unknown>;
+const { AuthService } =
+  require('../../../../module/core-module/auth/service/auth.service') as {
+    AuthService: new (...args: never[]) => {
+      register: (dto: unknown) => Promise<unknown>;
+      verifyEmail: (dto: unknown) => Promise<unknown>;
+      forgotPassword: (email: string) => Promise<unknown>;
+      resetPassword: (dto: unknown) => Promise<unknown>;
+      login: (dto: unknown, req: unknown, res: unknown) => Promise<unknown>;
+      refreshToken: (req: unknown, res: unknown) => Promise<unknown>;
+      logout: (req: unknown, res: unknown) => Promise<unknown>;
+    };
   };
-};
 
 const { hash, verify } = require('argon2') as {
   hash: jest.Mock;
@@ -94,7 +95,9 @@ describe('AuthService', () => {
     };
 
     configService = {
-      get: jest.fn((key: string) => (key === 'NODE_ENV' ? 'development' : undefined)),
+      get: jest.fn((key: string) =>
+        key === 'NODE_ENV' ? 'development' : undefined,
+      ),
     };
 
     service = new AuthService(
@@ -142,7 +145,10 @@ describe('AuthService', () => {
       '100000',
       REDIS_TTL.SHORT_TL,
     );
-    expect(emailWorker.sendVerifyCode).toHaveBeenCalledWith('a@example.com', '100000');
+    expect(emailWorker.sendVerifyCode).toHaveBeenCalledWith(
+      'a@example.com',
+      '100000',
+    );
     expect(result).toEqual(
       expect.objectContaining({
         id: 'u1',
@@ -165,7 +171,9 @@ describe('AuthService', () => {
       email: 'a@example.com',
       status: 'ACTIVE',
     });
-    expect(redisService.del).toHaveBeenCalledWith(REDIS_KEY.REGISTER_USER('a@example.com'));
+    expect(redisService.del).toHaveBeenCalledWith(
+      REDIS_KEY.REGISTER_USER('a@example.com'),
+    );
   });
 
   it('throws when verify code is invalid', async () => {
@@ -180,7 +188,9 @@ describe('AuthService', () => {
   it('throws when forgot password email does not exist', async () => {
     userService.isAvailableEmail.mockResolvedValue(false);
 
-    await expect(service.forgotPassword('a@example.com')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.forgotPassword('a@example.com'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('resets password with valid token', async () => {
@@ -224,7 +234,11 @@ describe('AuthService', () => {
     });
 
     const response = { cookie: jest.fn() };
-    const request = { headers: {}, ip: '127.0.0.1', socket: { remoteAddress: '127.0.0.1' } };
+    const request = {
+      headers: {},
+      ip: '127.0.0.1',
+      socket: { remoteAddress: '127.0.0.1' },
+    };
 
     const result = await service.login(
       { email: 'a@example.com', password: 'raw-pass' } as never,
@@ -244,7 +258,10 @@ describe('AuthService', () => {
 
   it('refreshes token and clears old access cookie', async () => {
     tokenService.getSessionById.mockResolvedValue({ id: 's1', userId: 'u1' });
-    userService.getUserById.mockResolvedValue({ id: 'u1', email: 'a@example.com' });
+    userService.getUserById.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
     tokenService.generateTokens.mockResolvedValue({
       accessToken: 'new-access',
       refreshToken: 'new-refresh',
@@ -253,7 +270,9 @@ describe('AuthService', () => {
     const req = { cookies: { sessionId: 's1', refreshToken: 'old-refresh' } };
     const res = { clearCookie: jest.fn(), cookie: jest.fn() };
 
-    await expect(service.refreshToken(req as never, res as never)).resolves.toBe(true);
+    await expect(
+      service.refreshToken(req as never, res as never),
+    ).resolves.toBe(true);
 
     expect(res.clearCookie).toHaveBeenCalledWith('accessToken', { path: '/' });
     expect(res.cookie).toHaveBeenCalledWith(
@@ -261,12 +280,15 @@ describe('AuthService', () => {
       'new-access',
       expect.objectContaining({ httpOnly: true }),
     );
-    expect(tokenService.updateSession).toHaveBeenCalledWith('s1', 'new-refresh');
+    expect(tokenService.updateSession).toHaveBeenCalledWith(
+      's1',
+      'new-refresh',
+    );
   });
 
   it('throws when logout has no session id', async () => {
-    await expect(service.logout({ cookies: {} } as never, {} as never)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.logout({ cookies: {} } as never, {} as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

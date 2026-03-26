@@ -66,7 +66,11 @@ describe('FilmService', () => {
       { film_id: 3 },
     ]);
 
-    const result = await service.findFilms({ limit: 2, cursor: 1, search: 'film' } as never);
+    const result = await service.findFilms({
+      limit: 2,
+      cursor: 1,
+      search: 'film',
+    } as never);
 
     expect(prismaService.film.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -75,11 +79,17 @@ describe('FilmService', () => {
         cursor: { film_id: 1 },
       }),
     );
-    expect(result).toEqual({ films: [{ film_id: 1 }, { film_id: 2 }], nextCursor: 3 });
+    expect(result).toEqual({
+      films: [{ film_id: 1 }, { film_id: 2 }],
+      nextCursor: 3,
+    });
   });
 
   it('finds films by page pagination with defaults', async () => {
-    prismaService.film.findMany.mockResolvedValue([{ film_id: 11 }, { film_id: 12 }]);
+    prismaService.film.findMany.mockResolvedValue([
+      { film_id: 11 },
+      { film_id: 12 },
+    ]);
 
     const result = await service.findFilms({ search: '' } as never);
 
@@ -89,6 +99,9 @@ describe('FilmService', () => {
         skip: 0,
       }),
     );
-    expect(result).toEqual({ films: [{ film_id: 11 }, { film_id: 12 }], nextCursor: null });
+    expect(result).toEqual({
+      films: [{ film_id: 11 }, { film_id: 12 }],
+      nextCursor: null,
+    });
   });
 });

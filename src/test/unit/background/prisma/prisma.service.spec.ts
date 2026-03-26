@@ -8,9 +8,10 @@ jest.mock('@prisma/client', () => ({
   },
 }));
 
-const { PrismaService } = require('../../../../background/prisma/prisma.service') as {
-  PrismaService: new (...args: never[]) => unknown;
-};
+const { PrismaService } =
+  require('../../../../background/prisma/prisma.service') as {
+    PrismaService: new (...args: never[]) => unknown;
+  };
 
 describe('PrismaService', () => {
   it('can be instantiated with config service', () => {

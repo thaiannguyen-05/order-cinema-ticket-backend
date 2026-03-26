@@ -31,7 +31,9 @@ describe('EmailService', () => {
       expect.objectContaining({
         to: 'a@example.com',
         template: './verification-code',
-        context: expect.objectContaining({ url: 'https://api.example.com/verify?token=123456' }),
+        context: expect.objectContaining({
+          url: 'https://api.example.com/verify?token=123456',
+        }),
       }),
     );
   });
@@ -45,7 +47,9 @@ describe('EmailService', () => {
       expect.objectContaining({
         to: 'a@example.com',
         template: './reset-password',
-        context: expect.objectContaining({ url: 'https://api.example.com/reset?token=token-1' }),
+        context: expect.objectContaining({
+          url: 'https://api.example.com/reset?token=token-1',
+        }),
       }),
     );
   });
@@ -53,8 +57,8 @@ describe('EmailService', () => {
   it('throws bad request when mailer fails', async () => {
     mailerService.sendMail.mockRejectedValue(new Error('smtp down'));
 
-    await expect(service.sendUserConfirmation('a@example.com', '123456')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.sendUserConfirmation('a@example.com', '123456'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

@@ -14,21 +14,25 @@ jest.mock('../../../background/redis/redis.lock.service', () => ({
   RedisLockService: class RedisLockService {},
 }));
 
-const { MomoController } = require('../../../module/payment/momo/momo.controller') as {
-  MomoController: new (...args: never[]) => {
-    handleMomoIPN: (dto: MomoIPNHandler) => Promise<unknown>;
-    checkPaymentStatus: (orderId: string) => Promise<unknown>;
-    createPayment: (userId: string, dto: CreateMomoPaymentDto) => Promise<unknown>;
-    paymentResult: (
-      resultCode?: string,
-      orderId?: string,
-      message?: string,
-      amount?: string,
-      requestId?: string,
-      transId?: string,
-    ) => string;
+const { MomoController } =
+  require('../../../module/payment/momo/momo.controller') as {
+    MomoController: new (...args: never[]) => {
+      handleMomoIPN: (dto: MomoIPNHandler) => Promise<unknown>;
+      checkPaymentStatus: (orderId: string) => Promise<unknown>;
+      createPayment: (
+        userId: string,
+        dto: CreateMomoPaymentDto,
+      ) => Promise<unknown>;
+      paymentResult: (
+        resultCode?: string,
+        orderId?: string,
+        message?: string,
+        amount?: string,
+        requestId?: string,
+        transId?: string,
+      ) => string;
+    };
   };
-};
 
 describe('MomoController', () => {
   const createDto: CreateMomoPaymentDto = {
@@ -74,12 +78,16 @@ describe('MomoController', () => {
   it('delegates momo ipn handling to service', async () => {
     momoService.momoIpnHandler.mockResolvedValue({ resultCode: 0 });
 
-    await expect(controller.handleMomoIPN(ipnDto)).resolves.toEqual({ resultCode: 0 });
+    await expect(controller.handleMomoIPN(ipnDto)).resolves.toEqual({
+      resultCode: 0,
+    });
     expect(momoService.momoIpnHandler).toHaveBeenCalledWith(ipnDto);
   });
 
   it('delegates check payment status to service', async () => {
-    momoService.checkMomoPaymentStatus.mockResolvedValue({ orderId: 'ORDER-1' });
+    momoService.checkMomoPaymentStatus.mockResolvedValue({
+      orderId: 'ORDER-1',
+    });
 
     await expect(controller.checkPaymentStatus('ORDER-1')).resolves.toEqual({
       orderId: 'ORDER-1',
@@ -88,12 +96,19 @@ describe('MomoController', () => {
   });
 
   it('delegates create payment to service', async () => {
-    momoService.createMomoPayment.mockResolvedValue({ payUrl: 'https://momo.vn/url' });
-
-    await expect(controller.createPayment('user-1', createDto)).resolves.toEqual({
+    momoService.createMomoPayment.mockResolvedValue({
       payUrl: 'https://momo.vn/url',
     });
-    expect(momoService.createMomoPayment).toHaveBeenCalledWith('user-1', createDto);
+
+    await expect(
+      controller.createPayment('user-1', createDto),
+    ).resolves.toEqual({
+      payUrl: 'https://momo.vn/url',
+    });
+    expect(momoService.createMomoPayment).toHaveBeenCalledWith(
+      'user-1',
+      createDto,
+    );
   });
 
   it('renders success payment result html with escaped fields', () => {

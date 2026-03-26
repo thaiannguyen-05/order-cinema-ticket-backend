@@ -29,13 +29,19 @@ describe('FilmController', () => {
     filmService.getFilm.mockResolvedValue({ id: 1 });
     filmService.findFilms.mockResolvedValue({ films: [] });
 
-    await expect(controller.createFilm({ film_id: 1 } as never)).resolves.toEqual({ id: 1 });
-    await expect(controller.updateFilm(1, { film_name: 'new' } as never)).resolves.toEqual({
+    await expect(
+      controller.createFilm({ film_id: 1 } as never),
+    ).resolves.toEqual({ id: 1 });
+    await expect(
+      controller.updateFilm(1, { film_name: 'new' } as never),
+    ).resolves.toEqual({
       id: 1,
       film_name: 'new',
     });
     await expect(controller.deleteFilm(1)).resolves.toEqual({});
     await expect(controller.getFilm(1)).resolves.toEqual({ id: 1 });
-    await expect(controller.findFilms({ search: 'a' } as never)).resolves.toEqual({ films: [] });
+    await expect(
+      controller.findFilms({ search: 'a' } as never),
+    ).resolves.toEqual({ films: [] });
   });
 });

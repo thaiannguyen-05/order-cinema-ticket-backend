@@ -21,7 +21,9 @@ describe('RedisService', () => {
   });
 
   it('gets value or null', async () => {
-    cacheManager.get.mockResolvedValueOnce('abc').mockResolvedValueOnce(undefined);
+    cacheManager.get
+      .mockResolvedValueOnce('abc')
+      .mockResolvedValueOnce(undefined);
 
     await expect(service.get('k1')).resolves.toBe('abc');
     await expect(service.get('k2')).resolves.toBeNull();

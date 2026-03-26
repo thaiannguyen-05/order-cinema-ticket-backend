@@ -2,14 +2,15 @@ jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
-const { SyncDataCronJobService } = require('../../../../background/sync-data-cron-job/sync-data-cron-job.service') as {
-  SyncDataCronJobService: new (...args: never[]) => {
-    syncDataCinemaNearBy: () => Promise<void>;
-    syncNowShowingFilms: () => Promise<void>;
-    syncNowFilmsComingSoon: () => Promise<void>;
-    syncFilmsDetails: () => Promise<void>;
+const { SyncDataCronJobService } =
+  require('../../../../background/sync-data-cron-job/sync-data-cron-job.service') as {
+    SyncDataCronJobService: new (...args: never[]) => {
+      syncDataCinemaNearBy: () => Promise<void>;
+      syncNowShowingFilms: () => Promise<void>;
+      syncNowFilmsComingSoon: () => Promise<void>;
+      syncFilmsDetails: () => Promise<void>;
+    };
   };
-};
 
 describe('SyncDataCronJobService', () => {
   let logger: { debug: jest.Mock };
@@ -32,7 +33,9 @@ describe('SyncDataCronJobService', () => {
     logger = { debug: jest.fn() };
     cinemaService = { upsertCinema: jest.fn().mockResolvedValue(undefined) };
     redisLockService = {
-      runExclusive: jest.fn(async (_k: string, _ttl: number, fn: () => Promise<void>) => fn()),
+      runExclusive: jest.fn(
+        async (_k: string, _ttl: number, fn: () => Promise<void>) => fn(),
+      ),
     };
     eventCronJobService = {
       callSyncDataWithCinemaDetail: jest.fn().mockResolvedValue(undefined),
@@ -44,11 +47,15 @@ describe('SyncDataCronJobService', () => {
       createMovieGluClientAtCall: jest.fn(),
       updateFilmsDetail: jest.fn().mockResolvedValue(undefined),
     };
-    filmService = { getAllFilms: jest.fn().mockResolvedValue([{ film_id: 1 }]) };
+    filmService = {
+      getAllFilms: jest.fn().mockResolvedValue([{ film_id: 1 }]),
+    };
 
     const client = {
       cinemas: {
-        nearby: jest.fn().mockResolvedValue({ cinemas: [{ cinema_id: 1, cinema_name: 'A', address: 'Addr' }] }),
+        nearby: jest.fn().mockResolvedValue({
+          cinemas: [{ cinema_id: 1, cinema_name: 'A', address: 'Addr' }],
+        }),
       },
       films: {
         nowShowing: jest.fn().mockResolvedValue({ films: [{ film_id: 1 }] }),
@@ -99,6 +106,8 @@ describe('SyncDataCronJobService', () => {
 
     await service.syncNowShowingFilms();
 
-    expect(logger.debug).toHaveBeenCalledWith('Skip because lock is already held');
+    expect(logger.debug).toHaveBeenCalledWith(
+      'Skip because lock is already held',
+    );
   });
 });

@@ -49,11 +49,23 @@ describe('MyLogger', () => {
     logger.verbose('verbose msg', 'ctx');
     logger.fatal('fatal msg', 'ctx');
 
-    expect(logMock).toHaveBeenCalledWith('info', 'info msg', { context: 'ctx' });
-    expect(logMock).toHaveBeenCalledWith('error', 'error msg', { context: 'ctx' });
-    expect(logMock).toHaveBeenCalledWith('warn', 'warn msg', { context: 'ctx' });
-    expect(logMock).toHaveBeenCalledWith('debug', 'debug msg', { context: 'ctx' });
-    expect(logMock).toHaveBeenCalledWith('verbose', 'verbose msg', { context: 'ctx' });
-    expect(logMock).toHaveBeenCalledWith('fatal', 'fatal msg', { context: 'ctx' });
+    expect(logMock).toHaveBeenCalledWith('info', 'info msg', {
+      context: 'ctx',
+    });
+    expect(logMock).toHaveBeenCalledWith('error', 'error msg', {
+      context: 'ctx',
+    });
+    expect(logMock).toHaveBeenCalledWith('warn', 'warn msg', {
+      context: 'ctx',
+    });
+    expect(logMock).toHaveBeenCalledWith('debug', 'debug msg', {
+      context: 'ctx',
+    });
+    expect(logMock).toHaveBeenCalledWith('verbose', 'verbose msg', {
+      context: 'ctx',
+    });
+    expect(logMock).toHaveBeenCalledWith('fatal', 'fatal msg', {
+      context: 'ctx',
+    });
   });
 });

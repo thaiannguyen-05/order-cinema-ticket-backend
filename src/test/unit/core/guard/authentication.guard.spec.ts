@@ -20,33 +20,46 @@ describe('AuthenticationGuard', () => {
     reflector = { getAllAndOverride: jest.fn() };
     configService = { getOrThrow: jest.fn().mockReturnValue('secret') };
 
-    guard = new AuthenticationGuard(jwtService as never, reflector as never, configService as never);
+    guard = new AuthenticationGuard(
+      jwtService as never,
+      reflector as never,
+      configService as never,
+    );
   });
 
   it('allows public route', async () => {
     reflector.getAllAndOverride.mockReturnValue(true);
 
-    await expect(guard.canActivate(makeContext({}) as never)).resolves.toBe(true);
+    await expect(guard.canActivate(makeContext({}) as never)).resolves.toBe(
+      true,
+    );
   });
 
   it('throws unauthorized when token is missing', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
 
-    await expect(guard.canActivate(makeContext({ headers: {} }) as never)).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      guard.canActivate(makeContext({ headers: {} }) as never),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('verifies token and attaches payload', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
-    jwtService.verifyAsync.mockResolvedValue({ id: 'u1', email: 'a@example.com' });
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
 
     const request: Record<string, unknown> = {
       headers: { 'access-token': 'token-1' },
     };
 
-    await expect(guard.canActivate(makeContext(request) as never)).resolves.toBe(true);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-1', { secret: 'secret' });
+    await expect(
+      guard.canActivate(makeContext(request) as never),
+    ).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-1', {
+      secret: 'secret',
+    });
     expect(request.payload).toEqual({ id: 'u1', email: 'a@example.com' });
   });
 });

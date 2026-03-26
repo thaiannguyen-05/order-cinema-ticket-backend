@@ -32,14 +32,22 @@ describe('SeatController', () => {
     seatService.deleteSeat.mockResolvedValue({});
     seatService.findSeats.mockResolvedValue({ seats: [] });
 
-    await expect(controller.createSeat({ row: 1 } as never)).resolves.toEqual({ id: 's1' });
-    await expect(controller.getSeatsByShowtimeId('film-1', 1)).resolves.toEqual([{ id: 's1' }]);
+    await expect(controller.createSeat({ row: 1 } as never)).resolves.toEqual({
+      id: 's1',
+    });
+    await expect(controller.getSeatsByShowtimeId('film-1', 1)).resolves.toEqual(
+      [{ id: 's1' }],
+    );
     await expect(controller.getSeat('s1')).resolves.toEqual({ id: 's1' });
-    await expect(controller.updateSeat('s1', { row: 2 } as never)).resolves.toEqual({
+    await expect(
+      controller.updateSeat('s1', { row: 2 } as never),
+    ).resolves.toEqual({
       id: 's1',
       row: 2,
     });
     await expect(controller.deleteSeat('s1')).resolves.toEqual({});
-    await expect(controller.findSeats({} as never)).resolves.toEqual({ seats: [] });
+    await expect(controller.findSeats({} as never)).resolves.toEqual({
+      seats: [],
+    });
   });
 });

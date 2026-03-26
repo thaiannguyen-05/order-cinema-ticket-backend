@@ -62,7 +62,11 @@ describe('CinemaService', () => {
       { cinema_id: 3 },
     ]);
 
-    const result = await service.findCinemas({ search: 'cgv', limit: 2, cursor: 1 } as never);
+    const result = await service.findCinemas({
+      search: 'cgv',
+      limit: 2,
+      cursor: 1,
+    } as never);
 
     expect(prismaService.cinema.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -71,7 +75,10 @@ describe('CinemaService', () => {
         cursor: { cinema_id: 1 },
       }),
     );
-    expect(result).toEqual({ cinemas: [{ cinema_id: 1 }, { cinema_id: 2 }], nextCursor: 3 });
+    expect(result).toEqual({
+      cinemas: [{ cinema_id: 1 }, { cinema_id: 2 }],
+      nextCursor: 3,
+    });
   });
 
   it('finds cinemas with page pagination defaults', async () => {

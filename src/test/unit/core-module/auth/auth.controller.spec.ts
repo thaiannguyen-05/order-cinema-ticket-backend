@@ -2,17 +2,18 @@ jest.mock('../../../../module/core-module/auth/service/auth.service', () => ({
   AuthService: class AuthService {},
 }));
 
-const { AuthController } = require('../../../../module/core-module/auth/auth.controller') as {
-  AuthController: new (...args: never[]) => {
-    register: (dto: unknown) => Promise<unknown>;
-    verifyEmail: (dto: unknown) => Promise<unknown>;
-    forgotPassword: (body: { email: string }) => Promise<unknown>;
-    resetPassword: (dto: unknown) => Promise<unknown>;
-    login: (dto: unknown, req: unknown, res: unknown) => Promise<unknown>;
-    refreshToken: (req: unknown, res: unknown) => Promise<unknown>;
-    logout: (req: unknown, res: unknown) => Promise<unknown>;
+const { AuthController } =
+  require('../../../../module/core-module/auth/auth.controller') as {
+    AuthController: new (...args: never[]) => {
+      register: (dto: unknown) => Promise<unknown>;
+      verifyEmail: (dto: unknown) => Promise<unknown>;
+      forgotPassword: (body: { email: string }) => Promise<unknown>;
+      resetPassword: (dto: unknown) => Promise<unknown>;
+      login: (dto: unknown, req: unknown, res: unknown) => Promise<unknown>;
+      refreshToken: (req: unknown, res: unknown) => Promise<unknown>;
+      logout: (req: unknown, res: unknown) => Promise<unknown>;
+    };
   };
-};
 
 describe('AuthController', () => {
   let authService: {
@@ -44,7 +45,9 @@ describe('AuthController', () => {
     const dto = { email: 'a@example.com' };
     authService.register.mockResolvedValue({ id: 'u1' });
 
-    await expect(controller.register(dto as never)).resolves.toEqual({ id: 'u1' });
+    await expect(controller.register(dto as never)).resolves.toEqual({
+      id: 'u1',
+    });
     expect(authService.register).toHaveBeenCalledWith(dto);
   });
 
@@ -59,7 +62,9 @@ describe('AuthController', () => {
   it('delegates forgotPassword', async () => {
     authService.forgotPassword.mockResolvedValue(true);
 
-    await expect(controller.forgotPassword({ email: 'a@example.com' })).resolves.toBe(true);
+    await expect(
+      controller.forgotPassword({ email: 'a@example.com' }),
+    ).resolves.toBe(true);
     expect(authService.forgotPassword).toHaveBeenCalledWith('a@example.com');
   });
 
@@ -79,10 +84,16 @@ describe('AuthController', () => {
     authService.refreshToken.mockResolvedValue(true);
     authService.logout.mockResolvedValue(true);
 
-    await expect(controller.login({} as never, req as never, res as never)).resolves.toEqual({
+    await expect(
+      controller.login({} as never, req as never, res as never),
+    ).resolves.toEqual({
       accessToken: 'a',
     });
-    await expect(controller.refreshToken(req as never, res as never)).resolves.toBe(true);
-    await expect(controller.logout(req as never, res as never)).resolves.toBe(true);
+    await expect(
+      controller.refreshToken(req as never, res as never),
+    ).resolves.toBe(true);
+    await expect(controller.logout(req as never, res as never)).resolves.toBe(
+      true,
+    );
   });
 });

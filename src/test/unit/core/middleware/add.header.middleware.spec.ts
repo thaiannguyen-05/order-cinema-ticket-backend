@@ -3,7 +3,9 @@ import { AddHeaderMiddleware } from '../../../../core/middleware/add.header.midd
 describe('AddHeaderMiddleware', () => {
   it('uses provided x-request-id header', () => {
     const middleware = new AddHeaderMiddleware();
-    const req: Record<string, unknown> = { headers: { 'x-request-id': 'req-abc' } };
+    const req: Record<string, unknown> = {
+      headers: { 'x-request-id': 'req-abc' },
+    };
     const res = { setHeader: jest.fn() };
     const next = jest.fn();
 

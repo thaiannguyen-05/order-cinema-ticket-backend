@@ -10,7 +10,9 @@ describe('UserController', () => {
     const req = { payload: { email: 'a@example.com' } };
     const dto = { fullname: 'New Name' };
 
-    await expect(controller.updateUser(req as never, dto as never)).resolves.toEqual({ id: 'u1' });
+    await expect(
+      controller.updateUser(req as never, dto as never),
+    ).resolves.toEqual({ id: 'u1' });
     expect(userService.updateUserByEmail).toHaveBeenCalledWith({
       fullname: 'New Name',
       email: 'a@example.com',

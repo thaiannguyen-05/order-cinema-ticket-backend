@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
 import { UserService } from '../../user/user.service';
 import { RegisterDto } from '../dto/register.dto';
-import { UserWithoutPassword } from '../type/return.type';
 import { VreifyEmailDto } from '../dto/verify.dto';
 import { ResetPasswordDto } from '../dto/reset.password.dto';
 import { LoginDto } from '../dto/login.dto';
@@ -18,6 +17,8 @@ import { EmailWorker } from '../../../../background/email/email.worker';
 import { RedisService } from '../../../../background/redis/redis.service';
 import { REDIS_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
 import { MyLogger } from '../../../../core/logger/logger.service';
+import { Payload } from '../../../../core';
+import { UserWithoutPassword } from '../type/type';
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,8 +30,12 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  private hashPassword(password: string): Promise<string> {
+  private hashTextByArgon2(password: string): Promise<string> {
     return hash(password);
+  }
+
+  private verifyTextByArgon2(text: string, hash: string) {
+    return verify(hash, text);
   }
 
   private generateCode(): string {
@@ -61,14 +66,11 @@ export class AuthService {
       throw new UnauthorizedException('Email is already in use');
     }
 
-    const hashedPassword = await this.hashPassword(dto.password);
+    const hashedPassword = await this.hashTextByArgon2(dto.password);
 
     const verificationCode = this.generateCode();
     const key = REDIS_KEY.REGISTER_USER(dto.email);
     await this.redisService.set(key, verificationCode, REDIS_TTL.SHORT_TL);
-    this.logger.debug(
-      `Generated verification code for ${dto.email}: ${verificationCode}`,
-    );
 
     const newUser = await this.userService.createUser({
       fullname: dto.fullname,
@@ -82,6 +84,7 @@ export class AuthService {
       this.emailWorker.sendVerifyCode(dto.email, verificationCode);
     } catch (error) {
       await this.userService.deleteUserByEmail(newUser.email);
+      await this.redisService.del(key);
       throw new BadRequestException(`${error}`);
     }
 
@@ -161,7 +164,7 @@ export class AuthService {
       throw new BadRequestException('Invalid reset token');
     }
 
-    const hashedPassword = await this.hashPassword(dto.newPassword);
+    const hashedPassword = await this.hashTextByArgon2(dto.newPassword);
     await this.userService.updateUserByEmail({
       email: dto.email,
       password: hashedPassword,
@@ -194,7 +197,7 @@ export class AuthService {
 
     const userIp = this.getUserIp(request);
     const token = await this.tokenService.generateTokens(availableUser);
-    const hashRefreshToken = await this.hashPassword(token.refreshToken);
+    const hashRefreshToken = await this.hashTextByArgon2(token.refreshToken);
     const session = await this.tokenService.handleSession(
       userIp,
       availableUser.id,
@@ -244,18 +247,39 @@ export class AuthService {
       throw new NotFoundException('Session not found');
     }
 
-    const user = await this.userService.getUserById(session.userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
     const refreshToken = req.cookies['refreshToken'] as string;
     if (!refreshToken) {
       throw new NotFoundException('Refresh token is missing');
     }
 
+    const isValidRefreshToken = await this.verifyTextByArgon2(
+      session.hashRefreshToken || 'token valid',
+      refreshToken,
+    );
+    if (!isValidRefreshToken) {
+      throw new UnauthorizedException('Token not match');
+    }
+
+    const payload: Payload = await this.tokenService.verifyToken(refreshToken);
+    if (payload.id !== session.userId) {
+      throw new UnauthorizedException(
+        'Userid in payload is not match with sessionId',
+      );
+    }
+
+    const availableUser = await this.userService.getUserById(payload.id);
+    if (!availableUser) {
+      throw new NotFoundException('User is not found');
+    }
+
     res.clearCookie('accessToken', { path: '/' });
-    const newAccessToken = await this.tokenService.generateTokens(user);
+    const newAccessToken = await this.tokenService.generateTokens({
+      id: payload.id,
+      email: payload.email,
+    });
+    const newHashRefreshToken = await this.hashTextByArgon2(
+      newAccessToken.refreshToken,
+    );
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     res.cookie('accessToken', newAccessToken.accessToken, {
@@ -265,10 +289,7 @@ export class AuthService {
       path: '/',
     });
 
-    await this.tokenService.updateSession(
-      sessionId,
-      newAccessToken.refreshToken,
-    );
+    await this.tokenService.updateSession(sessionId, newHashRefreshToken);
 
     return true;
   }

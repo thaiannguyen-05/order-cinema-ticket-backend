@@ -4,7 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PAYMENT_STATUS } from '@prisma/client';
-import { REDIS_LOCK_KEY, REDIS_TTL } from '../../../background/redis/redis.value';
+import {
+  REDIS_LOCK_KEY,
+  REDIS_TTL,
+} from '../../../background/redis/redis.value';
 import type { CreateMomoPaymentDto } from '../../../module/payment/momo/dto/create.momoPayment';
 import type { MomoIPNHandler } from '../../../module/payment/momo/dto/momo-ipn.handler';
 
@@ -21,13 +24,17 @@ jest.mock('../../../background/redis/redis.lock.service', () => ({
   RedisLockService: class RedisLockService {},
 }));
 
-const { MomoService } = require('../../../module/payment/momo/momo.service') as {
-  MomoService: new (...args: never[]) => {
-    createMomoPayment: (userId: string, dto: CreateMomoPaymentDto) => Promise<unknown>;
-    checkMomoPaymentStatus: (orderId: string) => Promise<unknown>;
-    momoIpnHandler: (dto: MomoIPNHandler) => Promise<unknown>;
+const { MomoService } =
+  require('../../../module/payment/momo/momo.service') as {
+    MomoService: new (...args: never[]) => {
+      createMomoPayment: (
+        userId: string,
+        dto: CreateMomoPaymentDto,
+      ) => Promise<unknown>;
+      checkMomoPaymentStatus: (orderId: string) => Promise<unknown>;
+      momoIpnHandler: (dto: MomoIPNHandler) => Promise<unknown>;
+    };
   };
-};
 
 describe('MomoService', () => {
   const configRequired: Record<string, string | number> = {
@@ -111,7 +118,10 @@ describe('MomoService', () => {
     };
 
     redisLockService = {
-      runExclusive: jest.fn(async (_resource: string, _ttl: number, fn: () => Promise<unknown>) => fn()),
+      runExclusive: jest.fn(
+        async (_resource: string, _ttl: number, fn: () => Promise<unknown>) =>
+          fn(),
+      ),
     };
 
     loggerService = {
@@ -135,7 +145,10 @@ describe('MomoService', () => {
     };
 
     jest
-      .spyOn(MomoService.prototype as unknown as { createMomoClient: () => unknown }, 'createMomoClient')
+      .spyOn(
+        MomoService.prototype as unknown as { createMomoClient: () => unknown },
+        'createMomoClient',
+      )
       .mockReturnValue(momoClient);
 
     service = new MomoService(
@@ -157,7 +170,10 @@ describe('MomoService', () => {
     };
 
     prismaService.momoPayment.findUnique.mockResolvedValue(null);
-    prismaService.ticket.findUnique.mockResolvedValue({ id: 'ticket-1', userId: 'user-1' });
+    prismaService.ticket.findUnique.mockResolvedValue({
+      id: 'ticket-1',
+      userId: 'user-1',
+    });
     prismaService.momoPayment.upsert.mockResolvedValue({ id: 'payment-1' });
     momoClient.createPayment.mockResolvedValue(momoResponse);
 
@@ -202,47 +218,56 @@ describe('MomoService', () => {
       paymentStatus: PAYMENT_STATUS.COMPLETED,
     });
 
-    await expect(service.createMomoPayment('user-1', createDto)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('throws not found when ticket does not exist', async () => {
     prismaService.momoPayment.findUnique.mockResolvedValue(null);
     prismaService.ticket.findUnique.mockResolvedValue(null);
 
-    await expect(service.createMomoPayment('user-1', createDto)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('throws bad request when ticket belongs to another user', async () => {
     prismaService.momoPayment.findUnique.mockResolvedValue(null);
-    prismaService.ticket.findUnique.mockResolvedValue({ id: 'ticket-1', userId: 'user-2' });
+    prismaService.ticket.findUnique.mockResolvedValue({
+      id: 'ticket-1',
+      userId: 'user-2',
+    });
 
-    await expect(service.createMomoPayment('user-1', createDto)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('throws conflict when lock cannot be acquired', async () => {
     redisLockService.runExclusive.mockResolvedValue(null);
 
-    await expect(service.createMomoPayment('user-1', createDto)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('throws bad request when checking payment status without order id', async () => {
-    await expect(service.checkMomoPaymentStatus('')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.checkMomoPaymentStatus('')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('queries momo transaction by order id', async () => {
     const transaction = { orderId: 'ORDER-1', resultCode: 0 };
     momoClient.queryTransaction.mockResolvedValue(transaction);
 
-    await expect(service.checkMomoPaymentStatus('ORDER-1')).resolves.toEqual(transaction);
-    expect(momoClient.queryTransaction).toHaveBeenCalledWith({ orderId: 'ORDER-1' });
+    await expect(service.checkMomoPaymentStatus('ORDER-1')).resolves.toEqual(
+      transaction,
+    );
+    expect(momoClient.queryTransaction).toHaveBeenCalledWith({
+      orderId: 'ORDER-1',
+    });
   });
 
   it('returns error response when ipn request does not exist', async () => {

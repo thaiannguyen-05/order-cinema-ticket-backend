@@ -3,11 +3,12 @@ jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
-const { LoggingInterceptor } = require('../../../../core/intercepter/logging.interceptor') as {
-  LoggingInterceptor: new (logger: unknown) => {
-    intercept: (context: unknown, next: unknown) => unknown;
+const { LoggingInterceptor } =
+  require('../../../../core/intercepter/logging.interceptor') as {
+    LoggingInterceptor: new (logger: unknown) => {
+      intercept: (context: unknown, next: unknown) => unknown;
+    };
   };
-};
 
 describe('LoggingInterceptor', () => {
   it('logs request and response payload', async () => {

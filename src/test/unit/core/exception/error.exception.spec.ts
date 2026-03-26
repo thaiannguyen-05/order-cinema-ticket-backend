@@ -44,6 +44,8 @@ describe('ErrorExcception', () => {
     filter.catch(new Error('boom'), host as never);
 
     expect(status).toHaveBeenCalledWith(500);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }));
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'boom' }),
+    );
   });
 });

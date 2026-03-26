@@ -9,11 +9,16 @@ jest.mock('redlock', () => {
   }));
 });
 
-const { RedisLockService } = require('../../../../background/redis/redis.lock.service') as {
-  RedisLockService: new (...args: never[]) => {
-    runExclusive: <T>(resource: string, ttlMs: number, fn: () => Promise<T>) => Promise<T | null>;
+const { RedisLockService } =
+  require('../../../../background/redis/redis.lock.service') as {
+    RedisLockService: new (...args: never[]) => {
+      runExclusive: <T>(
+        resource: string,
+        ttlMs: number,
+        fn: () => Promise<T>,
+      ) => Promise<T | null>;
+    };
   };
-};
 
 describe('RedisLockService', () => {
   beforeEach(() => {
@@ -25,7 +30,9 @@ describe('RedisLockService', () => {
     acquireMock.mockRejectedValue(new Error('lock busy'));
     const service = new RedisLockService({} as never);
 
-    await expect(service.runExclusive('resource', 1000, async () => 'ok')).resolves.toBeNull();
+    await expect(
+      service.runExclusive('resource', 1000, async () => 'ok'),
+    ).resolves.toBeNull();
   });
 
   it('runs function and releases lock when acquired', async () => {
@@ -35,7 +42,9 @@ describe('RedisLockService', () => {
 
     const service = new RedisLockService({} as never);
 
-    await expect(service.runExclusive('resource', 1000, async () => 'done')).resolves.toBe('done');
+    await expect(
+      service.runExclusive('resource', 1000, async () => 'done'),
+    ).resolves.toBe('done');
     expect(acquireMock).toHaveBeenCalledWith(['resource'], 1000);
     expect(releaseMock).toHaveBeenCalledWith(lock);
   });

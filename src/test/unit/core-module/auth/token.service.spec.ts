@@ -36,14 +36,20 @@ describe('TokenService', () => {
       },
     };
 
-    service = new TokenService(jwtService as never, configService as never, prismaService as never);
+    service = new TokenService(
+      jwtService as never,
+      configService as never,
+      prismaService as never,
+    );
   });
 
   it('generates one token with proper payload and config', async () => {
     jwtService.signAsync.mockResolvedValue('token-1');
 
     const user = { id: 'u1', email: 'a@example.com' };
-    await expect(service.generateToken(user as never, 'ACCESS')).resolves.toBe('token-1');
+    await expect(service.generateToken(user as never, 'ACCESS')).resolves.toBe(
+      'token-1',
+    );
 
     expect(jwtService.signAsync).toHaveBeenCalledWith(
       { id: 'u1', email: 'a@example.com' },
@@ -68,7 +74,9 @@ describe('TokenService', () => {
   it('handles session upsert', async () => {
     prismaService.session.upsert.mockResolvedValue({ id: 's1' });
 
-    await expect(service.handleSession('127.0.0.1', 'u1', 'hash')).resolves.toEqual({ id: 's1' });
+    await expect(
+      service.handleSession('127.0.0.1', 'u1', 'hash'),
+    ).resolves.toEqual({ id: 's1' });
     expect(prismaService.session.upsert).toHaveBeenCalledWith({
       where: { userIp: '127.0.0.1' },
       update: { hashRefreshToken: 'hash' },
@@ -81,6 +89,8 @@ describe('TokenService', () => {
     prismaService.session.update.mockResolvedValue({ id: 's1' });
 
     await expect(service.getSessionById('s1')).resolves.toEqual({ id: 's1' });
-    await expect(service.updateSession('s1', null)).resolves.toEqual({ id: 's1' });
+    await expect(service.updateSession('s1', null)).resolves.toEqual({
+      id: 's1',
+    });
   });
 });

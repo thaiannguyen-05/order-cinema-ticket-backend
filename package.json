@@ -25,7 +25,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-     "@andev2005/momo-sdk": "^1.1.1",
+    "@andev2005/momo-sdk": "^1.1.1",
     "@andev2005/movie-glu-sdk": "^1.0.8",
     "@keyv/redis": "^5.1.6",
     "@nestjs-modules/mailer": "^2.0.2",
@@ -50,6 +50,8 @@
     "axios": "^1.13.5",
     "cache-manager": "^7.2.8",
     "chalk": "^5.6.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
     "cookie-parser": "^1.4.7",
     "csrf-csrf": "^4.0.3",
     "express-session": "^1.19.0",
