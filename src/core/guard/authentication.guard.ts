@@ -19,12 +19,19 @@ export class AuthenticationGuard implements CanActivate {
 
   // helper function to extract token from header
   private extractTokenFromHeader(request: Request): string | null {
+    const authorization = request.headers.authorization;
+    if (typeof authorization === 'string') {
+      const [scheme, token] = authorization.split(' ');
+      if (scheme === 'Bearer' && token) {
+        return token;
+      }
+    }
+
     const token = request.headers['access-token']?.toString();
     return token || null;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // get decorators parameters
     const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
       context.getHandler(),
       context.getClass(),

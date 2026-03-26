@@ -13,7 +13,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './service/auth.service';
 import { RegisterDto } from './dto/register.dto';
-import { VreifyEmailDto as VerifyEmailDto } from './dto/verify.dto';
+import { VerifyEmailDto } from './dto/verify.dto';
 import { ResetPasswordDto } from './dto/reset.password.dto';
 import { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
@@ -169,7 +169,7 @@ export class AuthController {
     return this.authService.login(loginDto, httpRequest, httpResponse);
   }
 
-  @Throttle({ debugger: { limit: 5, ttl: 30 } })
+  @Throttle({ refreshToken: { limit: 5, ttl: 30 } })
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiCookieAuth('refreshToken')

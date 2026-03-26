@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
 import { UserService } from '../../user/user.service';
 import { RegisterDto } from '../dto/register.dto';
-import { VreifyEmailDto } from '../dto/verify.dto';
+import { VerifyEmailDto } from '../dto/verify.dto';
 import { ResetPasswordDto } from '../dto/reset.password.dto';
 import { LoginDto } from '../dto/login.dto';
 import { TokenService } from './token.service';
@@ -99,7 +99,7 @@ export class AuthService {
     return result;
   }
 
-  async verifyEmail(dto: VreifyEmailDto): Promise<boolean> {
+  async verifyEmail(dto: VerifyEmailDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     this.logger.debug(`${availableUser}`);
     if (!availableUser) {
@@ -133,7 +133,7 @@ export class AuthService {
     }
 
     const resetToken = this.generateCode();
-    const key = REDIS_KEY.FOGOT_PASSWORD(email);
+    const key = REDIS_KEY.FORGOT_PASSWORD(email);
     await this.redisService.set(key, resetToken, REDIS_TTL.SHORT_TL);
     this.logger.debug(
       `Generated forgot password token for ${email}: ${resetToken}`,
@@ -155,7 +155,7 @@ export class AuthService {
       throw new NotFoundException('Email is not registered');
     }
 
-    const key = REDIS_KEY.FOGOT_PASSWORD(dto.email);
+    const key = REDIS_KEY.FORGOT_PASSWORD(dto.email);
     const storedToken = await this.redisService.get(key);
     if (!storedToken) {
       throw new BadRequestException('Reset token has expired');
@@ -180,11 +180,15 @@ export class AuthService {
 
   async login(dto: LoginDto, request: Request, response: Response) {
     const availableUser = await this.userService.getUserByEmail(dto.email);
+    const invalidCredentialsError = new UnauthorizedException(
+      'Invalid email or password',
+    );
+
     if (!availableUser) {
-      throw new NotFoundException('Account is not registered');
+      throw invalidCredentialsError;
     }
     if (availableUser.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Account is not active');
+      throw invalidCredentialsError;
     }
 
     const isPasswordValid = await verify(
@@ -192,7 +196,7 @@ export class AuthService {
       availableUser.hashPassword,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
+      throw invalidCredentialsError;
     }
 
     const token = await this.tokenService.generateTokens(availableUser);
@@ -222,32 +226,26 @@ export class AuthService {
       path: '/',
     });
 
-    return {
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken,
-      session: {
-        id: session.id,
-        userId: session.userId,
-        userIp: session.userIp,
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt,
-      },
-    };
+    return true;
   }
 
   async refreshToken(req: Request, res: Response) {
+    const invalidRefreshTokenError = new UnauthorizedException(
+      'Invalid refresh token',
+    );
+
     const sessionId = req.cookies['sessionId'] as string;
     if (!sessionId) {
-      throw new NotFoundException('Session ID is missing');
+      throw invalidRefreshTokenError;
     }
     const session = await this.tokenService.getSessionById(sessionId);
     if (!session) {
-      throw new NotFoundException('Session not found');
+      throw invalidRefreshTokenError;
     }
 
     const refreshToken = req.cookies['refreshToken'] as string;
     if (!refreshToken) {
-      throw new NotFoundException('Refresh token is missing');
+      throw invalidRefreshTokenError;
     }
 
     const isValidRefreshToken = await this.verifyTextByArgon2(
@@ -255,19 +253,17 @@ export class AuthService {
       refreshToken,
     );
     if (!isValidRefreshToken) {
-      throw new UnauthorizedException('Token not match');
+      throw invalidRefreshTokenError;
     }
 
     const payload: Payload = await this.tokenService.verifyToken(refreshToken);
     if (payload.id !== session.userId) {
-      throw new UnauthorizedException(
-        'Userid in payload is not match with sessionId',
-      );
+      throw invalidRefreshTokenError;
     }
 
     const availableUser = await this.userService.getUserById(payload.id);
     if (!availableUser) {
-      throw new NotFoundException('User is not found');
+      throw invalidRefreshTokenError;
     }
 
     res.clearCookie('accessToken', { path: '/' });

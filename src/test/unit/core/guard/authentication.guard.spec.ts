@@ -43,7 +43,7 @@ describe('AuthenticationGuard', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('verifies token and attaches payload', async () => {
+  it('verifies bearer token and attaches payload', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
@@ -51,7 +51,7 @@ describe('AuthenticationGuard', () => {
     });
 
     const request: Record<string, unknown> = {
-      headers: { 'access-token': 'token-1' },
+      headers: { authorization: 'Bearer token-1' },
     };
 
     await expect(
@@ -61,5 +61,24 @@ describe('AuthenticationGuard', () => {
       secret: 'secret',
     });
     expect(request.payload).toEqual({ id: 'u1', email: 'a@example.com' });
+  });
+
+  it('falls back to legacy access-token header', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
+
+    const request: Record<string, unknown> = {
+      headers: { 'access-token': 'token-legacy' },
+    };
+
+    await expect(
+      guard.canActivate(makeContext(request) as never),
+    ).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-legacy', {
+      secret: 'secret',
+    });
   });
 });
