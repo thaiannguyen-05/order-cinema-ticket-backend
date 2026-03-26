@@ -195,11 +195,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    const userIp = this.getUserIp(request);
     const token = await this.tokenService.generateTokens(availableUser);
     const hashRefreshToken = await this.hashTextByArgon2(token.refreshToken);
     const session = await this.tokenService.handleSession(
-      userIp,
       availableUser.id,
       hashRefreshToken,
     );

@@ -33,19 +33,14 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
-  async handleSession(
-    userIp: string,
-    userId: string,
-    hashRefreshToken: string,
-  ) {
+  async handleSession(userId: string, hashRefreshToken: string) {
     return this.prismaService.session.upsert({
-      where: { userIp },
+      where: { userId },
       update: {
         hashRefreshToken,
       },
       create: {
         userId,
-        userIp,
         hashRefreshToken,
       },
     });
