@@ -57,6 +57,7 @@ describe('AuthService', () => {
     handleSession: jest.Mock;
     getSessionById: jest.Mock;
     updateSession: jest.Mock;
+    verifyToken: jest.Mock;
   };
   let configService: {
     get: jest.Mock;
@@ -92,6 +93,7 @@ describe('AuthService', () => {
       handleSession: jest.fn(),
       getSessionById: jest.fn(),
       updateSession: jest.fn(),
+      verifyToken: jest.fn(),
     };
 
     configService = {
@@ -247,17 +249,21 @@ describe('AuthService', () => {
     );
 
     expect(response.cookie).toHaveBeenCalledTimes(3);
-    expect(result).toEqual(
-      expect.objectContaining({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        session: expect.objectContaining({ id: 's1' }),
-      }),
-    );
+    expect(result).toBe(true);
   });
 
   it('refreshes token and clears old access cookie', async () => {
-    tokenService.getSessionById.mockResolvedValue({ id: 's1', userId: 'u1' });
+    verify.mockResolvedValue(true);
+    hash.mockResolvedValue('new-refresh-hash');
+    tokenService.getSessionById.mockResolvedValue({
+      id: 's1',
+      userId: 'u1',
+      hashRefreshToken: 'stored-refresh-hash',
+    });
+    tokenService.verifyToken.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
     userService.getUserById.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
@@ -282,7 +288,7 @@ describe('AuthService', () => {
     );
     expect(tokenService.updateSession).toHaveBeenCalledWith(
       's1',
-      'new-refresh',
+      'new-refresh-hash',
     );
   });
 

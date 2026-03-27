@@ -81,4 +81,44 @@ describe('AuthenticationGuard', () => {
       secret: 'secret',
     });
   });
+
+  it('falls back to accessToken cookie', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
+
+    const request: Record<string, unknown> = {
+      headers: {},
+      cookies: { accessToken: 'token-cookie' },
+    };
+
+    await expect(
+      guard.canActivate(makeContext(request) as never),
+    ).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-cookie', {
+      secret: 'secret',
+    });
+  });
+
+  it('prefers bearer token over cookie token', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
+
+    const request: Record<string, unknown> = {
+      headers: { authorization: 'Bearer token-header' },
+      cookies: { accessToken: 'token-cookie' },
+    };
+
+    await expect(
+      guard.canActivate(makeContext(request) as never),
+    ).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-header', {
+      secret: 'secret',
+    });
+  });
 });

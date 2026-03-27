@@ -10,23 +10,23 @@ import {
 export class RegisterDto {
   @IsString()
   @IsNotEmpty()
-  fullname: string;
+  fullname!: string;
 
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @Type(() => Date)
   @IsDate()
   @IsNotEmpty()
-  dateOfBirth: Date;
+  dateOfBirth!: Date;
 
   @IsString()
   @IsNotEmpty()
-  address: string;
+  address!: string;
 }

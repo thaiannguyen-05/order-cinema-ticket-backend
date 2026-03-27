@@ -9,6 +9,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Payload } from '../type/type';
+
+type RequestWithAccessTokenCookie = Request & {
+  cookies?: Record<'accessToken', string>;
+};
+
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
   constructor(
@@ -17,8 +22,10 @@ export class AuthenticationGuard implements CanActivate {
     private readonly configService: ConfigService,
   ) {}
 
-  // helper function to extract token from header
-  private extractTokenFromHeader(request: Request): string | null {
+  // helper function to extract token from request
+  private extractTokenFromRequest(
+    request: RequestWithAccessTokenCookie,
+  ): string | null {
     const authorization = request.headers.authorization;
     if (typeof authorization === 'string') {
       const [scheme, token] = authorization.split(' ');
@@ -27,8 +34,17 @@ export class AuthenticationGuard implements CanActivate {
       }
     }
 
-    const token = request.headers['access-token']?.toString();
-    return token || null;
+    const legacyHeaderToken = request.headers['access-token']?.toString();
+    if (legacyHeaderToken) {
+      return legacyHeaderToken;
+    }
+
+    const cookieToken = request.cookies?.accessToken;
+    if (typeof cookieToken === 'string' && cookieToken) {
+      return cookieToken;
+    }
+
+    return null;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -39,8 +55,8 @@ export class AuthenticationGuard implements CanActivate {
     if (isPublic) return true;
 
     const executionContext = context.switchToHttp();
-    const request = executionContext.getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+    const request = executionContext.getRequest<RequestWithAccessTokenCookie>();
+    const token = this.extractTokenFromRequest(request);
 
     if (!token) throw new UnauthorizedException();
 

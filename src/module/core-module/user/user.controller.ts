@@ -13,7 +13,7 @@ import {
 } from '@nestjs/swagger';
 
 @ApiTags('User')
-@ApiBearerAuth('access-token')
+@ApiBearerAuth('bearerAuth')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}

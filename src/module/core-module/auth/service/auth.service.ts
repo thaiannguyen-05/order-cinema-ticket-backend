@@ -34,7 +34,7 @@ export class AuthService {
     return hash(password);
   }
 
-  private verifyTextByArgon2(text: string, hash: string) {
+  private verifyTextByArgon2(hash: string, text: string) {
     return verify(hash, text);
   }
 
@@ -191,11 +191,11 @@ export class AuthService {
       throw invalidCredentialsError;
     }
 
-    const isPasswordValid = await verify(
-      dto.password,
+    const isValidPassword = await this.verifyTextByArgon2(
       availableUser.hashPassword,
+      dto.password,
     );
-    if (!isPasswordValid) {
+    if (!isValidPassword) {
       throw invalidCredentialsError;
     }
 
@@ -271,12 +271,19 @@ export class AuthService {
       id: payload.id,
       email: payload.email,
     });
+    res.clearCookie('refreshToken', { path: '/' });
     const newHashRefreshToken = await this.hashTextByArgon2(
       newAccessToken.refreshToken,
     );
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     res.cookie('accessToken', newAccessToken.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    });
+    res.cookie('refreshToken', newAccessToken.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',

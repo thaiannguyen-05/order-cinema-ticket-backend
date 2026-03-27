@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -19,6 +27,7 @@ import { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Throttle } from '@nestjs/throttler';
+import { ForgotPasswordDto } from './dto/forgot.password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,35 +37,9 @@ export class AuthController {
   @Public()
   @Post('register')
   @ApiOperation({ summary: 'Register a new user and send verification code' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['fullname', 'email', 'password', 'dateOfBirth', 'address'],
-      properties: {
-        fullname: { type: 'string', example: 'Nguyen Van A' },
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-        password: { type: 'string', example: 'Password@123' },
-        dateOfBirth: {
-          type: 'string',
-          format: 'date-time',
-          example: '2000-01-01T00:00:00.000Z',
-        },
-        address: { type: 'string', example: 'Ho Chi Minh City' },
-      },
-    },
-  })
+  @ApiBody({ type: RegisterDto })
   @ApiCreatedResponse({
     description: 'Register success. User is created with pending status.',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        fullname: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        address: { type: 'string' },
-        dateOfBirth: { type: 'string', format: 'date-time' },
-      },
-    },
   })
   @ApiUnauthorizedResponse({ description: 'Email is already in use' })
   @ApiBadRequestResponse({
@@ -68,21 +51,9 @@ export class AuthController {
 
   @Public()
   @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email with 6-digit code' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email', 'code'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-        code: {
-          type: 'string',
-          description: '6-digit verification code',
-          example: '123456',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: VerifyEmailDto })
   @ApiOkResponse({
     description: 'Verify success',
     schema: { type: 'boolean', example: true },
@@ -97,16 +68,9 @@ export class AuthController {
 
   @Public()
   @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset and send reset email' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-      },
-    },
-  })
+  @ApiBody({ type: ForgotPasswordDto })
   @ApiOkResponse({
     description: 'Forgot password email sent successfully',
   })
@@ -114,24 +78,15 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Cannot send reset password email',
   })
-  async forgotPassword(@Body() forgotPasswordBody: { email: string }) {
-    return this.authService.forgotPassword(forgotPasswordBody.email);
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Public()
   @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password using token from email' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email', 'code', 'newPassword'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-        code: { type: 'string', example: '123456' },
-        newPassword: { type: 'string', example: 'NewPassword@123' },
-      },
-    },
-  })
+  @ApiBody({ type: ResetPasswordDto })
   @ApiOkResponse({
     description: 'Reset password success',
   })
@@ -145,21 +100,12 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and issue access/refresh token' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email', 'password'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'a@gmail.com' },
-        password: { type: 'string', example: 'Password@123' },
-      },
-    },
-  })
+  @ApiBody({ type: LoginDto })
   @ApiOkResponse({ description: 'Login success' })
-  @ApiNotFoundResponse({ description: 'Account is not registered' })
   @ApiUnauthorizedResponse({
-    description: 'Account is not active or password is invalid',
+    description: 'Account is not active or credentials are invalid',
   })
   async login(
     @Body() loginDto: LoginDto,
@@ -169,13 +115,14 @@ export class AuthController {
     return this.authService.login(loginDto, httpRequest, httpResponse);
   }
 
+  @Public()
   @Throttle({ refreshToken: { limit: 5, ttl: 30 } })
   @Post('refresh-token')
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token using refresh token cookies' })
   @ApiCookieAuth('refreshToken')
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('sessionId')
   @ApiOkResponse({ description: 'Token refreshed successfully' })
-  @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
   async refreshToken(
     @Req() httpRequest: Request,
@@ -185,11 +132,13 @@ export class AuthController {
   }
 
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
-  @ApiCookieAuth('refreshToken')
-  @ApiBearerAuth('access-token')
+  @ApiBearerAuth('bearerAuth')
+  @ApiCookieAuth('sessionId')
   @ApiOkResponse({ description: 'Logout success' })
-  @ApiNotFoundResponse({ description: 'Session or refresh token not found' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiNotFoundResponse({ description: 'Session not found' })
   async logout(
     @Req() httpRequest: Request,
     @Res({ passthrough: true }) httpResponse: Response,

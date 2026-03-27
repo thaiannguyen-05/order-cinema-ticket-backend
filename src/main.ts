@@ -210,14 +210,28 @@ async function bootstrap() {
           bearerFormat: 'JWT',
           description: 'Input JWT access token',
         },
-        'access-token',
+        'bearerAuth',
       )
-      .addCookieAuth('refreshToken', {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'refreshToken',
-        description: 'HTTP-only refresh token cookie',
-      })
+      .addCookieAuth(
+        'refreshToken',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'refreshToken',
+          description: 'HTTP-only refresh token cookie',
+        },
+        'refreshToken',
+      )
+      .addCookieAuth(
+        'sessionId',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'sessionId',
+          description: 'HTTP-only session identifier cookie',
+        },
+        'sessionId',
+      )
       .build();
 
     const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {

@@ -9,15 +9,15 @@ import {
 export class ResetPasswordDto {
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{6}$/)
-  code: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  newPassword: string;
+  newPassword!: string;
 }
