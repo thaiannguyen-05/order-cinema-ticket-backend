@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
@@ -55,7 +55,7 @@ export class TicketService {
         const isOrderSuccess = await this.createTicket(dto, userId);
 
         if (!isOrderSuccess) {
-          throw new Error('Order ticket failed');
+          throw new InternalServerErrorException('Order ticket failed');
         }
       },
     );

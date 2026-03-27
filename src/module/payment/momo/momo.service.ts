@@ -2,6 +2,7 @@ import { MomoClient, MomoClientConfig } from '@andev2005/momo-sdk';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -76,7 +77,7 @@ export class MomoService {
         }
 
         if (ticket.userId !== userId) {
-          throw new BadRequestException('Ticket does not belong to this user');
+          throw new ForbiddenException('Ticket does not belong to this user');
         }
 
         const requestId = randomUUID();

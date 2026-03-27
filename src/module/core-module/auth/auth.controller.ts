@@ -11,11 +11,12 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -41,9 +42,9 @@ export class AuthController {
   @ApiCreatedResponse({
     description: 'Register success. User is created with pending status.',
   })
-  @ApiUnauthorizedResponse({ description: 'Email is already in use' })
-  @ApiBadRequestResponse({
-    description: 'Cannot send verification email or invalid request data',
+  @ApiConflictResponse({ description: 'Email is already in use' })
+  @ApiServiceUnavailableResponse({
+    description: 'Email service is temporarily unavailable',
   })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -58,7 +59,6 @@ export class AuthController {
     description: 'Verify success',
     schema: { type: 'boolean', example: true },
   })
-  @ApiNotFoundResponse({ description: 'Email is not registered' })
   @ApiBadRequestResponse({
     description: 'Verification code expired or invalid',
   })
@@ -72,11 +72,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset and send reset email' })
   @ApiBody({ type: ForgotPasswordDto })
   @ApiOkResponse({
-    description: 'Forgot password email sent successfully',
+    description:
+      'If the email exists, a reset instruction has been sent successfully',
   })
-  @ApiNotFoundResponse({ description: 'Email is not registered' })
-  @ApiBadRequestResponse({
-    description: 'Cannot send reset password email',
+  @ApiServiceUnavailableResponse({
+    description: 'Email service is temporarily unavailable',
   })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
@@ -90,7 +90,6 @@ export class AuthController {
   @ApiOkResponse({
     description: 'Reset password success',
   })
-  @ApiNotFoundResponse({ description: 'Email is not registered' })
   @ApiBadRequestResponse({
     description: 'Invalid reset token or password does not meet requirements',
   })
@@ -138,7 +137,6 @@ export class AuthController {
   @ApiCookieAuth('sessionId')
   @ApiOkResponse({ description: 'Logout success' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  @ApiNotFoundResponse({ description: 'Session not found' })
   async logout(
     @Req() httpRequest: Request,
     @Res({ passthrough: true }) httpResponse: Response,

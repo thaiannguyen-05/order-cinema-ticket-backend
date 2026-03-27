@@ -1,7 +1,7 @@
 model Session {
     id String @id @default(uuid()) @db.Uuid
     userId String @db.Uuid @unique
-    hashRefreshToken String?
+    hashRefreshToken String
 
     userIp String?
     createdAt DateTime @default(now())

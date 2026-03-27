@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -23,8 +23,10 @@ export class EmailService {
           email,
         },
       });
-    } catch (error) {
-      throw new BadRequestException(`Failed to send email: ${error}`);
+    } catch {
+      throw new ServiceUnavailableException(
+        'Email service is temporarily unavailable',
+      );
     }
   }
 
@@ -42,8 +44,10 @@ export class EmailService {
           email,
         },
       });
-    } catch (error) {
-      throw new BadRequestException(`Failed to send email: ${error}`);
+    } catch {
+      throw new ServiceUnavailableException(
+        'Email service is temporarily unavailable',
+      );
     }
   }
 }

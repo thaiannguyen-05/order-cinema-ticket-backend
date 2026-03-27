@@ -1,7 +1,8 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
-  NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,12 @@ import { REDIS_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
 import { MyLogger } from '../../../../core/logger/logger.service';
 import { Payload } from '../../../../core';
 import { UserWithoutPassword } from '../type/type';
+import {
+  AUTH_COOKIE_NAME,
+  clearAuthCookies,
+  getAuthCookieOptions,
+  setAuthCookies,
+} from '../type/constant';
 @Injectable()
 export class AuthService {
   constructor(
@@ -63,7 +70,7 @@ export class AuthService {
   async register(dto: RegisterDto): Promise<UserWithoutPassword> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (availableUser) {
-      throw new UnauthorizedException('Email is already in use');
+      throw new ConflictException('Email is already in use');
     }
 
     const hashedPassword = await this.hashTextByArgon2(dto.password);
@@ -82,10 +89,12 @@ export class AuthService {
 
     try {
       this.emailWorker.sendVerifyCode(dto.email, verificationCode);
-    } catch (error) {
+    } catch {
       await this.userService.deleteUserByEmail(newUser.email);
       await this.redisService.del(key);
-      throw new BadRequestException(`${error}`);
+      throw new ServiceUnavailableException(
+        'Email service is temporarily unavailable',
+      );
     }
 
     const result: UserWithoutPassword = {
@@ -103,7 +112,7 @@ export class AuthService {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     this.logger.debug(`${availableUser}`);
     if (!availableUser) {
-      throw new NotFoundException('Email is not registered');
+      return true;
     }
 
     const key = REDIS_KEY.REGISTER_USER(dto.email);
@@ -129,21 +138,19 @@ export class AuthService {
   async forgotPassword(email: string) {
     const availableUser = await this.userService.isAvailableEmail(email);
     if (!availableUser) {
-      throw new NotFoundException('Email is not registered');
+      return true;
     }
 
     const resetToken = this.generateCode();
     const key = REDIS_KEY.FORGOT_PASSWORD(email);
     await this.redisService.set(key, resetToken, REDIS_TTL.SHORT_TL);
-    this.logger.debug(
-      `Generated forgot password token for ${email}: ${resetToken}`,
-    );
-
     try {
       this.emailWorker.sendResetPasswordEmail(email, resetToken);
-    } catch (error) {
+    } catch {
       await this.redisService.del(key);
-      throw new BadRequestException(`${error}`);
+      throw new ServiceUnavailableException(
+        'Email service is temporarily unavailable',
+      );
     }
 
     return true;
@@ -152,7 +159,7 @@ export class AuthService {
   async resetPassword(dto: ResetPasswordDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (!availableUser) {
-      throw new NotFoundException('Email is not registered');
+      return true;
     }
 
     const key = REDIS_KEY.FORGOT_PASSWORD(dto.email);
@@ -207,24 +214,15 @@ export class AuthService {
     );
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
-    response.cookie('refreshToken', token.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    });
-    response.cookie('accessToken', token.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    });
-    response.cookie('sessionId', session.id, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    });
+    setAuthCookies(
+      response,
+      {
+        refreshToken: token.refreshToken,
+        accessToken: token.accessToken,
+        sessionId: session.id,
+      },
+      isProduction,
+    );
 
     return true;
   }
@@ -234,7 +232,7 @@ export class AuthService {
       'Invalid refresh token',
     );
 
-    const sessionId = req.cookies['sessionId'] as string;
+    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID] as string;
     if (!sessionId) {
       throw invalidRefreshTokenError;
     }
@@ -243,13 +241,13 @@ export class AuthService {
       throw invalidRefreshTokenError;
     }
 
-    const refreshToken = req.cookies['refreshToken'] as string;
+    const refreshToken = req.cookies[AUTH_COOKIE_NAME.REFRESH_TOKEN] as string;
     if (!refreshToken) {
       throw invalidRefreshTokenError;
     }
 
     const isValidRefreshToken = await this.verifyTextByArgon2(
-      session.hashRefreshToken || 'token valid',
+      session.hashRefreshToken,
       refreshToken,
     );
     if (!isValidRefreshToken) {
@@ -266,29 +264,28 @@ export class AuthService {
       throw invalidRefreshTokenError;
     }
 
-    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, { path: '/' });
     const newAccessToken = await this.tokenService.generateTokens({
       id: payload.id,
       email: payload.email,
     });
-    res.clearCookie('refreshToken', { path: '/' });
+    res.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, { path: '/' });
     const newHashRefreshToken = await this.hashTextByArgon2(
       newAccessToken.refreshToken,
     );
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
-    res.cookie('accessToken', newAccessToken.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    });
-    res.cookie('refreshToken', newAccessToken.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    });
+    const cookieOptions = getAuthCookieOptions(isProduction);
+    res.cookie(
+      AUTH_COOKIE_NAME.ACCESS_TOKEN,
+      newAccessToken.accessToken,
+      cookieOptions,
+    );
+    res.cookie(
+      AUTH_COOKIE_NAME.REFRESH_TOKEN,
+      newAccessToken.refreshToken,
+      cookieOptions,
+    );
 
     await this.tokenService.updateSession(sessionId, newHashRefreshToken);
 
@@ -296,15 +293,13 @@ export class AuthService {
   }
 
   async logout(req: Request, res: Response) {
-    const sessionId = req.cookies['sessionId'] as string;
+    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID] as string;
     if (!sessionId) {
-      throw new NotFoundException('Session ID is missing');
+      throw new UnauthorizedException('Session ID is missing');
     }
 
     await this.tokenService.updateSession(sessionId, null);
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/' });
-    res.clearCookie('sessionId', { path: '/' });
+    clearAuthCookies(res);
 
     return true;
   }
