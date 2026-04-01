@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { EmailService } from '../../../../background/email/email.service';
 
 describe('EmailService', () => {
@@ -54,11 +54,11 @@ describe('EmailService', () => {
     );
   });
 
-  it('throws bad request when mailer fails', async () => {
+  it('throws service unavailable when mailer fails', async () => {
     mailerService.sendMail.mockRejectedValue(new Error('smtp down'));
 
     await expect(
       service.sendUserConfirmation('a@example.com', '123456'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });

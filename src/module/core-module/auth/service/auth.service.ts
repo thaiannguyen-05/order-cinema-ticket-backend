@@ -121,7 +121,7 @@ export class AuthService {
       throw new NotFoundException('Code is expired or system has some errors');
     }
     if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
-      throw new Error('Error event');
+      throw new BadRequestException('Invalid verification request');
     }
 
     const payload = outBox.payload as { email?: string; code?: string };
@@ -133,7 +133,7 @@ export class AuthService {
       throw new BadRequestException('Invalid verification code');
     }
     if (payload.email !== dto.email) {
-      throw new Error('Invalid code');
+      throw new BadRequestException('Invalid verification code');
     }
 
     await Promise.all([
@@ -181,7 +181,7 @@ export class AuthService {
       throw new NotFoundException('Code is expired or system has some errors');
     }
     if (outBox.eventType !== EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL) {
-      throw new Error('Error event');
+      throw new BadRequestException('Invalid reset password request');
     }
 
     const payload = outBox.payload as { email?: string; code?: string };
@@ -193,7 +193,7 @@ export class AuthService {
       throw new BadRequestException('Invalid verification code');
     }
     if (payload.email !== dto.email) {
-      throw new Error('Invalid code');
+      throw new BadRequestException('Invalid verification code');
     }
 
     const hashedPassword = await this.hashTextByArgon2(dto.newPassword);

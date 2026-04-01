@@ -70,7 +70,7 @@ async function waitForRedisConnection(
       await client.quit();
       return;
     } catch (error) {
-      await client.disconnect();
+      client.disconnect();
       if (attempt === 1 || attempt % 5 === 0) {
         logger.warn(
           `[bootstrap] Waiting for Redis (attempt ${attempt}): ${String(error)}`,

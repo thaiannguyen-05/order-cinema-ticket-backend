@@ -1,5 +1,7 @@
 jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation((url: string) => ({ url }));
+  return jest
+    .fn()
+    .mockImplementation((url: string) => ({ url, on: jest.fn() }));
 });
 
 import { RedisLockProvider } from '../../../../background/redis/redis-lock.provider';
@@ -10,9 +12,13 @@ describe('RedisLockProvider', () => {
       getOrThrow: jest.fn().mockReturnValue('6379'),
     };
 
-    const client = RedisLockProvider.useFactory(config as never);
+    const client = RedisLockProvider.useFactory(config as never) as {
+      url: string;
+      on: jest.Mock;
+    };
 
     expect(config.getOrThrow).toHaveBeenCalledWith('REDIS_PORT');
-    expect(client).toEqual({ url: 'redis://localhost:6379' });
+    expect(client.url).toBe('redis://localhost:6379');
+    expect(client.on).toHaveBeenCalledWith('error', expect.any(Function));
   });
 });

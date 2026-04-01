@@ -58,6 +58,7 @@ export class UserService {
         ...(dto.fullname !== undefined && { fullname: dto.fullname }),
         ...(dto.address !== undefined && { address: dto.address }),
         ...(dto.dateOfBirth !== undefined && { dateOfBirth: dto.dateOfBirth }),
+        ...(dto.password !== undefined && { hashPassword: dto.password }),
         ...(dto.status !== undefined && { status: dto.status }),
       },
     });

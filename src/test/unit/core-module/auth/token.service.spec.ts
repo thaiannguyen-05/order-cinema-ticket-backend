@@ -2,19 +2,21 @@ import { TokenService } from '../../../../module/core-module/auth/service/token.
 
 describe('TokenService', () => {
   let service: TokenService;
-  let jwtService: { signAsync: jest.Mock };
+  let jwtService: { signAsync: jest.Mock; verifyAsync: jest.Mock };
   let configService: { getOrThrow: jest.Mock };
   let prismaService: {
     session: {
       upsert: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      delete: jest.Mock;
     };
   };
 
   beforeEach(() => {
     jwtService = {
       signAsync: jest.fn(),
+      verifyAsync: jest.fn(),
     };
 
     configService = {
@@ -33,6 +35,7 @@ describe('TokenService', () => {
         upsert: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
     };
 
@@ -71,16 +74,16 @@ describe('TokenService', () => {
     });
   });
 
-  it('handles session upsert', async () => {
+  it('handles session upsert by userId', async () => {
     prismaService.session.upsert.mockResolvedValue({ id: 's1' });
 
-    await expect(
-      service.handleSession('127.0.0.1', 'u1', 'hash'),
-    ).resolves.toEqual({ id: 's1' });
+    await expect(service.handleSession('u1', 'hash')).resolves.toEqual({
+      id: 's1',
+    });
     expect(prismaService.session.upsert).toHaveBeenCalledWith({
-      where: { userIp: '127.0.0.1' },
+      where: { userId: 'u1' },
       update: { hashRefreshToken: 'hash' },
-      create: { userId: 'u1', userIp: '127.0.0.1', hashRefreshToken: 'hash' },
+      create: { userId: 'u1', hashRefreshToken: 'hash' },
     });
   });
 
@@ -89,8 +92,29 @@ describe('TokenService', () => {
     prismaService.session.update.mockResolvedValue({ id: 's1' });
 
     await expect(service.getSessionById('s1')).resolves.toEqual({ id: 's1' });
-    await expect(service.updateSession('s1', null)).resolves.toEqual({
+    await expect(service.updateSession('s1', 'new-hash')).resolves.toEqual({
       id: 's1',
+    });
+  });
+
+  it('deletes session', async () => {
+    prismaService.session.delete.mockResolvedValue({ id: 's1' });
+
+    await expect(service.deleteSession('s1')).resolves.toEqual({ id: 's1' });
+    expect(prismaService.session.delete).toHaveBeenCalledWith({
+      where: { id: 's1' },
+    });
+  });
+
+  it('verifies token with jwt secret', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ id: 'u1', email: 'a@example.com' });
+
+    await expect(service.verifyToken('refresh-token')).resolves.toEqual({
+      id: 'u1',
+      email: 'a@example.com',
+    });
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('refresh-token', {
+      secret: 'secret',
     });
   });
 });

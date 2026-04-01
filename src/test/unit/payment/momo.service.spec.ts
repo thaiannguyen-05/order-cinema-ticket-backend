@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { PAYMENT_STATUS } from '@prisma/client';
@@ -221,6 +222,9 @@ describe('MomoService', () => {
     await expect(
       service.createMomoPayment('user-1', createDto),
     ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prismaService.ticket.findUnique).not.toHaveBeenCalled();
+    expect(momoClient.createPayment).not.toHaveBeenCalled();
   });
 
   it('throws not found when ticket does not exist', async () => {
@@ -230,9 +234,12 @@ describe('MomoService', () => {
     await expect(
       service.createMomoPayment('user-1', createDto),
     ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(momoClient.createPayment).not.toHaveBeenCalled();
+    expect(prismaService.momoPayment.upsert).not.toHaveBeenCalled();
   });
 
-  it('throws bad request when ticket belongs to another user', async () => {
+  it('throws forbidden when ticket belongs to another user', async () => {
     prismaService.momoPayment.findUnique.mockResolvedValue(null);
     prismaService.ticket.findUnique.mockResolvedValue({
       id: 'ticket-1',
@@ -241,7 +248,10 @@ describe('MomoService', () => {
 
     await expect(
       service.createMomoPayment('user-1', createDto),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(momoClient.createPayment).not.toHaveBeenCalled();
+    expect(prismaService.momoPayment.upsert).not.toHaveBeenCalled();
   });
 
   it('throws conflict when lock cannot be acquired', async () => {
@@ -250,6 +260,41 @@ describe('MomoService', () => {
     await expect(
       service.createMomoPayment('user-1', createDto),
     ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(momoClient.createPayment).not.toHaveBeenCalled();
+    expect(prismaService.momoPayment.upsert).not.toHaveBeenCalled();
+  });
+
+  it('propagates error when momo createPayment throws', async () => {
+    prismaService.momoPayment.findUnique.mockResolvedValue(null);
+    prismaService.ticket.findUnique.mockResolvedValue({
+      id: 'ticket-1',
+      userId: 'user-1',
+    });
+    momoClient.createPayment.mockRejectedValue(new Error('momo down'));
+
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toThrow('momo down');
+
+    expect(prismaService.momoPayment.upsert).not.toHaveBeenCalled();
+  });
+
+  it('propagates error when momo payment upsert throws', async () => {
+    prismaService.momoPayment.findUnique.mockResolvedValue(null);
+    prismaService.ticket.findUnique.mockResolvedValue({
+      id: 'ticket-1',
+      userId: 'user-1',
+    });
+    momoClient.createPayment.mockResolvedValue({
+      payUrl: 'https://momo.vn/pay-url',
+      signature: 'signature-123',
+    });
+    prismaService.momoPayment.upsert.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      service.createMomoPayment('user-1', createDto),
+    ).rejects.toThrow('db down');
   });
 
   it('throws bad request when checking payment status without order id', async () => {
@@ -268,6 +313,14 @@ describe('MomoService', () => {
     expect(momoClient.queryTransaction).toHaveBeenCalledWith({
       orderId: 'ORDER-1',
     });
+  });
+
+  it('propagates query transaction error', async () => {
+    momoClient.queryTransaction.mockRejectedValue(new Error('query timeout'));
+
+    await expect(service.checkMomoPaymentStatus('ORDER-1')).rejects.toThrow(
+      'query timeout',
+    );
   });
 
   it('returns error response when ipn request does not exist', async () => {
@@ -335,4 +388,16 @@ describe('MomoService', () => {
       }),
     );
   });
+
+  it.todo(
+    '[DEFECT-MOMO-IPN-001] valid IPN should persist payment status transition (PENDING -> COMPLETED/FAILED)',
+  );
+
+  it.todo(
+    '[DEFECT-MOMO-IPN-002] IPN should verify amount/order consistency against stored payment to prevent tampering',
+  );
+
+  it.todo(
+    '[DEFECT-MOMO-VALIDATION-001] checkMomoPaymentStatus should reject whitespace-only orderId after trim',
+  );
 });

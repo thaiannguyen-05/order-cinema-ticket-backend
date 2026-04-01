@@ -92,4 +92,37 @@ describe('UserService', () => {
       },
     });
   });
+
+  it('updates dateOfBirth when provided', async () => {
+    const dob = new Date('1999-09-09T00:00:00.000Z');
+    prismaService.user.update.mockResolvedValue({ id: 'u1' });
+
+    await service.updateUserByEmail({
+      email: 'a@example.com',
+      dateOfBirth: dob,
+    });
+
+    expect(prismaService.user.update).toHaveBeenCalledWith({
+      where: { email: 'a@example.com' },
+      data: {
+        dateOfBirth: dob,
+      },
+    });
+  });
+
+  it('persists hashPassword when password is provided', async () => {
+    prismaService.user.update.mockResolvedValue({ id: 'u1' });
+
+    await service.updateUserByEmail({
+      email: 'a@example.com',
+      password: 'new-hash',
+    });
+
+    expect(prismaService.user.update).toHaveBeenCalledWith({
+      where: { email: 'a@example.com' },
+      data: {
+        hashPassword: 'new-hash',
+      },
+    });
+  });
 });
