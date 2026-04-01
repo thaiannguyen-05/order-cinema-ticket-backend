@@ -116,7 +116,7 @@ export class AuthService {
       return true;
     }
 
-    const outBox = await this.outboxService.getOutBox(dto.idOutbox);
+    const outBox = await this.outboxService.getOutBox(dto.outBoxId);
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
     }
@@ -180,7 +180,7 @@ export class AuthService {
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
     }
-    if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
+    if (outBox.eventType !== EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL) {
       throw new Error('Error event');
     }
 

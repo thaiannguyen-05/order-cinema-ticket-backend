@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 
 export class VerifyEmailDto {
   @IsEmail()
@@ -10,5 +16,8 @@ export class VerifyEmailDto {
   @Matches(/^\d{6}$/)
   code!: string;
 
-  idOutbox: string;
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  outBoxId!: string;
 }

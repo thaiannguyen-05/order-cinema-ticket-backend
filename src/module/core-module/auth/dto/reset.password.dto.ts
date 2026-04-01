@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
+  IsUUID,
   Matches,
   MinLength,
 } from 'class-validator';
@@ -21,5 +22,8 @@ export class ResetPasswordDto {
   @MinLength(8)
   newPassword!: string;
 
-  outBoxId: string;
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  outBoxId!: string;
 }
