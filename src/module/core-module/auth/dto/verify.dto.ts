@@ -9,4 +9,6 @@ export class VerifyEmailDto {
   @IsNotEmpty()
   @Matches(/^\d{6}$/)
   code!: string;
+
+  idOutbox: string;
 }

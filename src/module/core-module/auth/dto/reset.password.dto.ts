@@ -20,4 +20,6 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   @MinLength(8)
   newPassword!: string;
+
+  outBoxId: string;
 }

@@ -9,6 +9,7 @@ import { QUEUE_NAME } from './constant/event.type';
 import { EmailWorker } from './email.worker';
 import { EmailConsumer } from './email.consumer';
 import { existsSync } from 'fs';
+import { OutboxService } from './outbox.service';
 
 const resolveTemplateDir = () => {
   const candidates = [
@@ -66,7 +67,7 @@ const resolveTemplateDir = () => {
     ]),
   ],
   controllers: [EmailConsumer],
-  providers: [EmailService, EmailWorker],
-  exports: [EmailService, EmailWorker],
+  providers: [EmailService, EmailWorker, OutboxService],
+  exports: [EmailService, EmailWorker, OutboxService],
 })
 export class EmailModule {}

@@ -2,39 +2,40 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
-import { UserService } from '../../user/user.service';
-import { RegisterDto } from '../dto/register.dto';
-import { VerifyEmailDto } from '../dto/verify.dto';
-import { ResetPasswordDto } from '../dto/reset.password.dto';
-import { LoginDto } from '../dto/login.dto';
-import { TokenService } from './token.service';
 import type { Request, Response } from 'express';
+import { EVENT_NAME } from '../../../../background/email/constant/event.type';
 import { EmailWorker } from '../../../../background/email/email.worker';
-import { RedisService } from '../../../../background/redis/redis.service';
-import { REDIS_KEY, REDIS_TTL } from '../../../../background/redis/redis.value';
-import { MyLogger } from '../../../../core/logger/logger.service';
+import { OutboxService } from '../../../../background/email/outbox.service';
 import { Payload } from '../../../../core';
-import { UserWithoutPassword } from '../type/type';
+import { MyLogger } from '../../../../core/logger/logger.service';
+import { UserService } from '../../user/user.service';
+import { LoginDto } from '../dto/login.dto';
+import { RegisterDto } from '../dto/register.dto';
+import { ResetPasswordDto } from '../dto/reset.password.dto';
+import { VerifyEmailDto } from '../dto/verify.dto';
 import {
   AUTH_COOKIE_NAME,
   clearAuthCookies,
   getAuthCookieOptions,
   setAuthCookies,
 } from '../type/constant';
+import { UserWithoutPassword } from '../type/type';
+import { TokenService } from './token.service';
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly emailWorker: EmailWorker,
-    private readonly redisService: RedisService,
     private readonly logger: MyLogger,
     private readonly tokenService: TokenService,
     private readonly configService: ConfigService,
+    private readonly outboxService: OutboxService,
   ) {}
 
   private hashTextByArgon2(password: string): Promise<string> {
@@ -49,35 +50,40 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  private getUserIp(request: Request): string {
-    const forwardedFor = request.headers['x-forwarded-for'];
-    const realIp = request.headers['x-real-ip'];
+  // private getUserIp(request: Request): string {
+  //   const forwardedFor = request.headers['x-forwarded-for'];
+  //   const realIp = request.headers['x-real-ip'];
 
-    const candidate =
-      (typeof forwardedFor === 'string'
-        ? forwardedFor.split(',')[0]
-        : Array.isArray(forwardedFor)
-          ? forwardedFor[0]
-          : undefined) ??
-      (typeof realIp === 'string' ? realIp : undefined) ??
-      request.ip ??
-      request.socket.remoteAddress ??
-      'unknown';
+  //   const candidate =
+  //     (typeof forwardedFor === 'string'
+  //       ? forwardedFor.split(',')[0]
+  //       : Array.isArray(forwardedFor)
+  //         ? forwardedFor[0]
+  //         : undefined) ??
+  //     (typeof realIp === 'string' ? realIp : undefined) ??
+  //     request.ip ??
+  //     request.socket.remoteAddress ??
+  //     'unknown';
 
-    return candidate.trim().replace(/^::ffff:/, '');
-  }
+  //   return candidate.trim().replace(/^::ffff:/, '');
+  // }
 
-  async register(dto: RegisterDto): Promise<UserWithoutPassword> {
+  async register(dto: RegisterDto) {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (availableUser) {
       throw new ConflictException('Email is already in use');
     }
 
     const hashedPassword = await this.hashTextByArgon2(dto.password);
-
     const verificationCode = this.generateCode();
-    const key = REDIS_KEY.REGISTER_USER(dto.email);
-    await this.redisService.set(key, verificationCode, REDIS_TTL.SHORT_TL);
+    const payload = {
+      email: dto.email,
+      code: verificationCode,
+    };
+    const outbox = await this.outboxService.createOutboxMessage(
+      EVENT_NAME.SEND_VERIFY_CODE,
+      payload,
+    );
 
     const newUser = await this.userService.createUser({
       fullname: dto.fullname,
@@ -87,15 +93,7 @@ export class AuthService {
       dateOfBirth: dto.dateOfBirth,
     });
 
-    try {
-      this.emailWorker.sendVerifyCode(dto.email, verificationCode);
-    } catch {
-      await this.userService.deleteUserByEmail(newUser.email);
-      await this.redisService.del(key);
-      throw new ServiceUnavailableException(
-        'Email service is temporarily unavailable',
-      );
-    }
+    this.emailWorker.sendVerifyCode(dto.email, verificationCode);
 
     const result: UserWithoutPassword = {
       id: newUser.id,
@@ -105,7 +103,10 @@ export class AuthService {
       dateOfBirth: newUser.dateOfBirth,
     };
 
-    return result;
+    return {
+      outbox,
+      result,
+    };
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<boolean> {
@@ -115,22 +116,28 @@ export class AuthService {
       return true;
     }
 
-    const key = REDIS_KEY.REGISTER_USER(dto.email);
-    const storedCode = await this.redisService.get(key);
-    if (!storedCode) {
-      throw new BadRequestException('Verification code has expired');
+    const outBox = await this.outboxService.getOutBox(dto.idOutbox);
+    if (!outBox) {
+      throw new NotFoundException('Code is expired or system has some errors');
     }
+
+    const payload = outBox.payload as { email?: string; code?: string };
+    const storedCode = payload.code;
+    if (!storedCode) {
+      throw new BadRequestException('Verification code is invalid');
+    }
+
     if (storedCode !== dto.code) {
       throw new BadRequestException('Invalid verification code');
     }
 
-    await this.userService.updateUserByEmail({
-      email: dto.email,
-      status: 'ACTIVE',
-    });
-
-    await this.redisService.del(key);
-    this.logger.debug(`Deleted verification code for ${dto.email} from Redis`);
+    await Promise.all([
+      this.userService.updateUserByEmail({
+        email: dto.email,
+        status: 'ACTIVE',
+      }),
+      this.outboxService.updateOutboxMessage(outBox.id, 'PROCESSED'),
+    ]);
 
     return true;
   }
@@ -138,22 +145,24 @@ export class AuthService {
   async forgotPassword(email: string) {
     const availableUser = await this.userService.isAvailableEmail(email);
     if (!availableUser) {
-      return true;
+      throw new NotFoundException('User not found');
     }
 
     const resetToken = this.generateCode();
-    const key = REDIS_KEY.FORGOT_PASSWORD(email);
-    await this.redisService.set(key, resetToken, REDIS_TTL.SHORT_TL);
+    const outbox = await this.outboxService.createOutboxMessage(
+      EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
+      { email: email, code: resetToken },
+    );
+
     try {
       this.emailWorker.sendResetPasswordEmail(email, resetToken);
     } catch {
-      await this.redisService.del(key);
       throw new ServiceUnavailableException(
         'Email service is temporarily unavailable',
       );
     }
 
-    return true;
+    return outbox;
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<boolean> {
@@ -162,25 +171,26 @@ export class AuthService {
       return true;
     }
 
-    const key = REDIS_KEY.FORGOT_PASSWORD(dto.email);
-    const storedToken = await this.redisService.get(key);
-    if (!storedToken) {
+    const outbox = await this.outboxService.getOutBox(dto.outBoxId);
+    if (!outbox) {
       throw new BadRequestException('Reset token has expired');
     }
-    if (storedToken !== dto.code) {
+
+    const storedToken = outbox.payload as { email: string; code: string };
+
+    if (storedToken.code !== dto.code) {
       throw new BadRequestException('Invalid reset token');
     }
 
     const hashedPassword = await this.hashTextByArgon2(dto.newPassword);
-    await this.userService.updateUserByEmail({
-      email: dto.email,
-      password: hashedPassword,
-    });
 
-    await this.redisService.del(key);
-    this.logger.debug(
-      `Deleted forgot password token for ${dto.email} from Redis`,
-    );
+    await Promise.all([
+      this.userService.updateUserByEmail({
+        email: dto.email,
+        password: hashedPassword,
+      }),
+      this.outboxService.updateOutboxMessage(dto.outBoxId, 'PROCESSED'),
+    ]);
 
     return true;
   }
@@ -194,6 +204,7 @@ export class AuthService {
     if (!availableUser) {
       throw invalidCredentialsError;
     }
+
     if (availableUser.status !== 'ACTIVE') {
       throw invalidCredentialsError;
     }
@@ -298,7 +309,7 @@ export class AuthService {
       throw new UnauthorizedException('Session ID is missing');
     }
 
-    await this.tokenService.updateSession(sessionId, null);
+    await this.tokenService.deleteSession(sessionId);
     clearAuthCookies(res);
 
     return true;

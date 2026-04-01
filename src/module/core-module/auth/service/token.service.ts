@@ -52,10 +52,16 @@ export class TokenService {
     });
   }
 
-  async updateSession(sessionId: string, hashRefreshToken: string | null) {
+  async updateSession(sessionId: string, hashRefreshToken: string) {
     return this.prismaService.session.update({
       where: { id: sessionId },
       data: { hashRefreshToken },
+    });
+  }
+
+  async deleteSession(sessionId: string) {
+    return this.prismaService.session.delete({
+      where: { id: sessionId },
     });
   }
 

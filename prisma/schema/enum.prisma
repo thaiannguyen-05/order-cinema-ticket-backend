@@ -30,3 +30,9 @@ enum SEAT_STATUS {
     BOOKED
     OCCUPIED
 }
+
+enum OUTBOX_STATUS {
+    PENDING
+    PROCESSED
+    FAILED
+}
