@@ -120,15 +120,20 @@ export class AuthService {
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
     }
+    if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
+      throw new Error('Error event');
+    }
 
     const payload = outBox.payload as { email?: string; code?: string };
     const storedCode = payload.code;
     if (!storedCode) {
       throw new BadRequestException('Verification code is invalid');
     }
-
     if (storedCode !== dto.code) {
       throw new BadRequestException('Invalid verification code');
+    }
+    if (payload.email !== dto.email) {
+      throw new Error('Invalid code');
     }
 
     await Promise.all([
@@ -171,15 +176,24 @@ export class AuthService {
       return true;
     }
 
-    const outbox = await this.outboxService.getOutBox(dto.outBoxId);
-    if (!outbox) {
-      throw new BadRequestException('Reset token has expired');
+    const outBox = await this.outboxService.getOutBox(dto.outBoxId);
+    if (!outBox) {
+      throw new NotFoundException('Code is expired or system has some errors');
+    }
+    if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
+      throw new Error('Error event');
     }
 
-    const storedToken = outbox.payload as { email: string; code: string };
-
-    if (storedToken.code !== dto.code) {
-      throw new BadRequestException('Invalid reset token');
+    const payload = outBox.payload as { email?: string; code?: string };
+    const storedCode = payload.code;
+    if (!storedCode) {
+      throw new BadRequestException('Verification code is invalid');
+    }
+    if (storedCode !== dto.code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+    if (payload.email !== dto.email) {
+      throw new Error('Invalid code');
     }
 
     const hashedPassword = await this.hashTextByArgon2(dto.newPassword);
