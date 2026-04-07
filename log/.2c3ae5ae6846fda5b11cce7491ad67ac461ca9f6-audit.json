@@ -6,34 +6,19 @@
     "auditLog": "log/.2c3ae5ae6846fda5b11cce7491ad67ac461ca9f6-audit.json",
     "files": [
         {
-            "date": 1773488043009,
-            "name": "log/nest-log-2026-03-14-18.log",
-            "hash": "3f96e49a6eb1a4bbd9e609ab29f5bc956deab0faec3543fb9934dc94a3e413cd"
-        },
-        {
-            "date": 1773555206448,
-            "name": "log/nest-log-2026-03-15-13.log",
-            "hash": "0aff6e86abb90e5e051a87919d8d139e432ed175881101ae780693358605e5fc"
-        },
-        {
-            "date": 1773558000835,
-            "name": "log/nest-log-2026-03-15-14.log",
-            "hash": "13abbb5646a7e0d97b107315a7bc6e0a1ffc63a5e695acd42eb5444169877c29"
-        },
-        {
-            "date": 1773561992545,
-            "name": "log/nest-log-2026-03-15-15.log",
-            "hash": "24f063887704f395a5a41f23feafd826fd128889e631ab6d39c8dd1ab974ab76"
-        },
-        {
-            "date": 1773566232033,
-            "name": "log/nest-log-2026-03-15-16.log",
-            "hash": "43f9420c4514eebf98359121d6cbc67dcb0a6f946de0c874f62e4290eb0d95aa"
-        },
-        {
             "date": 1774605288681,
             "name": "log/nest-log-2026-03-27-16.log",
             "hash": "4d85dc6b4636d1484549c348fa523a0b402df4a88155e6120431dcc2cec689cf"
+        },
+        {
+            "date": 1775573522123,
+            "name": "log/nest-log-2026-04-07-21.log",
+            "hash": "34352c1d4a5dbd9aec36cf2c6dcf3c5d239f78e6a34b1e89332206537fb2cb38"
+        },
+        {
+            "date": 1775574003333,
+            "name": "log/nest-log-2026-04-07-22.log",
+            "hash": "cd4bc507196277e8b74f8eb2e747c1034ae2212b8ef003d377601aa5b5daed6a"
         }
     ],
     "hashType": "sha256"

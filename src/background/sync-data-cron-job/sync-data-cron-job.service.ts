@@ -1,19 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { MyLogger } from '../../core/logger/logger.service';
+import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
+import { FilmService } from '../../module/theater-module/film/film.service';
 import { RedisLockService } from '../redis/redis.lock.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { CallMovieGluService } from './call-movie-glu.service';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
-import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
-import { FilmService } from '../../module/theater-module/film/film.service';
-import { MyLogger } from '../../core/logger/logger.service';
 
 @Injectable()
 export class SyncDataCronJobService {
   constructor(
-    private readonly configService: ConfigService,
     private readonly logger: MyLogger,
     private readonly cinemaService: CinemaService,
     private readonly redisLockService: RedisLockService,
@@ -66,15 +64,22 @@ export class SyncDataCronJobService {
         }
 
         const payload: SyncCinemaDetailDto = {
-          cinemas: cinemas,
-          client: client,
+          cinemas: cinemas.map((cinema) => ({
+            cinema_id: cinema.cinema_id,
+            cinema_name: cinema.cinema_name,
+            address: cinema.address,
+            address2: cinema.address2,
+            city: cinema.city,
+            country: cinema.country,
+            postcode: cinema.postcode,
+            phone: cinema.phone,
+            logo_url: cinema.logo_url,
+          })),
           quantity: quantity,
         };
 
-        await Promise.all([
-          this.eventCronJobService.callSyncDataWithCinemaDetail(payload),
-          this.eventCronJobService.callSyncDataWithFilmShowTime(payload),
-        ]);
+        await this.eventCronJobService.callSyncDataWithCinemaDetail(payload);
+        await this.eventCronJobService.callSyncDataWithFilmShowTime(payload);
       },
     );
 
@@ -114,7 +119,7 @@ export class SyncDataCronJobService {
   @Cron(CronExpression.EVERY_2_HOURS)
   async syncNowFilmsComingSoon() {
     const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
+      REDIS_LOCK_KEY.CINEMA_FILM_COMINGSOON,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
         const deviceDatetime = new Date().toISOString();

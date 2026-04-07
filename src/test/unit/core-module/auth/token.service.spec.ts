@@ -107,7 +107,10 @@ describe('TokenService', () => {
   });
 
   it('verifies token with jwt secret', async () => {
-    jwtService.verifyAsync.mockResolvedValue({ id: 'u1', email: 'a@example.com' });
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
 
     await expect(service.verifyToken('refresh-token')).resolves.toEqual({
       id: 'u1',

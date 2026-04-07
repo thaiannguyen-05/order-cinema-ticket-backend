@@ -159,7 +159,6 @@ export class CallMovieGluService {
 
         const payload: SyncCinemaShowtimeDto = {
           cinemas: dto.cinemas,
-          client: dto.client,
           quantity: dto.quantity,
         };
         await this.eventCronJobService.callSyncDataWithCinemaShowTime(payload);

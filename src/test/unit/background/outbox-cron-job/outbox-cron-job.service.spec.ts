@@ -59,7 +59,8 @@ describe('OutboxCronJobService', () => {
     await service.removeOutboxExp();
 
     expect(outboxService.deleteOutboxMessageExp).toHaveBeenCalledTimes(1);
-    const expirationTime = outboxService.deleteOutboxMessageExp.mock.calls[0][0] as Date;
+    const expirationTime = outboxService.deleteOutboxMessageExp.mock
+      .calls[0][0] as Date;
     expect(expirationTime).toBeInstanceOf(Date);
     expect(expirationTime.toISOString()).toBe(
       new Date(fixedNow.getTime() - EXP_TIME_OUTBOX * 1000).toISOString(),
@@ -80,7 +81,9 @@ describe('OutboxCronJobService', () => {
   });
 
   it('propagates error when outbox deletion fails', async () => {
-    outboxService.deleteOutboxMessageExp.mockRejectedValue(new Error('db down'));
+    outboxService.deleteOutboxMessageExp.mockRejectedValue(
+      new Error('db down'),
+    );
 
     await expect(service.removeOutboxExp()).rejects.toThrow('db down');
   });

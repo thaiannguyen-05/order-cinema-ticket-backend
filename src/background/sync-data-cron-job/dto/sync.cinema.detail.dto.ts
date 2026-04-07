@@ -1,7 +1,16 @@
-import { Cinema, MovieGluSdk } from '@andev2005/movie-glu-sdk';
+export type SyncCinemaRawDto = {
+  cinema_id: number;
+  cinema_name?: string;
+  address?: string;
+  address2?: string;
+  city?: string;
+  country?: string;
+  postcode?: string;
+  phone?: string;
+  logo_url?: string;
+};
 
 export type SyncCinemaDetailDto = {
-  client: MovieGluSdk;
   quantity: number;
-  cinemas: Cinema[];
+  cinemas: SyncCinemaRawDto[];
 };

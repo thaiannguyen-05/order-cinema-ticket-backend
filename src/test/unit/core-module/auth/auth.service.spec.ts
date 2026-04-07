@@ -566,7 +566,9 @@ describe('AuthService', () => {
 
     await expect(
       service.refreshToken(
-        { cookies: { sessionId: 's1', refreshToken: 'wrong-refresh' } } as never,
+        {
+          cookies: { sessionId: 's1', refreshToken: 'wrong-refresh' },
+        } as never,
         { clearCookie: jest.fn(), cookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
@@ -579,7 +581,10 @@ describe('AuthService', () => {
       hashRefreshToken: 'stored-refresh-hash',
     });
     verify.mockResolvedValue(true);
-    tokenService.verifyToken.mockResolvedValue({ id: 'u2', email: 'a@example.com' });
+    tokenService.verifyToken.mockResolvedValue({
+      id: 'u2',
+      email: 'a@example.com',
+    });
 
     await expect(
       service.refreshToken(
@@ -596,7 +601,10 @@ describe('AuthService', () => {
       hashRefreshToken: 'stored-refresh-hash',
     });
     verify.mockResolvedValue(true);
-    tokenService.verifyToken.mockResolvedValue({ id: 'u1', email: 'a@example.com' });
+    tokenService.verifyToken.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+    });
     userService.getUserById.mockResolvedValue(null);
 
     await expect(

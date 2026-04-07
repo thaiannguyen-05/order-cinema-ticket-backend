@@ -16,6 +16,7 @@ export const REDIS_LOCK_KEY = {
   CINEMA_SHOWTIME: 'lock:cron:sync-data-cinema-showtime',
   CINEMA_NOWSHOWING: 'lock:cron:sync-data-films-now-showing',
   CINEMA_FILM_DETAIL: 'lock:cron:sync-data-film-detail',
+  CINEMA_FILM_COMINGSOON: 'lock:cron:sync-data-films-comingsoon',
   REMOVE_OUTBOX_EXP: 'remove:outbox-exp',
   ORDER_TICKET: (userId: string, seatId: string) =>
     `lock:order-ticket:${userId}:${seatId}`,
