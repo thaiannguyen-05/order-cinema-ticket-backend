@@ -35,7 +35,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, true);
+      channel.nack(message, false, false);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );
@@ -56,7 +56,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, true);
+      channel.nack(message, false, false);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );
@@ -77,7 +77,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, true);
+      channel.nack(message, false, false);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );
