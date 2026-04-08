@@ -144,9 +144,19 @@ export class CinemaService {
   }
 
   async getFilmsOfCinema(cinema_id: number) {
+    return await this.getFilmsOfCinemas([cinema_id]);
+  }
+
+  async getFilmsOfCinemas(cinemaIds: number[]) {
+    if (!cinemaIds.length) {
+      return [];
+    }
+
     return await this.prismaService.cinema.findMany({
       where: {
-        cinema_id,
+        cinema_id: {
+          in: cinemaIds,
+        },
       },
       select: {
         filmOfCinema: {

@@ -50,7 +50,11 @@ describe('CallMovieGluService', () => {
   };
 
   let logger: { debug: jest.Mock; warn: jest.Mock };
-  let cinemaService: { updateCinema: jest.Mock; getFilmsOfCinema: jest.Mock };
+  let cinemaService: {
+    updateCinema: jest.Mock;
+    getFilmsOfCinema: jest.Mock;
+    getFilmsOfCinemas: jest.Mock;
+  };
   let redisLockService: { runExclusive: jest.Mock };
   let eventCronJobService: { callSyncDataWithCinemaShowTime: jest.Mock };
   let filmService: { updateFilm: jest.Mock };
@@ -58,7 +62,11 @@ describe('CallMovieGluService', () => {
 
   beforeEach(() => {
     logger = { debug: jest.fn(), warn: jest.fn() };
-    cinemaService = { updateCinema: jest.fn(), getFilmsOfCinema: jest.fn() };
+    cinemaService = {
+      updateCinema: jest.fn(),
+      getFilmsOfCinema: jest.fn(),
+      getFilmsOfCinemas: jest.fn(),
+    };
     redisLockService = {
       runExclusive: jest.fn(
         async (_key: string, _ttl: number, fn: () => Promise<void>) => fn(),
@@ -134,7 +142,10 @@ describe('CallMovieGluService', () => {
     expect(cinemaService.updateCinema).toHaveBeenCalledTimes(2);
     expect(
       eventCronJobService.callSyncDataWithCinemaShowTime,
-    ).toHaveBeenCalledWith(dto);
+    ).toHaveBeenCalledWith({
+      cinemas: dto.cinemas,
+      quantity: dto.quantity,
+    });
   });
 
   it('parses and updates film details', async () => {
@@ -161,7 +172,7 @@ describe('CallMovieGluService', () => {
   });
 
   it('syncs films of cinema and skips duplicated/unchanged films', async () => {
-    cinemaService.getFilmsOfCinema.mockResolvedValue([
+    cinemaService.getFilmsOfCinemas.mockResolvedValue([
       {
         filmOfCinema: [
           {
@@ -216,7 +227,7 @@ describe('CallMovieGluService', () => {
       cinemas: [{ cinema_id: 1 }],
     } as never);
 
-    expect(cinemaService.getFilmsOfCinema).toHaveBeenCalledWith(1);
+    expect(cinemaService.getFilmsOfCinemas).toHaveBeenCalledWith([1]);
     expect(filmService.updateFilm).not.toHaveBeenCalled();
   });
 });

@@ -255,119 +255,94 @@ export class CallMovieGluService {
   }
 
   async syncDateFilmsOfCinema(dto: SyncFilmsShowtimeDto): Promise<void> {
+    const cinemaIds = dto.cinemas.map((cinema) => cinema.cinema_id);
+    const filmsShowTime = await this.cinemaService.getFilmsOfCinemas(cinemaIds);
+
     const processedFilmIds = new Set<number>();
+    const filmElements = filmsShowTime.flatMap(
+      (cinemaWithFilms) => cinemaWithFilms.filmOfCinema,
+    );
 
-    for (const cinema of dto.cinemas) {
-      const filmsShowTime = await this.cinemaService.getFilmsOfCinema(
-        cinema.cinema_id,
-      );
+    for (const filmElement of filmElements) {
+      const film = filmElement.film;
+      if (!film) continue;
+      if (processedFilmIds.has(film.film_id)) continue;
+      processedFilmIds.add(film.film_id);
 
-      for (const cinemaWithFilms of filmsShowTime) {
-        for (const filmElement of cinemaWithFilms.filmOfCinema) {
-          const film = filmElement.film;
-          if (!film) continue;
-          if (processedFilmIds.has(film.film_id)) continue;
-          processedFilmIds.add(film.film_id);
+      const updateFilmDto: UpdateFilmDto = {
+        ...(film.film_name && { film_name: film.film_name }),
+        ...(film.other_title && { other_title: film.other_title as never }),
+        ...(film.release_dates && {
+          release_dates: film.release_dates as never,
+        }),
+        ...(film.age_rating && { age_rating: film.age_rating as never }),
+        ...(film.trailers && { trailers: film.trailers as never }),
+        ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
+        ...(film.images && { images: film.images as never }),
+        ...(film.version_type && {
+          version_type: film.version_type as never,
+        }),
+        ...(film.duration_mins != null && {
+          duration_mins: film.duration_mins,
+        }),
+        ...(film.review_stars != null && {
+          review_stars: film.review_stars,
+        }),
+        ...(film.review_txt && { review_txt: film.review_txt }),
+        ...(film.distributor && { distributor: film.distributor }),
+        ...(film.genres && { genres: film.genres as never }),
+        ...(film.cast && { cast: film.cast as never }),
+        ...(film.directors && { director: film.directors as never }),
+        ...(film.producers && { producers: film.producers as never }),
+        ...(film.writers && { writers: film.writers as never }),
+      };
 
-          const updateFilmDto: UpdateFilmDto = {
-            ...(film.film_name && { film_name: film.film_name }),
-            ...(film.other_title && { other_title: film.other_title as never }),
-            ...(film.release_dates && {
-              release_dates: film.release_dates as never,
-            }),
-            ...(film.age_rating && { age_rating: film.age_rating as never }),
-            ...(film.trailers && { trailers: film.trailers as never }),
-            ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
-            ...(film.images && { images: film.images as never }),
-            ...(film.version_type && {
-              version_type: film.version_type as never,
-            }),
-            ...(film.duration_mins != null && {
-              duration_mins: film.duration_mins,
-            }),
-            ...(film.review_stars != null && {
-              review_stars: film.review_stars,
-            }),
-            ...(film.review_txt && { review_txt: film.review_txt }),
-            ...(film.distributor && { distributor: film.distributor }),
-            ...(film.genres && { genres: film.genres as never }),
-            ...(film.cast && { cast: film.cast as never }),
-            ...(film.directors && { director: film.directors as never }),
-            ...(film.producers && { producers: film.producers as never }),
-            ...(film.writers && { writers: film.writers as never }),
-          };
+      if (!this.hasFilmChanges(film, updateFilmDto)) continue;
 
-          if (!this.hasFilmChanges(film, updateFilmDto)) continue;
-
-          await this.filmService.updateFilm(film.film_id, updateFilmDto);
-        }
-      }
+      await this.filmService.updateFilm(film.film_id, updateFilmDto);
     }
   }
 
   private hasFilmChanges(film: PrismaFilm, dto: UpdateFilmDto): boolean {
-    if (dto.film_name !== undefined && dto.film_name !== film.film_name) {
-      return true;
+    const nextFilm = dto as Record<string, unknown>;
+    const currentFilm = film as Record<string, unknown>;
+
+    const scalarFields = [
+      'film_name',
+      'synopsis_long',
+      'version_type',
+      'duration_mins',
+      'review_stars',
+      'review_txt',
+      'distributor',
+    ];
+
+    for (const field of scalarFields) {
+      const nextValue = nextFilm[field];
+      if (nextValue !== undefined && nextValue !== currentFilm[field]) {
+        return true;
+      }
     }
-    if (
-      dto.synopsis_long !== undefined &&
-      dto.synopsis_long !== film.synopsis_long
-    ) {
-      return true;
-    }
-    if (
-      dto.version_type !== undefined &&
-      dto.version_type !== film.version_type
-    ) {
-      return true;
-    }
-    if (
-      dto.duration_mins !== undefined &&
-      dto.duration_mins !== film.duration_mins
-    ) {
-      return true;
-    }
-    if (
-      dto.review_stars !== undefined &&
-      dto.review_stars !== film.review_stars
-    ) {
-      return true;
-    }
-    if (dto.review_txt !== undefined && dto.review_txt !== film.review_txt) {
-      return true;
-    }
-    if (dto.distributor !== undefined && dto.distributor !== film.distributor) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.other_title, film.other_title)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.release_dates, film.release_dates)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.age_rating, film.age_rating)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.trailers, film.trailers)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.images, film.images)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.genres, film.genres)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.cast, film.cast)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.director, film.directors)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.producers, film.producers)) {
-      return true;
-    }
-    if (!this.isSameJsonValue(dto.writers, film.writers)) {
-      return true;
+
+    const jsonFieldMap: Array<[string, string]> = [
+      ['other_title', 'other_title'],
+      ['release_dates', 'release_dates'],
+      ['age_rating', 'age_rating'],
+      ['trailers', 'trailers'],
+      ['images', 'images'],
+      ['genres', 'genres'],
+      ['cast', 'cast'],
+      ['director', 'directors'],
+      ['producers', 'producers'],
+      ['writers', 'writers'],
+    ];
+
+    for (const [nextField, currentField] of jsonFieldMap) {
+      if (
+        !this.isSameJsonValue(nextFilm[nextField], currentFilm[currentField])
+      ) {
+        return true;
+      }
     }
 
     return false;
