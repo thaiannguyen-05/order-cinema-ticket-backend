@@ -328,4 +328,6 @@ export class AuthService {
 
     return true;
   }
+
+  async revokeTokens() {}
 }

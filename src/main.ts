@@ -13,7 +13,7 @@ import { AppModule } from './app.module';
 import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
 import { QUEUE_NAME } from './background/email/constant/event.type';
 import { MyLogger } from './core/logger/logger.service';
-
+import { NestExpressApplication } from '@nestjs/platform-express';
 type AmqpConnectionLike = {
   close: () => Promise<void>;
 };
@@ -116,7 +116,7 @@ async function bootstrap() {
   await waitForRabbitMQConnection(rabbitUrl, bootstrapLogger);
   await waitForRedisConnection(redisUrl, bootstrapLogger);
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
   app.useGlobalPipes(
@@ -208,6 +208,8 @@ async function bootstrap() {
 
       app.use(doubleCsrfProtection);
     }
+
+    app.set('trust proxy', 'loopback');
 
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Order Cinema Ticket Backend API')

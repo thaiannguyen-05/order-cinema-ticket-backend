@@ -77,6 +77,10 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerBehindProxyGuard,
+    },
   ],
 })
 export class AppModule {}

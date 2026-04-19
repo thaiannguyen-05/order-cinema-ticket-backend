@@ -6,11 +6,6 @@
     "auditLog": "log/.2c3ae5ae6846fda5b11cce7491ad67ac461ca9f6-audit.json",
     "files": [
         {
-            "date": 1774605288681,
-            "name": "log/nest-log-2026-03-27-16.log",
-            "hash": "4d85dc6b4636d1484549c348fa523a0b402df4a88155e6120431dcc2cec689cf"
-        },
-        {
             "date": 1775573522123,
             "name": "log/nest-log-2026-04-07-21.log",
             "hash": "34352c1d4a5dbd9aec36cf2c6dcf3c5d239f78e6a34b1e89332206537fb2cb38"
@@ -19,6 +14,11 @@
             "date": 1775574003333,
             "name": "log/nest-log-2026-04-07-22.log",
             "hash": "cd4bc507196277e8b74f8eb2e747c1034ae2212b8ef003d377601aa5b5daed6a"
+        },
+        {
+            "date": 1776574531733,
+            "name": "log/nest-log-2026-04-19-11.log",
+            "hash": "da3d22b679c4306f2f838d694924d5d8d3f00c5c7d4e58f3897533ab0592886a"
         }
     ],
     "hashType": "sha256"
