@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../../background/prisma/prisma.service';
 import { Payload } from '../../../../core';
 import { UserGenerateTokens } from '../type/type';
+import { Session } from '@prisma/client';
 
 @Injectable()
 export class TokenService {
@@ -33,15 +34,36 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
-  async handleSession(userId: string, hashRefreshToken: string) {
-    return this.prismaService.session.upsert({
+  async handleSession(
+    userId: string,
+    hashRefreshToken: string,
+    ipAddress: string,
+  ) {
+    let availableSession: Session[] = [];
+    availableSession = await this.prismaService.session.findMany({
       where: { userId },
-      update: {
-        hashRefreshToken,
-      },
-      create: {
-        userId,
-        hashRefreshToken,
+    });
+
+    if (availableSession.length === 0) {
+      return await this.prismaService.session.create({
+        data: {
+          hashRefreshToken: hashRefreshToken,
+          userIp: ipAddress,
+          userId: userId,
+        },
+      });
+    }
+
+    const matchedSesison = availableSession.some(
+      (session) => session.userId === userId && session.userIp === ipAddress,
+    );
+
+    if (!matchedSesison) return null;
+
+    return await this.prismaService.session.update({
+      where: { userId_userIp: { userId: userId, userIp: ipAddress } },
+      data: {
+        hashRefreshToken: hashRefreshToken,
       },
     });
   }
@@ -71,5 +93,11 @@ export class TokenService {
     });
 
     return payload;
+  }
+
+  async deleteALlSessionWithUserId(userId: string) {
+    return await this.prismaService.session.deleteMany({
+      where: { userId: userId },
+    });
   }
 }

@@ -50,24 +50,6 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  // private getUserIp(request: Request): string {
-  //   const forwardedFor = request.headers['x-forwarded-for'];
-  //   const realIp = request.headers['x-real-ip'];
-
-  //   const candidate =
-  //     (typeof forwardedFor === 'string'
-  //       ? forwardedFor.split(',')[0]
-  //       : Array.isArray(forwardedFor)
-  //         ? forwardedFor[0]
-  //         : undefined) ??
-  //     (typeof realIp === 'string' ? realIp : undefined) ??
-  //     request.ip ??
-  //     request.socket.remoteAddress ??
-  //     'unknown';
-
-  //   return candidate.trim().replace(/^::ffff:/, '');
-  // }
-
   async register(dto: RegisterDto) {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (availableUser) {
@@ -209,7 +191,7 @@ export class AuthService {
     return true;
   }
 
-  async login(dto: LoginDto, request: Request, response: Response) {
+  async login(dto: LoginDto, ipAddress: string, response: Response) {
     const availableUser = await this.userService.getUserByEmail(dto.email);
     const invalidCredentialsError = new UnauthorizedException(
       'Invalid email or password',
@@ -236,7 +218,14 @@ export class AuthService {
     const session = await this.tokenService.handleSession(
       availableUser.id,
       hashRefreshToken,
+      ipAddress,
     );
+
+    if (!session) {
+      await this.revokeTokens(availableUser.id);
+      return null;
+    }
+
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     setAuthCookies(
@@ -329,5 +318,7 @@ export class AuthService {
     return true;
   }
 
-  async revokeTokens() {}
+  async revokeTokens(userId: string) {
+    return await this.tokenService.deleteALlSessionWithUserId(userId);
+  }
 }
