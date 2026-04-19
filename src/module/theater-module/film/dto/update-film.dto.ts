@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/swagger';
 import { CreateFilmDto } from './create-film.dto';
 
-export type UpdateFilmDto = Partial<CreateFilmDto>;
+export class UpdateFilmDto extends PartialType(CreateFilmDto) {}

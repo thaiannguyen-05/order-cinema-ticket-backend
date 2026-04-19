@@ -22,6 +22,8 @@ import { CinemaModule } from './module/theater-module/cinema/cinema.module';
 import { UserModule } from './module/core-module/user/user.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { MomoModule } from './module/payment/momo/momo.module';
+import { SeatModule } from './module/theater-module/seat/seat.module';
+import { TicketModule } from './module/theater-module/ticket/ticket.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,6 +44,8 @@ import { MomoModule } from './module/payment/momo/momo.module';
     HttpModule,
     FilmModule,
     CinemaModule,
+    SeatModule,
+    TicketModule,
     UserModule,
     SyncDataCronJobModule,
     MomoModule,

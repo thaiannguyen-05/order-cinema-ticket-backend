@@ -8,12 +8,25 @@ describe('EmailConsumer', () => {
     };
 
     const consumer = new EmailConsumer(emailService as never);
+    const rmqContext = {
+      getMessage: jest.fn().mockReturnValue({}),
+      getChannelRef: jest.fn().mockReturnValue({
+        ack: jest.fn(),
+        nack: jest.fn(),
+      }),
+    };
 
-    await consumer.sendVerifyCode({ email: 'a@example.com', code: '123456' });
-    await consumer.sendResetPasswordEmail({
-      email: 'a@example.com',
-      token: 'token-1',
-    });
+    await consumer.sendVerifyCode(
+      { email: 'a@example.com', code: '123456' },
+      rmqContext as never,
+    );
+    await consumer.sendResetPasswordEmail(
+      {
+        email: 'a@example.com',
+        token: 'token-1',
+      },
+      rmqContext as never,
+    );
 
     expect(emailService.sendUserConfirmation).toHaveBeenCalledWith(
       'a@example.com',

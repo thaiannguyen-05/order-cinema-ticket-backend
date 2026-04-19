@@ -14,6 +14,14 @@ import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
 import { QUEUE_NAME } from './background/email/constant/event.type';
 import { MyLogger } from './core/logger/logger.service';
 
+type AmqpConnectionLike = {
+  close: () => Promise<void>;
+};
+
+const safeConnectAmqp = connectAmqp as unknown as (
+  url: string,
+) => Promise<AmqpConnectionLike>;
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function waitForRabbitMQConnection(
@@ -28,7 +36,7 @@ async function waitForRabbitMQConnection(
   while (Date.now() - start < timeoutMs) {
     attempt += 1;
     try {
-      const connection = await connectAmqp(rabbitUrl);
+      const connection = await safeConnectAmqp(rabbitUrl);
       await connection.close();
       return;
     } catch (error) {
@@ -128,6 +136,7 @@ async function bootstrap() {
       queueOptions: {
         durable: true,
       },
+      noAck: false,
     },
   });
 

@@ -165,21 +165,47 @@ export class MomoService {
   }
 
   async checkMomoPaymentStatus(orderId: string) {
-    if (!orderId) {
+    if (!orderId.trim()) {
       throw new BadRequestException('orderId is required');
     }
 
-    return await this.momoClient.queryTransaction({ orderId: orderId });
+    return await this.momoClient.queryTransaction({ orderId: orderId.trim() });
   }
 
   async momoIpnHandler(dto: MomoIPNHandler) {
-    this.loggerService.debug(`Received Momo IPN: ${JSON.stringify(dto)}`);
+    this.loggerService.debug(`Received Momo IPN requestId=${dto.requestId}`);
 
-    const isAvailableRequest = await this.prismaService.momoPayment.findUnique({
-      where: { requestId: dto.requestId },
+    const isValiedSignature = this.momoClient.verifyWebhookSignature({
+      ...dto,
     });
 
-    if (!isAvailableRequest) {
+    if (!isValiedSignature) {
+      this.loggerService.debug(
+        `Invalid signature for Momo IPN requestId ${dto.requestId}`,
+      );
+      return {
+        partnerCode: dto.partnerCode,
+        requestId: dto.requestId,
+        orderId: dto.orderId,
+        resultCode: 1,
+        message: 'Invalid signature',
+        responseTime: Date.now(),
+        extraData: dto.extraData,
+        signature: '',
+      } as MomoIPNResponse;
+    }
+
+    const existingPayment = await this.prismaService.momoPayment.findUnique({
+      where: { requestId: dto.requestId },
+      select: {
+        requestId: true,
+        amount: true,
+        orderId: true,
+        paymentStatus: true,
+      },
+    });
+
+    if (!existingPayment) {
       this.loggerService.debug(
         `Momo IPN requestId ${dto.requestId} not found in database`,
       );
@@ -195,34 +221,45 @@ export class MomoService {
       } as MomoIPNResponse;
     }
 
-    if (isAvailableRequest.paymentStatus === 'COMPLETED') {
+    if (
+      existingPayment.orderId !== dto.orderId ||
+      Number(existingPayment.amount) !== dto.amount
+    ) {
       this.loggerService.debug(
-        `Momo IPN requestId ${dto.requestId} has already been processed`,
-      );
-      return {
-        partnerCode: dto.partnerCode,
-        requestId: dto.requestId,
-        orderId: dto.orderId,
-        resultCode: 0,
-        message: 'Payment already processed',
-        responseTime: Date.now(),
-        extraData: dto.extraData,
-        signature: '',
-      } as MomoIPNResponse;
-    }
-
-    const isValiedSignature = this.momoClient.verifyWebhookSignature(dto);
-
-    if (!isValiedSignature) {
-      this.loggerService.debug(
-        `Invalid signature for Momo IPN requestId ${dto.requestId}`,
+        `Momo IPN payload mismatch for requestId ${dto.requestId}`,
       );
       return {
         partnerCode: dto.partnerCode,
         requestId: dto.requestId,
         orderId: dto.orderId,
         resultCode: 1,
-        message: 'Invalid signature',
+        message: 'Payment payload mismatch',
+        responseTime: Date.now(),
+        extraData: dto.extraData,
+        signature: '',
+      } as MomoIPNResponse;
+    }
+
+    const nextPaymentStatus =
+      dto.resultCode === 0 ? PAYMENT_STATUS.COMPLETED : PAYMENT_STATUS.FAILED;
+
+    await this.prismaService.momoPayment.updateMany({
+      where: {
+        requestId: dto.requestId,
+        paymentStatus: PAYMENT_STATUS.PENDING,
+      },
+      data: {
+        paymentStatus: nextPaymentStatus,
+      },
+    });
+
+    if (existingPayment.paymentStatus === PAYMENT_STATUS.COMPLETED) {
+      return {
+        partnerCode: dto.partnerCode,
+        requestId: dto.requestId,
+        orderId: dto.orderId,
+        resultCode: 0,
+        message: 'Payment already processed',
         responseTime: Date.now(),
         extraData: dto.extraData,
         signature: '',

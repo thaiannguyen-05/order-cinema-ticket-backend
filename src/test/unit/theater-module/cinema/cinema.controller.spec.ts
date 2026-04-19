@@ -1,4 +1,5 @@
 import { CinemaController } from '../../../../module/theater-module/cinema/cinema.controller';
+import { IS_PUBLIC_KEY } from '../../../../core/decorator/ispublic.decorator';
 
 describe('CinemaController', () => {
   let cinemaService: {
@@ -50,5 +51,34 @@ describe('CinemaController', () => {
     ).resolves.toEqual({
       cinemas: [],
     });
+  });
+
+  it('marks only read endpoints as public', () => {
+    const getCinemaMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      CinemaController.prototype.getCinema,
+    );
+    const findCinemasMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      CinemaController.prototype.findCinemas,
+    );
+    const createCinemaMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      CinemaController.prototype.createCinema,
+    );
+    const updateCinemaMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      CinemaController.prototype.updateCinema,
+    );
+    const deleteCinemaMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      CinemaController.prototype.deleteCinema,
+    );
+
+    expect(getCinemaMetadata).toBe(true);
+    expect(findCinemasMetadata).toBe(true);
+    expect(createCinemaMetadata).toBeUndefined();
+    expect(updateCinemaMetadata).toBeUndefined();
+    expect(deleteCinemaMetadata).toBeUndefined();
   });
 });

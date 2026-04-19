@@ -23,10 +23,26 @@ describe('SyncDateCronJobConsumer', () => {
     };
 
     const consumer = new SyncDateCronJobConsumer(callMovieGluService as never);
+    const rmqContext = {
+      getMessage: jest.fn().mockReturnValue({}),
+      getChannelRef: jest.fn().mockReturnValue({
+        ack: jest.fn(),
+        nack: jest.fn(),
+      }),
+    };
 
-    await consumer.handleSyncEventCinemaDetail({ cinemas: [] } as never);
-    await consumer.handleSyncEventCinemaShowtime({ cinemas: [] } as never);
-    await consumer.handleSyncEventFilmShowtime({ cinemas: [] } as never);
+    await consumer.handleSyncEventCinemaDetail(
+      { cinemas: [] } as never,
+      rmqContext as never,
+    );
+    await consumer.handleSyncEventCinemaShowtime(
+      { cinemas: [] } as never,
+      rmqContext as never,
+    );
+    await consumer.handleSyncEventFilmShowtime(
+      { cinemas: [] } as never,
+      rmqContext as never,
+    );
 
     expect(callMovieGluService.syncDataCinemaDetail).toHaveBeenCalled();
     expect(callMovieGluService.syncDataCinemaShowtime).toHaveBeenCalled();

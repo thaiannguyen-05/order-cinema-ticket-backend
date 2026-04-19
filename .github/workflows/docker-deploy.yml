@@ -23,9 +23,37 @@ env:
   ENV_FILE_PATH: ${{ vars.ENV_FILE_PATH || '/opt/order-cinema-ticket-backend/.env.development' }}
 
 jobs:
+  quality-gate:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint
+        run: pnpm run lint
+
+      - name: Run unit tests
+        run: pnpm run test
+
   build-and-push:
     name: Build And Push Image
     runs-on: ubuntu-latest
+    needs: quality-gate
     outputs:
       image_ref: ${{ steps.out.outputs.image_ref }}
     steps:

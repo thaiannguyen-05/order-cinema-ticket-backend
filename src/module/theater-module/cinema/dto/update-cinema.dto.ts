@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/swagger';
 import { CreateCinemaDto } from './create-cinema.dto';
 
-export type UpdateCinemaDto = Partial<CreateCinemaDto>;
+export class UpdateCinemaDto extends PartialType(CreateCinemaDto) {}

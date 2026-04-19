@@ -10,6 +10,11 @@ import { CallMovieGluService } from './call-movie-glu.service';
 import type { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import type { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 
+type RmqAckChannel = {
+  ack: (message: unknown) => void;
+  nack: (message: unknown, allUpTo?: boolean, requeue?: boolean) => void;
+};
+
 @Controller()
 export class SyncDateCronJobConsumer {
   constructor(private readonly callMovieGluService: CallMovieGluService) {}
@@ -26,8 +31,8 @@ export class SyncDateCronJobConsumer {
     @Payload() dto: SyncCinemaDetailDto,
     @Ctx() context: RmqContext,
   ) {
-    const message = context.getMessage();
-    const channel = context.getChannelRef();
+    const message: unknown = context.getMessage();
+    const channel = context.getChannelRef() as RmqAckChannel;
 
     try {
       await retryCore(async () => {
@@ -35,7 +40,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, false);
+      channel.nack(message, false, true);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );
@@ -47,8 +52,8 @@ export class SyncDateCronJobConsumer {
     @Payload() dto: SyncCinemaShowtimeDto,
     @Ctx() context: RmqContext,
   ) {
-    const message = context.getMessage();
-    const channel = context.getChannelRef();
+    const message: unknown = context.getMessage();
+    const channel = context.getChannelRef() as RmqAckChannel;
 
     try {
       await retryCore(async () => {
@@ -56,7 +61,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, false);
+      channel.nack(message, false, true);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );
@@ -68,8 +73,8 @@ export class SyncDateCronJobConsumer {
     @Payload() dto: SyncCinemaShowtimeDto,
     @Ctx() context: RmqContext,
   ) {
-    const message = context.getMessage();
-    const channel = context.getChannelRef();
+    const message: unknown = context.getMessage();
+    const channel = context.getChannelRef() as RmqAckChannel;
 
     try {
       await retryCore(async () => {
@@ -77,7 +82,7 @@ export class SyncDateCronJobConsumer {
       }, this.optionsRetry);
       channel.ack(message);
     } catch {
-      channel.nack(message, false, false);
+      channel.nack(message, false, true);
       throw new ServiceUnavailableException(
         'Event service is temporarily unavailable',
       );

@@ -19,13 +19,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FilmService } from './film.service';
-import type { CreateFilmDto } from './dto/create-film.dto';
-import type { UpdateFilmDto } from './dto/update-film.dto';
-import type { FindFilmsDto } from './dto/find-films.dto';
+import { CreateFilmDto } from './dto/create-film.dto';
+import { UpdateFilmDto } from './dto/update-film.dto';
+import { FindFilmsDto } from './dto/find-films.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Film')
-@Public()
 @Controller('film')
 export class FilmController {
   constructor(private readonly filmService: FilmService) {}
@@ -120,6 +119,7 @@ export class FilmController {
     return this.filmService.deleteFilm(filmId);
   }
 
+  @Public()
   @Get(':film_id')
   @ApiOperation({ summary: 'Get film details by ID' })
   @ApiParam({
@@ -133,6 +133,7 @@ export class FilmController {
     return this.filmService.getFilm(filmId);
   }
 
+  @Public()
   @Post('find')
   @ApiOperation({ summary: 'Find films with pagination and search' })
   @ApiBody({

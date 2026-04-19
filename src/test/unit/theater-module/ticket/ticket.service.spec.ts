@@ -110,7 +110,7 @@ describe('TicketService', () => {
     await service.orderTicket({ seatId: 'seat-1' } as never, 'user-1');
 
     expect(redisLockService.runExclusive).toHaveBeenCalledWith(
-      REDIS_LOCK_KEY.ORDER_TICKET('user-1', 'seat-1'),
+      REDIS_LOCK_KEY.ORDER_TICKET('seat-1'),
       REDIS_TTL.LOCK_SERVICE,
       expect.any(Function),
     );

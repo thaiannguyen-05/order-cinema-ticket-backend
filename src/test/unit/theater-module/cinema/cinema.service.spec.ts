@@ -88,8 +88,8 @@ describe('CinemaService', () => {
 
     expect(prismaService.cinema.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        skip: 11,
-        take: 10,
+        skip: 0,
+        take: 11,
       }),
     );
     expect(result).toEqual({ cinemas: [{ cinema_id: 10 }], nextCursor: null });

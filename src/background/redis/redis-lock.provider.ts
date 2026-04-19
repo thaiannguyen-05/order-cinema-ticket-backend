@@ -8,7 +8,7 @@ export const RedisLockProvider = {
   inject: [ConfigService],
   useFactory: (config: ConfigService) => {
     const client = new Redis(
-      `redis://localhost:${config.getOrThrow<string>('REDIS_PORT')}`,
+      `redis://${config.get<string>('REDIS_HOST', 'localhost')}:${config.getOrThrow<string>('REDIS_PORT')}`,
     );
     // Prevent noisy unhandled error events while waiting for Redis startup.
     client.on('error', () => {});

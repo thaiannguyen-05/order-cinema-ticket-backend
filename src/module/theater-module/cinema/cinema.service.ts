@@ -100,8 +100,8 @@ export class CinemaService {
           mode: 'insensitive',
         },
       },
-      skip: dto.limit + 1,
-      take: dto.limit,
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit + 1,
     });
 
     const hashNextPage = cinemas.length > dto.limit;

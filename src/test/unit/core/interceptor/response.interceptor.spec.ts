@@ -12,6 +12,9 @@ describe('ResponseInterceptor', () => {
           method: 'GET',
           requestId: 'req-1',
         }),
+        getResponse: () => ({
+          statusCode: 201,
+        }),
       }),
     };
 
@@ -24,7 +27,8 @@ describe('ResponseInterceptor', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data).toEqual(['ok']);
+    expect(result.code).toBe(201);
+    expect(result.data).toBe('ok');
     expect(result.path).toBe('/api/test');
     expect(result.method).toBe('GET');
     expect(result.requestId).toBe('req-1');

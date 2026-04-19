@@ -91,6 +91,7 @@ describe('MomoService', () => {
     momoPayment: {
       findUnique: jest.Mock;
       upsert: jest.Mock;
+      updateMany: jest.Mock;
     };
     ticket: {
       findUnique: jest.Mock;
@@ -133,6 +134,7 @@ describe('MomoService', () => {
       momoPayment: {
         findUnique: jest.fn(),
         upsert: jest.fn(),
+        updateMany: jest.fn(),
       },
       ticket: {
         findUnique: jest.fn(),
@@ -324,6 +326,7 @@ describe('MomoService', () => {
   });
 
   it('returns error response when ipn request does not exist', async () => {
+    momoClient.verifyWebhookSignature.mockReturnValue(true);
     prismaService.momoPayment.findUnique.mockResolvedValue(null);
 
     const result = await service.momoIpnHandler(ipnDto);
@@ -341,8 +344,12 @@ describe('MomoService', () => {
   it('returns already processed response when payment is completed', async () => {
     prismaService.momoPayment.findUnique.mockResolvedValue({
       requestId: 'req-1',
+      orderId: 'ORDER-1',
+      amount: 200000,
       paymentStatus: PAYMENT_STATUS.COMPLETED,
     });
+    momoClient.verifyWebhookSignature.mockReturnValue(true);
+    prismaService.momoPayment.updateMany.mockResolvedValue({ count: 0 });
 
     const result = await service.momoIpnHandler(ipnDto);
 
@@ -355,10 +362,6 @@ describe('MomoService', () => {
   });
 
   it('returns invalid signature response when signature check fails', async () => {
-    prismaService.momoPayment.findUnique.mockResolvedValue({
-      requestId: 'req-1',
-      paymentStatus: PAYMENT_STATUS.PENDING,
-    });
     momoClient.verifyWebhookSignature.mockReturnValue(false);
 
     const result = await service.momoIpnHandler(ipnDto);
@@ -370,16 +373,110 @@ describe('MomoService', () => {
         message: 'Invalid signature',
       }),
     );
+    expect(prismaService.momoPayment.findUnique).not.toHaveBeenCalled();
+    expect(prismaService.momoPayment.updateMany).not.toHaveBeenCalled();
   });
 
-  it('returns success response when ipn is valid', async () => {
+  it('returns success response when ipn is valid and updates to COMPLETED', async () => {
     prismaService.momoPayment.findUnique.mockResolvedValue({
       requestId: 'req-1',
+      orderId: 'ORDER-1',
+      amount: 200000,
+      paymentStatus: PAYMENT_STATUS.PENDING,
+    });
+    momoClient.verifyWebhookSignature.mockReturnValue(true);
+    prismaService.momoPayment.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.momoIpnHandler(ipnDto);
+
+    expect(prismaService.momoPayment.updateMany).toHaveBeenCalledWith({
+      where: {
+        requestId: 'req-1',
+        paymentStatus: PAYMENT_STATUS.PENDING,
+      },
+      data: {
+        paymentStatus: PAYMENT_STATUS.COMPLETED,
+      },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        resultCode: 0,
+        message: 'Payment processed successfully',
+      }),
+    );
+  });
+
+  it('updates payment status to FAILED when ipn resultCode is non-zero', async () => {
+    prismaService.momoPayment.findUnique.mockResolvedValue({
+      requestId: 'req-1',
+      orderId: 'ORDER-1',
+      amount: 200000,
+      paymentStatus: PAYMENT_STATUS.PENDING,
+    });
+    momoClient.verifyWebhookSignature.mockReturnValue(true);
+    prismaService.momoPayment.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.momoIpnHandler({
+      ...ipnDto,
+      resultCode: 49,
+      message: 'Insufficient funds',
+    });
+
+    expect(prismaService.momoPayment.updateMany).toHaveBeenCalledWith({
+      where: {
+        requestId: 'req-1',
+        paymentStatus: PAYMENT_STATUS.PENDING,
+      },
+      data: {
+        paymentStatus: PAYMENT_STATUS.FAILED,
+      },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        resultCode: 0,
+        message: 'Payment processed successfully',
+      }),
+    );
+  });
+
+  it('returns payload mismatch when amount or orderId does not match', async () => {
+    prismaService.momoPayment.findUnique.mockResolvedValue({
+      requestId: 'req-1',
+      orderId: 'ORDER-1',
+      amount: 200000,
       paymentStatus: PAYMENT_STATUS.PENDING,
     });
     momoClient.verifyWebhookSignature.mockReturnValue(true);
 
-    const result = await service.momoIpnHandler(ipnDto);
+    const result = await service.momoIpnHandler({
+      ...ipnDto,
+      amount: 300000,
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        resultCode: 1,
+        message: 'Payment payload mismatch',
+      }),
+    );
+    expect(prismaService.momoPayment.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('treats duplicate callback as idempotent when updateMany count is zero', async () => {
+    prismaService.momoPayment.findUnique.mockResolvedValue({
+      requestId: 'req-1',
+      orderId: 'ORDER-1',
+      amount: 200000,
+      paymentStatus: PAYMENT_STATUS.FAILED,
+    });
+    momoClient.verifyWebhookSignature.mockReturnValue(true);
+    prismaService.momoPayment.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await service.momoIpnHandler({
+      ...ipnDto,
+      resultCode: 49,
+      message: 'Insufficient funds',
+    });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -389,15 +486,9 @@ describe('MomoService', () => {
     );
   });
 
-  it.todo(
-    '[DEFECT-MOMO-IPN-001] valid IPN should persist payment status transition (PENDING -> COMPLETED/FAILED)',
-  );
-
-  it.todo(
-    '[DEFECT-MOMO-IPN-002] IPN should verify amount/order consistency against stored payment to prevent tampering',
-  );
-
-  it.todo(
-    '[DEFECT-MOMO-VALIDATION-001] checkMomoPaymentStatus should reject whitespace-only orderId after trim',
-  );
+  it('rejects whitespace-only orderId after trim', async () => {
+    await expect(service.checkMomoPaymentStatus('   ')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
 });

@@ -12,15 +12,50 @@ import { MyLogger } from '../logger/logger.service';
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: MyLogger) {}
 
+  private readonly sensitiveKeys = new Set([
+    'authorization',
+    'cookie',
+    'set-cookie',
+    'access-token',
+    'accessToken',
+    'refreshToken',
+    'password',
+    'token',
+    'signature',
+  ]);
+
+  private redactSensitive(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.redactSensitive(item));
+    }
+
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>).map(
+        ([key, val]) => {
+          if (this.sensitiveKeys.has(key)) {
+            return [key, '[REDACTED]'];
+          }
+          return [key, this.redactSensitive(val)];
+        },
+      );
+
+      return Object.fromEntries(entries);
+    }
+
+    return value;
+  }
+
   private formatValue(value: unknown): string {
-    if (typeof value === 'string') {
-      return value;
+    const safeValue = this.redactSensitive(value);
+
+    if (typeof safeValue === 'string') {
+      return safeValue;
     }
 
     try {
-      return JSON.stringify(value, null, 2);
+      return JSON.stringify(safeValue, null, 2);
     } catch {
-      return inspect(value, { depth: 4, colors: false });
+      return inspect(safeValue, { depth: 4, colors: false });
     }
   }
 

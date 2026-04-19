@@ -140,9 +140,6 @@ ALTER TABLE "User"
 ALTER TABLE "FilmOfCinema"
   ADD CONSTRAINT "FilmOfCinema_filmId_cinemaId_key" UNIQUE ("filmId", "cinemaId");
 
-ALTER TABLE "Seat"
-  ADD CONSTRAINT "Seat_cinemaId_key" UNIQUE ("cinemaId");
-
 ALTER TABLE "Ticket"
   ADD CONSTRAINT "Ticket_seatId_key" UNIQUE ("seatId");
 

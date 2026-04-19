@@ -21,6 +21,15 @@ function getErrorStatus(error: unknown): number | null {
   return typeof status === 'number' ? status : null;
 }
 
+function getErrorCode(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return null;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : null;
+}
+
 export async function retryCore<T>(
   fn: () => Promise<T>,
   options: RetryCoreOptions,
@@ -32,8 +41,16 @@ export async function retryCore<T>(
       return await fn();
     } catch (error: unknown) {
       const errorStatus = getErrorStatus(error);
+      const errorCode = getErrorCode(error);
+      const transientErrorCode = new Set([
+        'ECONNRESET',
+        'ETIMEDOUT',
+        'ENOTFOUND',
+        'ECONNREFUSED',
+      ]);
       const canRetry =
-        errorStatus !== null && validErrorToRetry.has(errorStatus);
+        (errorStatus !== null && validErrorToRetry.has(errorStatus)) ||
+        (errorCode !== null && transientErrorCode.has(errorCode));
 
       if (!canRetry || timesRetry >= options.maxRetryTimes) {
         throw error;

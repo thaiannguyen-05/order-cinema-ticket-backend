@@ -1,4 +1,5 @@
 import { FilmController } from '../../../../module/theater-module/film/film.controller';
+import { IS_PUBLIC_KEY } from '../../../../core/decorator/ispublic.decorator';
 
 describe('FilmController', () => {
   let filmService: {
@@ -43,5 +44,34 @@ describe('FilmController', () => {
     await expect(
       controller.findFilms({ search: 'a' } as never),
     ).resolves.toEqual({ films: [] });
+  });
+
+  it('marks only read endpoints as public', () => {
+    const getFilmMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      FilmController.prototype.getFilm,
+    );
+    const findFilmsMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      FilmController.prototype.findFilms,
+    );
+    const createFilmMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      FilmController.prototype.createFilm,
+    );
+    const updateFilmMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      FilmController.prototype.updateFilm,
+    );
+    const deleteFilmMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      FilmController.prototype.deleteFilm,
+    );
+
+    expect(getFilmMetadata).toBe(true);
+    expect(findFilmsMetadata).toBe(true);
+    expect(createFilmMetadata).toBeUndefined();
+    expect(updateFilmMetadata).toBeUndefined();
+    expect(deleteFilmMetadata).toBeUndefined();
   });
 });

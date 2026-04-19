@@ -91,7 +91,7 @@ export class FilmService {
             mode: 'insensitive',
           },
         },
-        take: dto.limit,
+        take: dto.limit + 1,
         skip: 1,
         cursor: {
           film_id: dto.cursor,
@@ -114,7 +114,7 @@ export class FilmService {
           mode: 'insensitive',
         },
       },
-      take: dto.limit,
+      take: dto.limit + 1,
       skip: (dto.page - 1) * dto.limit,
     });
 

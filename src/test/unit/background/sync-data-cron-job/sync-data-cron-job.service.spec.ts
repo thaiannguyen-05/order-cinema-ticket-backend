@@ -67,7 +67,6 @@ describe('SyncDataCronJobService', () => {
     callMovieGluService.createMovieGluClientAtCall.mockReturnValue(client);
 
     service = new SyncDataCronJobService(
-      {} as never,
       logger as never,
       cinemaService as never,
       redisLockService as never,

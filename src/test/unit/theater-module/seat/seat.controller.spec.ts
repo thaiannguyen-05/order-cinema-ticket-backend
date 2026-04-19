@@ -1,4 +1,5 @@
 import { SeatController } from '../../../../module/theater-module/seat/seat.controller';
+import { IS_PUBLIC_KEY } from '../../../../core/decorator/ispublic.decorator';
 
 describe('SeatController', () => {
   let seatService: {
@@ -49,5 +50,39 @@ describe('SeatController', () => {
     await expect(controller.findSeats({} as never)).resolves.toEqual({
       seats: [],
     });
+  });
+
+  it('marks only read endpoints as public', () => {
+    const getSeatMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.getSeat,
+    );
+    const getShowtimeMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.getSeatsByShowtimeId,
+    );
+    const findSeatsMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.findSeats,
+    );
+    const createSeatMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.createSeat,
+    );
+    const updateSeatMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.updateSeat,
+    );
+    const deleteSeatMetadata = Reflect.getMetadata(
+      IS_PUBLIC_KEY,
+      SeatController.prototype.deleteSeat,
+    );
+
+    expect(getSeatMetadata).toBe(true);
+    expect(getShowtimeMetadata).toBe(true);
+    expect(findSeatsMetadata).toBe(true);
+    expect(createSeatMetadata).toBeUndefined();
+    expect(updateSeatMetadata).toBeUndefined();
+    expect(deleteSeatMetadata).toBeUndefined();
   });
 });

@@ -14,7 +14,7 @@ import { RedisLockService } from './redis.lock.service';
       useFactory: (configService: ConfigService) => ({
         stores: [
           createKeyv(
-            `redis://localhost:${configService.getOrThrow<string>('REDIS_PORT')}`,
+            `redis://${configService.get<string>('REDIS_HOST', 'localhost')}:${configService.getOrThrow<string>('REDIS_PORT')}`,
           ),
         ],
       }),

@@ -19,17 +19,17 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CinemaService } from './cinema.service';
-import type { CreateCinemaDto } from './dto/create-cinema.dto';
-import type { FindCinemaDto } from './dto/find-cinema.dto';
-import type { UpdateCinemaDto } from './dto/update-cinema.dto';
+import { CreateCinemaDto } from './dto/create-cinema.dto';
+import { FindCinemaDto } from './dto/find-cinema.dto';
+import { UpdateCinemaDto } from './dto/update-cinema.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Cinema')
-@Public()
 @Controller('cinema')
 export class CinemaController {
   constructor(private readonly cinemaService: CinemaService) {}
 
+  @Public()
   @Get(':cinema_id')
   @ApiOperation({ summary: 'Get cinema by ID' })
   @ApiParam({
@@ -126,6 +126,7 @@ export class CinemaController {
     return this.cinemaService.deleteCinema(cinemaId);
   }
 
+  @Public()
   @Post('find')
   @ApiOperation({ summary: 'Find cinemas with search and pagination' })
   @ApiBody({

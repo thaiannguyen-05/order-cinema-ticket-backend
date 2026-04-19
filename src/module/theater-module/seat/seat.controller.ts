@@ -19,13 +19,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { SeatService } from './seat.service';
-import type { CreateSeatDto } from './dto/create-seat.dto';
-import type { UpdateSeatDto } from './dto/update-seat.dto';
-import type { FindSeatDto } from './dto/find-seat.dto';
+import { CreateSeatDto } from './dto/create-seat.dto';
+import { UpdateSeatDto } from './dto/update-seat.dto';
+import { FindSeatDto } from './dto/find-seat.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 
 @ApiTags('Seat')
-@Public()
 @Controller('seat')
 export class SeatController {
   constructor(private readonly seatService: SeatService) {}
@@ -54,6 +53,7 @@ export class SeatController {
     return this.seatService.createSeat(createSeatDto);
   }
 
+  @Public()
   @Get('showtime/:filmId/:cinemaId')
   @ApiOperation({ summary: 'Get seats by film and cinema' })
   @ApiParam({
@@ -74,6 +74,7 @@ export class SeatController {
     return this.seatService.getSeatsByShowtimeId(filmId, cinemaId);
   }
 
+  @Public()
   @Get(':seatId')
   @ApiOperation({ summary: 'Get seat by ID' })
   @ApiParam({
@@ -132,6 +133,7 @@ export class SeatController {
     return this.seatService.deleteSeat(seatId);
   }
 
+  @Public()
   @Post('find')
   @ApiOperation({ summary: 'Find seats with filters and pagination' })
   @ApiBody({

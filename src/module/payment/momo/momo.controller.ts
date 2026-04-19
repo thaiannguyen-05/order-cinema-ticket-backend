@@ -8,8 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { MomoService } from './momo.service';
-import type { MomoIPNHandler } from './dto/momo-ipn.handler';
-import type { CreateMomoPaymentDto } from './dto/create.momoPayment';
+import { MomoIPNHandler } from './dto/momo-ipn.handler';
+import { CreateMomoPaymentDto } from './dto/create.momoPayment';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { User } from '../../../core/decorator/user.decorator';
 

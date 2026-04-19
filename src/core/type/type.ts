@@ -2,7 +2,7 @@ export type ResponseMapping<T> = {
   success: true;
   code: number;
   message: string;
-  data: T[];
+  data: T;
   timestamp: string;
   path: string;
   method: string;

@@ -95,7 +95,7 @@ export class CallMovieGluService {
 
     try {
       const { data } = await axios.get<IpApiResponse>(
-        `http://ip-api.com/json/${encodeURIComponent(ipAddress)}`,
+        `https://ip-api.com/json/${encodeURIComponent(ipAddress)}`,
         {
           params: { fields: 'status,message,lat,lon' },
           timeout: 5000,

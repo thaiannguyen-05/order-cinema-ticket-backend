@@ -49,7 +49,7 @@ export class TicketService {
 
   async orderTicket(dto: CreateTicketDto, userId: string) {
     const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.ORDER_TICKET(userId, dto.seatId),
+      REDIS_LOCK_KEY.ORDER_TICKET(dto.seatId),
       REDIS_TTL.LOCK_SERVICE,
       async () => {
         const isOrderSuccess = await this.createTicket(dto, userId);

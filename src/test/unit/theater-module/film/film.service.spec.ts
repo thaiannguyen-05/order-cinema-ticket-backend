@@ -74,7 +74,7 @@ describe('FilmService', () => {
 
     expect(prismaService.film.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 2,
+        take: 3,
         skip: 1,
         cursor: { film_id: 1 },
       }),
@@ -95,7 +95,7 @@ describe('FilmService', () => {
 
     expect(prismaService.film.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 10,
+        take: 11,
         skip: 0,
       }),
     );
