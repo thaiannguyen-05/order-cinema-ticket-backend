@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { EVENT_NAME } from '../../../../background/email/constant/event.type';
@@ -678,16 +677,14 @@ describe('AuthService', () => {
     );
   });
 
-  it('throws service unavailable when forgot password dispatcher throws synchronously', async () => {
+  it('returns outbox even when email worker emits (fire-and-forget)', async () => {
     userService.isAvailableEmail.mockResolvedValue(true);
     outboxService.createOutboxMessage.mockResolvedValue({ id: 'o-reset-1' });
-    emailWorker.sendResetPasswordEmail.mockImplementation(() => {
-      throw new Error('queue down');
-    });
+    // emit() is fire-and-forget, no try/catch needed
+    emailWorker.sendResetPasswordEmail.mockReturnValue(undefined);
 
-    await expect(
-      service.forgotPassword('a@example.com'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    const result = await service.forgotPassword('a@example.com');
+    expect(result).toEqual({ id: 'o-reset-1' });
   });
 
   it('throws unauthorized when logout has no session id', async () => {

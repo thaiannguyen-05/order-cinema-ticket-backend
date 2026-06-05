@@ -19,7 +19,10 @@ export type ExceptionResponseMapping = {
   requestId?: string;
 };
 
+import { USER_ROLE } from '@prisma/client';
+
 export type Payload = {
   id: string;
   email: string;
+  role: USER_ROLE;
 };

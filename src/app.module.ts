@@ -8,9 +8,10 @@ import { AppService } from './app.service';
 import { EmailModule } from './background/email/email.module';
 import { PrismaModule } from './background/prisma/prisma.module';
 import { RedisModule } from './background/redis/redis.module';
-import { ErrorExcception } from './core/exception/error.exception';
+import { ErrorException } from './core/exception/error.exception';
 import { AuthenticationGuard } from './core/guard/authentication.guard';
 import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
+import { RolesGuard } from './core/guard/roles.guard';
 import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
 import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
@@ -24,6 +25,7 @@ import { LoggerModule } from './core/logger/logger.module';
 import { MomoModule } from './module/payment/momo/momo.module';
 import { SeatModule } from './module/theater-module/seat/seat.module';
 import { TicketModule } from './module/theater-module/ticket/ticket.module';
+import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-job.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,6 +51,7 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
     UserModule,
     SyncDataCronJobModule,
     MomoModule,
+    OutboxCronJobModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,
@@ -63,7 +66,7 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
     },
     {
       provide: APP_FILTER,
-      useClass: ErrorExcception,
+      useClass: ErrorException,
     },
     {
       provide: APP_GUARD,
@@ -74,12 +77,12 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
       useClass: ThrottlerBehindProxyGuard,
     },
     {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
     {
-      provide: APP_GUARD,
-      useClass: ThrottlerBehindProxyGuard,
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })

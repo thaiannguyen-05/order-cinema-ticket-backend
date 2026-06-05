@@ -120,13 +120,11 @@ describe('TicketService', () => {
     );
   });
 
-  it('logs debug when lock acquisition fails', async () => {
+  it('throws ConflictException when lock acquisition fails', async () => {
     redisLockService.runExclusive.mockResolvedValue(null);
 
-    await service.orderTicket({ seatId: 'seat-1' } as never, 'user-1');
-
-    expect(logger.debug).toHaveBeenCalledWith(
-      'User user-1 is ordering seat seat-1',
-    );
+    await expect(
+      service.orderTicket({ seatId: 'seat-1' } as never, 'user-1'),
+    ).rejects.toThrow('This seat is being booked by another user');
   });
 });

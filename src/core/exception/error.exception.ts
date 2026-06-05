@@ -8,7 +8,7 @@ import {
 import { Request, Response } from 'express';
 import { ExceptionResponseMapping } from '../type/type';
 @Catch()
-export class ErrorExcception implements ExceptionFilter {
+export class ErrorException implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const request = context.getRequest<Request>();

@@ -23,6 +23,8 @@ import { CreateFilmDto } from './dto/create-film.dto';
 import { UpdateFilmDto } from './dto/update-film.dto';
 import { FindFilmsDto } from './dto/find-films.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
+import { Roles } from '../../../core/decorator/roles.decorator';
+import { USER_ROLE } from '@prisma/client';
 
 @ApiTags('Film')
 @Controller('film')
@@ -73,6 +75,7 @@ export class FilmController {
       },
     },
   })
+  @Roles(USER_ROLE.ADMIN)
   @ApiCreatedResponse({ description: 'Film created successfully' })
   @ApiBadRequestResponse({ description: 'Invalid film payload' })
   async createFilm(@Body() createFilmDto: CreateFilmDto) {
@@ -96,6 +99,7 @@ export class FilmController {
       },
     },
   })
+  @Roles(USER_ROLE.ADMIN)
   @ApiOkResponse({ description: 'Film updated successfully' })
   @ApiNotFoundResponse({ description: 'Film not found' })
   @ApiBadRequestResponse({ description: 'Invalid update payload' })
@@ -106,6 +110,7 @@ export class FilmController {
     return this.filmService.updateFilm(filmId, updateFilmDto);
   }
 
+  @Roles(USER_ROLE.ADMIN)
   @Delete(':film_id')
   @ApiOperation({ summary: 'Delete a film by ID' })
   @ApiParam({

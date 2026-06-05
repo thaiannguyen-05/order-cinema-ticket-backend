@@ -3,7 +3,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -67,13 +66,27 @@ export class AuthService {
       payload,
     );
 
-    const newUser = await this.userService.createUser({
-      fullname: dto.fullname,
-      email: dto.email,
-      password: hashedPassword,
-      address: dto.address,
-      dateOfBirth: dto.dateOfBirth,
-    });
+    let newUser;
+    try {
+      newUser = await this.userService.createUser({
+        fullname: dto.fullname,
+        email: dto.email,
+        password: hashedPassword,
+        address: dto.address,
+        dateOfBirth: dto.dateOfBirth,
+      });
+    } catch (error: unknown) {
+      // Handle Prisma unique constraint error (P2002)
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        throw new ConflictException('Email is already in use');
+      }
+      throw error;
+    }
 
     this.emailWorker.sendVerifyCode(dto.email, verificationCode);
 
@@ -91,6 +104,8 @@ export class AuthService {
     };
   }
 
+  private readonly CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
   async verifyEmail(dto: VerifyEmailDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     this.logger.debug(`${availableUser}`);
@@ -101,6 +116,17 @@ export class AuthService {
     const outBox = await this.outboxService.getOutBox(dto.outBoxId);
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
+    }
+    if (outBox.status === 'PROCESSED') {
+      throw new BadRequestException(
+        'This verification code has already been used',
+      );
+    }
+    if (
+      Date.now() - new Date(outBox.createdAt).getTime() >
+      this.CODE_EXPIRY_MS
+    ) {
+      throw new BadRequestException('Verification code has expired');
     }
     if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
       throw new BadRequestException('Invalid verification request');
@@ -141,13 +167,8 @@ export class AuthService {
       { email: email, code: resetToken },
     );
 
-    try {
-      this.emailWorker.sendResetPasswordEmail(email, resetToken);
-    } catch {
-      throw new ServiceUnavailableException(
-        'Email service is temporarily unavailable',
-      );
-    }
+    // emit() là fire-and-forget, outbox pattern đảm bảo reliability
+    this.emailWorker.sendResetPasswordEmail(email, resetToken);
 
     return outbox;
   }
@@ -161,6 +182,15 @@ export class AuthService {
     const outBox = await this.outboxService.getOutBox(dto.outBoxId);
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
+    }
+    if (outBox.status === 'PROCESSED') {
+      throw new BadRequestException('This reset code has already been used');
+    }
+    if (
+      Date.now() - new Date(outBox.createdAt).getTime() >
+      this.CODE_EXPIRY_MS
+    ) {
+      throw new BadRequestException('Reset code has expired');
     }
     if (outBox.eventType !== EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL) {
       throw new BadRequestException('Invalid reset password request');
@@ -278,30 +308,37 @@ export class AuthService {
       throw invalidRefreshTokenError;
     }
 
-    res.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, { path: '/' });
-    const newAccessToken = await this.tokenService.generateTokens({
-      id: payload.id,
-      email: payload.email,
+    // Generate new tokens (include role from DB)
+    const newTokens = await this.tokenService.generateTokens({
+      id: availableUser.id,
+      email: availableUser.email,
+      role: availableUser.role,
     });
-    res.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, { path: '/' });
     const newHashRefreshToken = await this.hashTextByArgon2(
-      newAccessToken.refreshToken,
+      newTokens.refreshToken,
     );
+
+    // Update DB FIRST — if this fails, no cookies are set
+    await this.tokenService.updateSession(sessionId, newHashRefreshToken);
+
+    // Set cookies ONLY after DB update succeeds
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     const cookieOptions = getAuthCookieOptions(isProduction);
+
+    res.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, { path: '/' });
+    res.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, { path: '/' });
+
     res.cookie(
       AUTH_COOKIE_NAME.ACCESS_TOKEN,
-      newAccessToken.accessToken,
+      newTokens.accessToken,
       cookieOptions,
     );
     res.cookie(
       AUTH_COOKIE_NAME.REFRESH_TOKEN,
-      newAccessToken.refreshToken,
+      newTokens.refreshToken,
       cookieOptions,
     );
-
-    await this.tokenService.updateSession(sessionId, newHashRefreshToken);
 
     return true;
   }

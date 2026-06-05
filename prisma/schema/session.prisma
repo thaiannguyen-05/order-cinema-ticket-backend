@@ -1,14 +1,13 @@
 model Session {
     id String @id @default(uuid()) @db.Uuid
-    userId String @db.Uuid @unique
+    userId String @db.Uuid
     hashRefreshToken String
 
-    userIp String @unique
+    userIp String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([userId])
-    @@unique([userId, id])
     @@unique([userId, userIp])
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

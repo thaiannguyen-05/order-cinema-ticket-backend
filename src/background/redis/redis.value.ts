@@ -4,8 +4,8 @@ export const REDIS_KEY = {
 };
 
 export const REDIS_TTL = {
-  SHORT_TL: 5 * 60 * 60,
-  LOCK_SERVICE: 10 * 60 * 1000,
+  SHORT_TTL: 5 * 60 * 60 * 1000, // 5 hours in ms
+  LOCK_SERVICE: 10 * 60 * 1000, // 10 minutes in ms
 };
 
 export const REDIS_LOCK_CLIENT = 'REDIS_LOCK_CLIENT';

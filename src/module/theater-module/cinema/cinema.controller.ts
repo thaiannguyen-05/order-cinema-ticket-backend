@@ -18,11 +18,13 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { USER_ROLE } from '@prisma/client';
 import { CinemaService } from './cinema.service';
 import { CreateCinemaDto } from './dto/create-cinema.dto';
 import { FindCinemaDto } from './dto/find-cinema.dto';
 import { UpdateCinemaDto } from './dto/update-cinema.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
+import { Roles } from '../../../core/decorator/roles.decorator';
 
 @ApiTags('Cinema')
 @Controller('cinema')
@@ -72,6 +74,7 @@ export class CinemaController {
       },
     },
   })
+  @Roles(USER_ROLE.ADMIN)
   @ApiCreatedResponse({ description: 'Cinema created successfully' })
   @ApiBadRequestResponse({ description: 'Invalid cinema payload' })
   createCinema(@Body() createCinemaDto: CreateCinemaDto) {
@@ -103,6 +106,7 @@ export class CinemaController {
       },
     },
   })
+  @Roles(USER_ROLE.ADMIN)
   @ApiOkResponse({ description: 'Cinema updated successfully' })
   @ApiNotFoundResponse({ description: 'Cinema not found' })
   @ApiBadRequestResponse({ description: 'Invalid update payload' })
@@ -113,6 +117,7 @@ export class CinemaController {
     return this.cinemaService.updateCinema(updateCinemaDto, cinemaId);
   }
 
+  @Roles(USER_ROLE.ADMIN)
   @Delete(':cinema_id')
   @ApiOperation({ summary: 'Delete cinema by ID' })
   @ApiParam({

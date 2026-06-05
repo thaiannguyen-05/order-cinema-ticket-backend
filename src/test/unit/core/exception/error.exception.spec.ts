@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
-import { ErrorExcception } from '../../../../core/exception/error.exception';
+import { ErrorException } from '../../../../core/exception/error.exception';
 
-describe('ErrorExcception', () => {
+describe('ErrorException', () => {
   it('maps http exception to response body', () => {
-    const filter = new ErrorExcception();
+    const filter = new ErrorException();
     const json = jest.fn();
     const status = jest.fn().mockReturnValue({ json });
 
@@ -30,7 +30,7 @@ describe('ErrorExcception', () => {
   });
 
   it('maps unknown exception to 500', () => {
-    const filter = new ErrorExcception();
+    const filter = new ErrorException();
     const json = jest.fn();
     const status = jest.fn().mockReturnValue({ json });
 

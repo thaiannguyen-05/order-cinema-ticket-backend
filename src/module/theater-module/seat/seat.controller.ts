@@ -23,6 +23,8 @@ import { CreateSeatDto } from './dto/create-seat.dto';
 import { UpdateSeatDto } from './dto/update-seat.dto';
 import { FindSeatDto } from './dto/find-seat.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
+import { Roles } from '../../../core/decorator/roles.decorator';
+import { USER_ROLE } from '@prisma/client';
 
 @ApiTags('Seat')
 @Controller('seat')
@@ -47,6 +49,7 @@ export class SeatController {
       },
     },
   })
+  @Roles(USER_ROLE.ADMIN)
   @ApiCreatedResponse({ description: 'Seat created successfully' })
   @ApiBadRequestResponse({ description: 'Invalid seat payload' })
   createSeat(@Body() createSeatDto: CreateSeatDto) {
@@ -88,6 +91,7 @@ export class SeatController {
     return this.seatService.getSeat(seatId);
   }
 
+  @Roles(USER_ROLE.ADMIN)
   @Patch(':seatId')
   @ApiOperation({ summary: 'Update seat by ID' })
   @ApiParam({
@@ -120,6 +124,7 @@ export class SeatController {
     return this.seatService.updateSeat(seatId, updateSeatDto);
   }
 
+  @Roles(USER_ROLE.ADMIN)
   @Delete(':seatId')
   @ApiOperation({ summary: 'Delete seat by ID' })
   @ApiParam({

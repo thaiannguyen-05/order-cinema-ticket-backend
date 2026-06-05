@@ -1,4 +1,5 @@
 import type { Response, CookieOptions } from 'express';
+import { COOKIE_TTL } from './type';
 
 export const AUTH_COOKIE_NAME = {
   ACCESS_TOKEN: 'accessToken',
@@ -17,6 +18,7 @@ export const getAuthCookieOptions = (isProduction: boolean): CookieOptions => ({
   secure: isProduction,
   sameSite: 'lax',
   path: '/',
+  maxAge: COOKIE_TTL.COOKIE_TTL * 1000, // 7 days in milliseconds
 });
 
 export const setAuthCookies = (

@@ -8,8 +8,11 @@ describe('TokenService', () => {
     session: {
       upsert: jest.Mock;
       findUnique: jest.Mock;
+      findFirst: jest.Mock;
       update: jest.Mock;
       delete: jest.Mock;
+      count: jest.Mock;
+      create: jest.Mock;
     };
   };
 
@@ -34,8 +37,11 @@ describe('TokenService', () => {
       session: {
         upsert: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        count: jest.fn(),
+        create: jest.fn(),
       },
     };
 
@@ -74,16 +80,29 @@ describe('TokenService', () => {
     });
   });
 
-  it('handles session upsert by userId', async () => {
-    prismaService.session.upsert.mockResolvedValue({ id: 's1' });
+  it('creates new session when none exists for IP', async () => {
+    prismaService.session.findUnique.mockResolvedValue(null);
+    prismaService.session.count.mockResolvedValue(0);
+    prismaService.session.create.mockResolvedValue({ id: 's1' });
 
-    await expect(service.handleSession('u1', 'hash')).resolves.toEqual({
-      id: 's1',
+    await expect(
+      service.handleSession('u1', 'hash', '192.168.1.1'),
+    ).resolves.toEqual({ id: 's1' });
+    expect(prismaService.session.create).toHaveBeenCalledWith({
+      data: { hashRefreshToken: 'hash', userIp: '192.168.1.1', userId: 'u1' },
     });
-    expect(prismaService.session.upsert).toHaveBeenCalledWith({
-      where: { userId: 'u1' },
-      update: { hashRefreshToken: 'hash' },
-      create: { userId: 'u1', hashRefreshToken: 'hash' },
+  });
+
+  it('updates existing session for same IP', async () => {
+    prismaService.session.findUnique.mockResolvedValue({ id: 's1' });
+    prismaService.session.update.mockResolvedValue({ id: 's1' });
+
+    await expect(
+      service.handleSession('u1', 'new-hash', '192.168.1.1'),
+    ).resolves.toEqual({ id: 's1' });
+    expect(prismaService.session.update).toHaveBeenCalledWith({
+      where: { id: 's1' },
+      data: { hashRefreshToken: 'new-hash' },
     });
   });
 

@@ -111,7 +111,11 @@ export class AuthController {
     @Req() httpRequest: Request,
     @Res({ passthrough: true }) httpResponse: Response,
   ) {
-    return this.authService.login(loginDto, httpRequest, httpResponse);
+    const ipAddress =
+      (Array.isArray(httpRequest.ips) && httpRequest.ips.length > 0
+        ? httpRequest.ips[0]
+        : httpRequest.ip) ?? 'unknown';
+    return this.authService.login(loginDto, ipAddress, httpResponse);
   }
 
   @Public()

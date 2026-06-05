@@ -7,6 +7,7 @@ model User {
   dateOfBirth DateTime
   address     String
   status      ACCOUNT_STATUS @default(PENDING)
+  role        USER_ROLE @default(USER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?

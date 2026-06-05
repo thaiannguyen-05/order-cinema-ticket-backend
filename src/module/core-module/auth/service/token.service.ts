@@ -4,7 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../../background/prisma/prisma.service';
 import { Payload } from '../../../../core';
 import { UserGenerateTokens } from '../type/type';
-import { Session } from '@prisma/client';
+
+const MAX_SESSIONS = 5;
 
 @Injectable()
 export class TokenService {
@@ -18,6 +19,7 @@ export class TokenService {
     const payload: Payload = {
       id: user.id,
       email: user.email,
+      role: user.role,
     };
     return this.jwtService.signAsync(payload, {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
@@ -39,31 +41,41 @@ export class TokenService {
     hashRefreshToken: string,
     ipAddress: string,
   ) {
-    let availableSession: Session[] = [];
-    availableSession = await this.prismaService.session.findMany({
-      where: { userId },
+    // Tìm session hiện có cùng IP → update
+    const existingSession = await this.prismaService.session.findUnique({
+      where: { userId_userIp: { userId, userIp: ipAddress } },
     });
 
-    if (availableSession.length === 0) {
-      return await this.prismaService.session.create({
-        data: {
-          hashRefreshToken: hashRefreshToken,
-          userIp: ipAddress,
-          userId: userId,
-        },
+    if (existingSession) {
+      return this.prismaService.session.update({
+        where: { id: existingSession.id },
+        data: { hashRefreshToken },
       });
     }
 
-    const matchedSesison = availableSession.some(
-      (session) => session.userId === userId && session.userIp === ipAddress,
-    );
+    // Đếm sessions hiện tại, xóa oldest nếu vượt quá giới hạn
+    const sessionCount = await this.prismaService.session.count({
+      where: { userId },
+    });
 
-    if (!matchedSesison) return null;
+    if (sessionCount >= MAX_SESSIONS) {
+      const oldestSession = await this.prismaService.session.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: 'asc' },
+      });
+      if (oldestSession) {
+        await this.prismaService.session.delete({
+          where: { id: oldestSession.id },
+        });
+      }
+    }
 
-    return await this.prismaService.session.update({
-      where: { userId_userIp: { userId: userId, userIp: ipAddress } },
+    // Tạo session mới
+    return this.prismaService.session.create({
       data: {
-        hashRefreshToken: hashRefreshToken,
+        hashRefreshToken,
+        userIp: ipAddress,
+        userId,
       },
     });
   }
