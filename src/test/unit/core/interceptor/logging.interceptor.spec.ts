@@ -1,3 +1,4 @@
+import { CallHandler, NestInterceptor } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
 jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
@@ -5,9 +6,7 @@ jest.mock('../../../../core/logger/logger.service', () => ({
 
 const { LoggingInterceptor } =
   require('../../../../core/intercepter/logging.interceptor') as {
-    LoggingInterceptor: new (logger: unknown) => {
-      intercept: (context: unknown, next: unknown) => unknown;
-    };
+    LoggingInterceptor: new (logger: unknown) => NestInterceptor;
   };
 
 describe('LoggingInterceptor', () => {
@@ -28,9 +27,11 @@ describe('LoggingInterceptor', () => {
       }),
     };
 
-    const next = { handle: () => of({ id: '1' }) };
+    const next: CallHandler = { handle: () => of({ id: '1' }) };
 
-    await lastValueFrom(interceptor.intercept(context as never, next as never));
+    const response = interceptor.intercept(context as never, next);
+
+    await lastValueFrom(response as never);
 
     expect(logger.debug).toHaveBeenCalledTimes(2);
     expect(logger.debug.mock.calls[0][0]).toContain('HTTP Request');

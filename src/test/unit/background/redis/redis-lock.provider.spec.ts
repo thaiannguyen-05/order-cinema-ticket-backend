@@ -13,7 +13,7 @@ describe('RedisLockProvider', () => {
       get: jest.fn().mockReturnValue('127.0.0.1'),
     };
 
-    const client = RedisLockProvider.useFactory(config as never) as {
+    const client = RedisLockProvider.useFactory(config as never) as unknown as {
       url: string;
       on: jest.Mock;
     };

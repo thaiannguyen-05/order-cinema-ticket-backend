@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
+import { type User as PrismaUser } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { EVENT_NAME } from '../../../../background/email/constant/event.type';
 import { EmailWorker } from '../../../../background/email/email.worker';
@@ -66,7 +67,7 @@ export class AuthService {
       payload,
     );
 
-    let newUser;
+    let newUser: PrismaUser;
     try {
       newUser = await this.userService.createUser({
         fullname: dto.fullname,
