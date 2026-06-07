@@ -1,9 +1,0 @@
-packages:
-  - '.'
-
-pnpm:
-  allowBuilds:
-    argon2: true
-    '@nestjs/core': true
-    '@prisma/engines': true
-    prisma: true
