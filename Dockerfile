@@ -7,11 +7,9 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile --ignore-scripts
-# Rebuild native deps that need compilation
-RUN pnpm rebuild argon2 @nestjs/core @prisma/engines prisma
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY tsconfig.json tsconfig.build.json nest-cli.json prisma.config.ts ./
