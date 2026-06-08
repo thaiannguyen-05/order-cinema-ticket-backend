@@ -1,8 +1,22 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../background/prisma/prisma.service';
+import { RedisLockService } from '../../../background/redis/redis.lock.service';
+import {
+  REDIS_LOCK_KEY,
+  REDIS_TTL,
+} from '../../../background/redis/redis.value';
 import { SepayCallbackDto } from './dto/sepay.callback.dto';
+import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
+import { toIntAmount, toDecimalAmount } from './amount.converter';
 
 const ALLOWED_FIELDS = [
   'order_amount',
@@ -20,9 +34,13 @@ const ALLOWED_FIELDS = [
 
 @Injectable()
 export class SepayService {
+  private readonly SEPAY_CHECKOUT_URL = 'https://pay.sepay.vn/v1/checkout/init';
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
+    private readonly redisLockService: RedisLockService,
+    private readonly httpService: HttpService,
   ) {}
 
   /**
@@ -47,12 +65,85 @@ export class SepayService {
     return hmac.digest('base64');
   }
 
-  /**
-   * Process SePay callback (IPN / webhook).
-   * 1. Extract signature from payload
-   * 2. Verify signature via signFields
-   * 3. Update payment status in DB
-   */
+  async createCheckoutUrl(dto: SepayCheckoutDto, userId: string) {
+    const lockKey = REDIS_LOCK_KEY.SEPAY_CHECKOUT(dto.order_invoice_number);
+
+    const result = await this.redisLockService.runExclusive(
+      lockKey,
+      REDIS_TTL.LOCK_SERVICE,
+      async () => {
+        const existingOrder = await this.prismaService.order.findUnique({
+          where: {
+            id_userId: {
+              id: dto.order_invoice_number,
+              userId,
+            },
+          },
+        });
+
+        if (!existingOrder) {
+          throw new BadRequestException('Order not found');
+        }
+
+        const existingPayment = await this.prismaService.payment.findFirst({
+          where: {
+            orderId: existingOrder.id,
+          },
+        });
+
+        if (existingPayment) {
+          throw new ConflictException('This order has already been paid');
+        }
+
+        const merchant =
+          dto.merchant ??
+          this.configService.getOrThrow<string>('SEPAY_MERCHANT');
+        const operation = dto.operation ?? 'PURCHASE';
+
+        const fields: Record<string, string> = {
+          order_amount: String(dto.order_amount),
+          merchant,
+          currency: dto.currency,
+          operation,
+          order_description: dto.order_description,
+          order_invoice_number: dto.order_invoice_number,
+          customer_id: userId,
+          success_url: dto.success_url,
+          error_url: dto.error_url,
+          cancel_url: dto.cancel_url,
+        };
+
+        const signature = this.signFields(fields);
+
+        const formData = new URLSearchParams();
+        for (const [key, value] of Object.entries(fields)) {
+          formData.append(key, value);
+        }
+        formData.append('signature', signature);
+
+        const response = await firstValueFrom(
+          this.httpService.postForm(this.SEPAY_CHECKOUT_URL, formData, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          }),
+        );
+
+        return response.data as { checkout_url?: string };
+      },
+    );
+
+    if (!result) {
+      throw new ConflictException(
+        'A checkout request is being processed, please try again',
+      );
+    }
+
+    if (!result.checkout_url) {
+      throw new ServiceUnavailableException('SePay returned no checkout URL');
+    }
+
+    return { checkout_url: result.checkout_url };
+  }
+
   async handleCallback(dto: SepayCallbackDto) {
     const { signature, ...fields } = dto;
 
@@ -74,16 +165,38 @@ export class SepayService {
       throw new BadRequestException(`Order ${orderId} not found`);
     }
 
+    // Convert decimal amount from SePay → Int for DB storage
+    const amountInt = toIntAmount(Number(dto.order_amount));
+
     const newStatus =
       operation === 'success' || operation === 'captured'
         ? 'CAPTURED'
         : 'CANCELLED';
 
-    await this.prismaService.order.update({
-      where: { id: orderId },
-      data: { status: newStatus },
+    await this.prismaService.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: newStatus },
+      });
+
+      await tx.payment.upsert({
+        where: { orderId },
+        create: {
+          amount: amountInt,
+          currency: dto.currency,
+          orderId,
+        },
+        update: {
+          amount: amountInt,
+          orderStatus: newStatus,
+        },
+      });
     });
 
-    return { success: true, status: newStatus };
+    return {
+      success: true,
+      status: newStatus,
+      amount: toDecimalAmount(amountInt),
+    };
   }
 }

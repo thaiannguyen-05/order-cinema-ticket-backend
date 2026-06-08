@@ -18,4 +18,5 @@ export const REDIS_LOCK_KEY = {
   CINEMA_FILM_DETAIL: 'lock:cron:sync-data-film-detail',
   CINEMA_FILM_COMINGSOON: 'lock:cron:sync-data-films-comingsoon',
   REMOVE_OUTBOX_EXP: 'remove:outbox-exp',
+  SEPAY_CHECKOUT: (invoiceNo: string) => `lock:sepay-checkout:${invoiceNo}`,
 };

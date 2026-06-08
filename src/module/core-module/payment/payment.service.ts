@@ -11,6 +11,7 @@ import { UpdateOrderDto } from './dto/update.order.dto';
 import { CreatePaymentDto } from './dto/create.payment.dto';
 import { UpdatePaymentDto } from './dto/update.payment.dto';
 import { OrderStatus } from '@prisma/client';
+import { toIntAmount } from './amount.converter';
 
 @Injectable()
 export class PaymentService {
@@ -85,7 +86,7 @@ export class PaymentService {
 
     return await this.prismaService.payment.create({
       data: {
-        amount: dto.amount,
+        amount: toIntAmount(dto.amount),
         currency: dto.currency,
         orderId: dto.orderId,
       },
@@ -114,7 +115,12 @@ export class PaymentService {
 
     return await this.prismaService.payment.update({
       where: { id: paymentId },
-      data: dto,
+      data: {
+        ...(dto.amount !== undefined && { amount: toIntAmount(dto.amount) }),
+        ...(dto.currency !== undefined && { currency: dto.currency }),
+        ...(dto.orderStatus !== undefined && { orderStatus: dto.orderStatus }),
+        ...(dto.orderId !== undefined && { orderId: dto.orderId }),
+      },
     });
   }
 }

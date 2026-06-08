@@ -13,6 +13,7 @@ import { UpdatePaymentDto } from './dto/update.payment.dto';
 import { User } from '../../../core/decorator/user.decorator';
 import { SepayService } from './sepay.service';
 import { SepayCallbackDto } from './dto/sepay.callback.dto';
+import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
 
 @ApiTags('payment')
 @ApiBearerAuth()
@@ -37,6 +38,21 @@ export class PaymentController {
   })
   async createOrder(@Body() dto: CreateOrderDto, @User('id') userId: string) {
     return this.paymentService.createOrder(dto, userId);
+  }
+
+  @Post('sepay/checkout')
+  @ApiOperation({ summary: 'Initiate SePay checkout URL' })
+  @ApiResponse({ status: 201, description: 'Checkout URL generated' })
+  @ApiResponse({ status: 400, description: 'Order not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Order already paid or being processed',
+  })
+  async createCheckoutUrl(
+    @Body() dto: SepayCheckoutDto,
+    @User('id') userId: string,
+  ) {
+    return this.sepayService.createCheckoutUrl(dto, userId);
   }
 
   @Patch('order/:id/status')
