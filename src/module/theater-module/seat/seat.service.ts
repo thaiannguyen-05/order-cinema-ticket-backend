@@ -10,13 +10,7 @@ export class SeatService {
 
   async createSeat(dto: CreateSeatDto) {
     return this.prismaService.seat.create({
-      data: {
-        row: dto.row,
-        column: dto.column,
-        filmId: dto.filmId,
-        cinemaId: dto.cinemaId,
-        ...(dto.status && { status: dto.status }),
-      },
+      data: dto,
     });
   }
 
@@ -33,13 +27,7 @@ export class SeatService {
       where: {
         id: seatId,
       },
-      data: {
-        ...(dto.row !== undefined && { row: dto.row }),
-        ...(dto.column !== undefined && { column: dto.column }),
-        ...(dto.status && { status: dto.status }),
-        ...(dto.filmId && { filmId: dto.filmId }),
-        ...(dto.cinemaId !== undefined && { cinemaId: dto.cinemaId }),
-      },
+      data: dto,
     });
   }
 
