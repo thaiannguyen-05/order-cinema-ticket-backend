@@ -11,9 +11,8 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
-
+  orders      Order[]
   sessions    Session[]
   tickets     Ticket[]
-  payments    MomoPayment[]
   @@index([email])
 }

@@ -1,21 +1,11 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { RedisLockService } from '../../../background/redis/redis.lock.service';
-import { MyLogger } from '../../../core/logger/logger.service';
-import {
-  REDIS_LOCK_KEY,
-  REDIS_TTL,
-} from '../../../background/redis/redis.value';
 
 @Injectable()
 export class TicketService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly redisLockService: RedisLockService,
-    private readonly logger: MyLogger,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async createTicket(dto: CreateTicketDto, userId: string) {
     return await this.prismaService.ticket.create({
@@ -44,31 +34,5 @@ export class TicketService {
         seatId,
       },
     });
-  }
-
-  async orderTicket(dto: CreateTicketDto, userId: string) {
-    const lockResult = await this.redisLockService.runExclusive(
-      REDIS_LOCK_KEY.ORDER_TICKET(dto.seatId),
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        // Kiểm tra seat đã được đặt chưa
-        const existingTicket = await this.prismaService.ticket.findUnique({
-          where: { seatId: dto.seatId },
-        });
-        if (existingTicket) {
-          throw new ConflictException('This seat has already been booked');
-        }
-
-        return await this.createTicket(dto, userId);
-      },
-    );
-
-    if (lockResult === null) {
-      throw new ConflictException(
-        'This seat is being booked by another user, please try again',
-      );
-    }
-
-    return lockResult;
   }
 }

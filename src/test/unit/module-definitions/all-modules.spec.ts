@@ -4,9 +4,6 @@ jest.mock('../../../core/logger/logger.service', () => ({
 jest.mock('@andev2005/movie-glu-sdk', () => ({
   createMovieGluClient: jest.fn(),
 }));
-jest.mock('@andev2005/momo-sdk', () => ({
-  MomoClient: jest.fn(),
-}));
 
 const { AppModule } = require('../../../app.module') as { AppModule: unknown };
 const { AuthModule } =
@@ -17,9 +14,6 @@ const { UserModule } =
   require('../../../module/core-module/user/user.module') as {
     UserModule: unknown;
   };
-const { MomoModule } = require('../../../module/payment/momo/momo.module') as {
-  MomoModule: unknown;
-};
 const { FilmModule } =
   require('../../../module/theater-module/film/film.module') as {
     FilmModule: unknown;
@@ -52,7 +46,6 @@ describe('Module Definitions', () => {
     expect(AppModule).toBeDefined();
     expect(AuthModule).toBeDefined();
     expect(UserModule).toBeDefined();
-    expect(MomoModule).toBeDefined();
     expect(FilmModule).toBeDefined();
     expect(CinemaModule).toBeDefined();
     expect(SeatModule).toBeDefined();

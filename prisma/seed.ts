@@ -117,7 +117,6 @@ async function main() {
   logInfo('SEED START');
 
   await runStep('cleanup old data', async () => {
-    await prisma.momoPayment.deleteMany();
     await prisma.ticket.deleteMany();
     await prisma.session.deleteMany();
     await prisma.seat.deleteMany();

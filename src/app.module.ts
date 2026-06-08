@@ -22,7 +22,6 @@ import { FilmModule } from './module/theater-module/film/film.module';
 import { CinemaModule } from './module/theater-module/cinema/cinema.module';
 import { UserModule } from './module/core-module/user/user.module';
 import { LoggerModule } from './core/logger/logger.module';
-import { MomoModule } from './module/payment/momo/momo.module';
 import { SeatModule } from './module/theater-module/seat/seat.module';
 import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-job.module';
@@ -50,7 +49,6 @@ import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-jo
     TicketModule,
     UserModule,
     SyncDataCronJobModule,
-    MomoModule,
     OutboxCronJobModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({

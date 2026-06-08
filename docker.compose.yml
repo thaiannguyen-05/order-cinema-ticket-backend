@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - public
+      - order-cinema-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -32,7 +32,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - public
+      - order-cinema-network  
     ports:
       - "${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT}:15672"
@@ -54,8 +54,7 @@ services:
     ports:
       - "${REDIS_PORT}:6379" 
     networks:
-    
-      - public
+      - order-cinema-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -68,4 +67,5 @@ volumes:
   redis_data:
 
 networks:
-  public:
+  order-cinema-network:
+    driver: bridge
