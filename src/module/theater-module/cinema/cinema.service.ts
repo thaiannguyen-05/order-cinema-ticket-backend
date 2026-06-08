@@ -10,19 +10,7 @@ export class CinemaService {
 
   async createCinema(createCinemaDto: CreateCinemaDto) {
     const cinema = await this.prismaService.cinema.create({
-      data: {
-        cinema_id: createCinemaDto.cinema_id,
-        cinema_name: createCinemaDto.cinema_name,
-        address: createCinemaDto.address,
-        city: createCinemaDto.city,
-        postcode: createCinemaDto.postcode,
-        logo_url: createCinemaDto.logo_url,
-        ...(createCinemaDto.address2 && {
-          address2: createCinemaDto.address2,
-        }),
-        ...(createCinemaDto.country && { country: createCinemaDto.country }),
-        ...(createCinemaDto.phone && { phone: createCinemaDto.phone }),
-      },
+      data: createCinemaDto,
     });
 
     return cinema;
@@ -31,16 +19,7 @@ export class CinemaService {
   async updateCinema(dto: UpdateCinemaDto, cinema_id: number) {
     const updatedCinema = await this.prismaService.cinema.update({
       where: { cinema_id },
-      data: {
-        ...(dto.cinema_name && { cinema_name: dto.cinema_name }),
-        ...(dto.city && { city: dto.city }),
-        ...(dto.postcode && { postcode: dto.postcode }),
-        ...(dto.logo_url && { logo_url: dto.logo_url }),
-        ...(dto.address && { address: dto.address }),
-        ...(dto.address2 && { address2: dto.address2 }),
-        ...(dto.country && { country: dto.country }),
-        ...(dto.phone && { phone: dto.phone }),
-      },
+      data: dto,
     });
     return updatedCinema;
   }
@@ -117,16 +96,7 @@ export class CinemaService {
   async upsertCinema(dto: CreateCinemaDto) {
     return await this.prismaService.cinema.upsert({
       where: { cinema_id: dto.cinema_id },
-      update: {
-        ...(dto.address && { address: dto.address }),
-        ...(dto.address2 && { address2: dto.address2 }),
-        ...(dto.city && { city: dto.city }),
-        ...(dto.country && { country: dto.country }),
-        ...(dto.logo_url && { logo_url: dto.logo_url }),
-        ...(dto.phone && { phone: dto.phone }),
-        ...(dto.postcode && { postcode: dto.postcode }),
-        ...(dto.cinema_name && { cinema_name: dto.cinema_name }),
-      },
+      update: dto,
       create: {
         cinema_id: dto.cinema_id,
         cinema_name: dto.cinema_name,
