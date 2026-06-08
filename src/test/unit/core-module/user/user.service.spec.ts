@@ -86,6 +86,7 @@ describe('UserService', () => {
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
+        email: 'a@example.com',
         fullname: 'User B',
         address: 'Da Nang',
         status: 'ACTIVE',
@@ -105,6 +106,7 @@ describe('UserService', () => {
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
+        email: 'a@example.com',
         dateOfBirth: dob,
       },
     });
@@ -121,7 +123,8 @@ describe('UserService', () => {
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
-        hashPassword: 'new-hash',
+        email: 'a@example.com',
+        password: 'new-hash',
       },
     });
   });
