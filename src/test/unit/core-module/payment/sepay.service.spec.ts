@@ -1,10 +1,13 @@
-jest.mock('../../../../core/logger/logger.service', () => ({
+jest.mock('../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
-jest.mock('../../../../background/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
+jest.mock(
+  '../../../../module/core-module/payment/repository/order.repository',
+  () => ({
+    OrderRepository: class OrderRepository {},
+  }),
+);
 
 jest.mock('../../../../background/redis/redis.lock.service', () => ({
   RedisLockService: class RedisLockService {},
@@ -34,14 +37,11 @@ const { SepayService } =
 describe('SepayService', () => {
   let service: InstanceType<typeof SepayService>;
   let configService: { getOrThrow: jest.Mock };
-  let prismaService: {
-    order: {
-      findUnique: jest.Mock;
-      findFirst: jest.Mock;
-      update: jest.Mock;
-    };
-    payment: { findFirst: jest.Mock; upsert: jest.Mock };
-    $transaction: jest.Mock;
+  let orderRepository: {
+    findOrderByIdAndUserId: jest.Mock;
+    findOrderById: jest.Mock;
+    findPaymentByOrderId: jest.Mock;
+    updateOrderAndUpsertPayment: jest.Mock;
   };
   let redisLockService: { runExclusive: jest.Mock };
   let httpService: { postForm: jest.Mock };
@@ -49,16 +49,11 @@ describe('SepayService', () => {
   beforeEach(() => {
     configService = { getOrThrow: jest.fn() };
 
-    prismaService = {
-      order: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
-      payment: { findFirst: jest.fn(), upsert: jest.fn() },
-      $transaction: jest.fn(async (fn) => {
-        const mockTx = {
-          order: prismaService.order,
-          payment: prismaService.payment,
-        };
-        return fn(mockTx);
-      }),
+    orderRepository = {
+      findOrderByIdAndUserId: jest.fn(),
+      findOrderById: jest.fn(),
+      findPaymentByOrderId: jest.fn(),
+      updateOrderAndUpsertPayment: jest.fn(),
     };
 
     redisLockService = {
@@ -69,7 +64,7 @@ describe('SepayService', () => {
 
     service = new SepayService(
       configService as never,
-      prismaService as never,
+      orderRepository as never,
       redisLockService as never,
       httpService as never,
     );
@@ -94,7 +89,6 @@ describe('SepayService', () => {
       const result = service.signFields(fields);
 
       expect(typeof result).toBe('string');
-      // base64 encoded HMAC-SHA256
       expect(result.length).toBeGreaterThan(0);
     });
 
@@ -136,11 +130,11 @@ describe('SepayService', () => {
     };
 
     it('returns checkout URL when order exists and not paid', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue({
         id: 'INV_001',
         userId: 'user-1',
       });
-      prismaService.payment.findFirst.mockResolvedValue(null);
+      orderRepository.findPaymentByOrderId.mockResolvedValue(null);
       httpService.postForm.mockResolvedValue({
         data: { checkout_url: 'https://pay.sepay.vn/v1/checkout/abc' },
       });
@@ -156,7 +150,7 @@ describe('SepayService', () => {
     });
 
     it('throws BadRequestException when order not found', async () => {
-      prismaService.order.findUnique.mockResolvedValue(null);
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.createCheckoutUrl(validDto as never, 'user-1'),
@@ -164,11 +158,11 @@ describe('SepayService', () => {
     });
 
     it('throws ConflictException when order already paid', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue({
         id: 'INV_001',
         userId: 'user-1',
       });
-      prismaService.payment.findFirst.mockResolvedValue({ id: 1 });
+      orderRepository.findPaymentByOrderId.mockResolvedValue({ id: 1 });
 
       await expect(
         service.createCheckoutUrl(validDto as never, 'user-1'),
@@ -184,11 +178,11 @@ describe('SepayService', () => {
     });
 
     it('throws ServiceUnavailableException when SePay returns no URL', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue({
         id: 'INV_001',
         userId: 'user-1',
       });
-      prismaService.payment.findFirst.mockResolvedValue(null);
+      orderRepository.findPaymentByOrderId.mockResolvedValue(null);
       httpService.postForm.mockResolvedValue({ data: {} });
 
       await expect(
@@ -214,7 +208,6 @@ describe('SepayService', () => {
     };
 
     beforeEach(() => {
-      // Pre-compute valid signature
       const fields = { ...validCallback };
       delete (fields as { signature?: string }).signature;
       const validSig = service.signFields(fields);
@@ -222,9 +215,13 @@ describe('SepayService', () => {
     });
 
     it('processes valid callback and updates order', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderById.mockResolvedValue({
         id: 'INV_001',
         status: 'AUTHENTICATION_NOT_NEEDED',
+      });
+      orderRepository.updateOrderAndUpsertPayment.mockResolvedValue({
+        id: 1,
+        amount: 10000000,
       });
 
       const result = await service.handleCallback(validCallback as never);
@@ -234,7 +231,15 @@ describe('SepayService', () => {
         status: 'CAPTURED',
         amount: 100000,
       });
-      expect(prismaService.$transaction).toHaveBeenCalled();
+      expect(orderRepository.updateOrderAndUpsertPayment).toHaveBeenCalledWith(
+        'INV_001',
+        'CAPTURED',
+        {
+          orderId: 'INV_001',
+          amount: 10000000,
+          currency: 'VND',
+        },
+      );
     });
 
     it('throws BadRequestException for invalid signature', async () => {
@@ -246,21 +251,21 @@ describe('SepayService', () => {
     });
 
     it('throws BadRequestException when order not found', async () => {
-      prismaService.order.findUnique.mockResolvedValue(null);
+      orderRepository.findOrderById.mockResolvedValue(null);
 
       await expect(
         service.handleCallback(validCallback as never),
-      ).rejects.toThrow(`Order INV_001 not found`);
+      ).rejects.toThrow('Order INV_001 not found');
     });
 
     it('sets CANCELLED status for non-success operation', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderById.mockResolvedValue({
         id: 'INV_001',
         status: 'AUTHENTICATION_NOT_NEEDED',
       });
+      orderRepository.updateOrderAndUpsertPayment.mockResolvedValue({ id: 1 });
 
       const failedCallback = { ...validCallback, operation: 'failed' };
-      // Re-sign with failed operation
       failedCallback.signature = service.signFields(failedCallback);
 
       const result = await service.handleCallback(failedCallback as never);

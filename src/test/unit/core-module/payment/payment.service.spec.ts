@@ -6,6 +6,13 @@ jest.mock('../../../../module/theater-module/ticket/ticket.service', () => ({
   TicketService: class TicketService {},
 }));
 
+jest.mock(
+  '../../../../module/core-module/payment/repository/order.repository',
+  () => ({
+    OrderRepository: class OrderRepository {},
+  }),
+);
+
 const { PaymentService } =
   require('../../../../module/core-module/payment/payment.service') as {
     PaymentService: new (...args: never[]) => {
@@ -18,32 +25,38 @@ const { PaymentService } =
 
 describe('PaymentService', () => {
   let service: InstanceType<typeof PaymentService>;
-  let prismaService: {
-    order: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
-    payment: {
-      create: jest.Mock;
-      findUnique: jest.Mock;
-      findFirst: jest.Mock;
-      update: jest.Mock;
-    };
+  let orderRepository: {
+    findOrderById: jest.Mock;
+    findOrderByIdAndUserId: jest.Mock;
+    findOrderByTicketId: jest.Mock;
+    findPaymentById: jest.Mock;
+    findPaymentByOrderId: jest.Mock;
+    findPaymentByOrderIdExcluding: jest.Mock;
+    createOrder: jest.Mock;
+    updateOrderStatus: jest.Mock;
+    createPayment: jest.Mock;
+    updatePayment: jest.Mock;
   };
   let ticketService: { getTicketById: jest.Mock };
 
   beforeEach(() => {
-    prismaService = {
-      order: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-      payment: {
-        create: jest.fn(),
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
-        update: jest.fn(),
-      },
+    orderRepository = {
+      findOrderById: jest.fn(),
+      findOrderByIdAndUserId: jest.fn(),
+      findOrderByTicketId: jest.fn(),
+      findPaymentById: jest.fn(),
+      findPaymentByOrderId: jest.fn(),
+      findPaymentByOrderIdExcluding: jest.fn(),
+      createOrder: jest.fn(),
+      updateOrderStatus: jest.fn(),
+      createPayment: jest.fn(),
+      updatePayment: jest.fn(),
     };
 
     ticketService = { getTicketById: jest.fn() };
 
     service = new PaymentService(
-      prismaService as never,
+      orderRepository as never,
       ticketService as never,
     );
   });
@@ -54,8 +67,8 @@ describe('PaymentService', () => {
         id: 'ticket-1',
         userId: 'user-1',
       });
-      prismaService.order.findUnique.mockResolvedValue(null);
-      prismaService.order.create.mockResolvedValue({ id: 'order-1' });
+      orderRepository.findOrderByTicketId.mockResolvedValue(null);
+      orderRepository.createOrder.mockResolvedValue({ id: 'order-1' });
 
       const result = await service.createOrder(
         { ticketId: 'ticket-1' } as never,
@@ -63,11 +76,10 @@ describe('PaymentService', () => {
       );
 
       expect(result).toEqual({ id: 'order-1' });
-      expect(prismaService.order.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          ticketId: 'ticket-1',
-          userId: 'user-1',
-        }),
+      expect(orderRepository.createOrder).toHaveBeenCalledWith({
+        ticketId: 'ticket-1',
+        userId: 'user-1',
+        status: 'AUTHENTICATION_NOT_NEEDED',
       });
     });
 
@@ -95,7 +107,7 @@ describe('PaymentService', () => {
         id: 'ticket-1',
         userId: 'user-1',
       });
-      prismaService.order.findUnique.mockResolvedValue({ id: 'order-1' });
+      orderRepository.findOrderByTicketId.mockResolvedValue({ id: 'order-1' });
 
       await expect(
         service.createOrder({ ticketId: 'ticket-1' } as never, 'user-1'),
@@ -105,8 +117,8 @@ describe('PaymentService', () => {
 
   describe('updateOrderStatus', () => {
     it('updates order status when order exists', async () => {
-      prismaService.order.findUnique.mockResolvedValue({ id: 'order-1' });
-      prismaService.order.update.mockResolvedValue({
+      orderRepository.findOrderById.mockResolvedValue({ id: 'order-1' });
+      orderRepository.updateOrderStatus.mockResolvedValue({
         id: 'order-1',
         status: 'CAPTURED',
       });
@@ -116,14 +128,14 @@ describe('PaymentService', () => {
       } as never);
 
       expect(result).toEqual({ id: 'order-1', status: 'CAPTURED' });
-      expect(prismaService.order.update).toHaveBeenCalledWith({
-        where: { id: 'order-1' },
-        data: { status: 'CAPTURED' },
+      expect(orderRepository.updateOrderStatus).toHaveBeenCalledWith({
+        orderId: 'order-1',
+        status: 'CAPTURED',
       });
     });
 
     it('throws NotFoundException when order not found', async () => {
-      prismaService.order.findUnique.mockResolvedValue(null);
+      orderRepository.findOrderById.mockResolvedValue(null);
 
       await expect(
         service.updateOrderStatus('fake-id', { status: 'CAPTURED' } as never),
@@ -133,12 +145,12 @@ describe('PaymentService', () => {
 
   describe('createPayment', () => {
     it('creates payment with converted amount', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue({
         id: 'order-1',
         userId: 'user-1',
       });
-      prismaService.payment.findUnique.mockResolvedValue(null);
-      prismaService.payment.create.mockResolvedValue({
+      orderRepository.findPaymentByOrderId.mockResolvedValue(null);
+      orderRepository.createPayment.mockResolvedValue({
         id: 1,
         amount: 15000050,
       });
@@ -149,17 +161,15 @@ describe('PaymentService', () => {
       );
 
       expect(result).toEqual({ id: 1, amount: 15000050 });
-      expect(prismaService.payment.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          amount: 15000050,
-          currency: 'VND',
-          orderId: 'order-1',
-        }),
+      expect(orderRepository.createPayment).toHaveBeenCalledWith({
+        orderId: 'order-1',
+        amount: 15000050,
+        currency: 'VND',
       });
     });
 
     it('throws NotFoundException when order not found', async () => {
-      prismaService.order.findUnique.mockResolvedValue(null);
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.createPayment({ orderId: 'fake-id' } as never, 'user-1'),
@@ -167,22 +177,19 @@ describe('PaymentService', () => {
     });
 
     it('throws ForbiddenException when order belongs to different user', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
-        id: 'order-1',
-        userId: 'other-user',
-      });
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.createPayment({ orderId: 'order-1' } as never, 'user-1'),
-      ).rejects.toThrow('Order does not belong to this user');
+      ).rejects.toThrow('Order not found');
     });
 
     it('throws ConflictException when payment already exists', async () => {
-      prismaService.order.findUnique.mockResolvedValue({
+      orderRepository.findOrderByIdAndUserId.mockResolvedValue({
         id: 'order-1',
         userId: 'user-1',
       });
-      prismaService.payment.findUnique.mockResolvedValue({ id: 1 });
+      orderRepository.findPaymentByOrderId.mockResolvedValue({ id: 1 });
 
       await expect(
         service.createPayment({ orderId: 'order-1' } as never, 'user-1'),
@@ -192,9 +199,8 @@ describe('PaymentService', () => {
 
   describe('updatePayment', () => {
     it('updates payment with converted amount', async () => {
-      prismaService.payment.findUnique.mockResolvedValue({ id: 1 });
-      prismaService.payment.findFirst.mockResolvedValue(null);
-      prismaService.payment.update.mockResolvedValue({
+      orderRepository.findPaymentById.mockResolvedValue({ id: 1 });
+      orderRepository.updatePayment.mockResolvedValue({
         id: 1,
         amount: 20000100,
       });
@@ -204,14 +210,13 @@ describe('PaymentService', () => {
       } as never);
 
       expect(result).toEqual({ id: 1, amount: 20000100 });
-      expect(prismaService.payment.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: expect.objectContaining({ amount: 20000100 }),
+      expect(orderRepository.updatePayment).toHaveBeenCalledWith(1, {
+        amount: 20000100,
       });
     });
 
     it('throws NotFoundException when payment not found', async () => {
-      prismaService.payment.findUnique.mockResolvedValue(null);
+      orderRepository.findPaymentById.mockResolvedValue(null);
 
       await expect(service.updatePayment(999, {} as never)).rejects.toThrow(
         'Payment not found',
@@ -219,8 +224,10 @@ describe('PaymentService', () => {
     });
 
     it('throws ConflictException when orderId is already used', async () => {
-      prismaService.payment.findUnique.mockResolvedValue({ id: 1 });
-      prismaService.payment.findFirst.mockResolvedValue({ id: 2 });
+      orderRepository.findPaymentById.mockResolvedValue({ id: 1 });
+      orderRepository.findPaymentByOrderIdExcluding.mockResolvedValue({
+        id: 2,
+      });
 
       await expect(
         service.updatePayment(1, { orderId: 'order-1' } as never),

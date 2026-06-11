@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
 import {
   REDIS_LOCK_KEY,
@@ -17,6 +16,8 @@ import {
 import { SepayCallbackDto } from './dto/sepay.callback.dto';
 import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
 import { toIntAmount, toDecimalAmount } from './amount.converter';
+import { OrderRepository } from './repository/order.repository';
+import { OrderStatus } from '@prisma/client';
 
 const ALLOWED_FIELDS = [
   'order_amount',
@@ -38,7 +39,7 @@ export class SepayService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly prismaService: PrismaService,
+    private readonly orderRepository: OrderRepository,
     private readonly redisLockService: RedisLockService,
     private readonly httpService: HttpService,
   ) {}
@@ -72,24 +73,18 @@ export class SepayService {
       lockKey,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
-        const existingOrder = await this.prismaService.order.findUnique({
-          where: {
-            id_userId: {
-              id: dto.order_invoice_number,
-              userId,
-            },
-          },
-        });
+        const existingOrder = await this.orderRepository.findOrderByIdAndUserId(
+          dto.order_invoice_number,
+          userId,
+        );
 
         if (!existingOrder) {
           throw new BadRequestException('Order not found');
         }
 
-        const existingPayment = await this.prismaService.payment.findFirst({
-          where: {
-            orderId: existingOrder.id,
-          },
-        });
+        const existingPayment = await this.orderRepository.findPaymentByOrderId(
+          existingOrder.id,
+        );
 
         if (existingPayment) {
           throw new ConflictException('This order has already been paid');
@@ -157,9 +152,7 @@ export class SepayService {
     const orderId = dto.order_invoice_number;
     const operation = dto.operation;
 
-    const order = await this.prismaService.order.findUnique({
-      where: { id: orderId },
-    });
+    const order = await this.orderRepository.findOrderById(orderId);
 
     if (!order) {
       throw new BadRequestException(`Order ${orderId} not found`);
@@ -170,27 +163,13 @@ export class SepayService {
 
     const newStatus =
       operation === 'success' || operation === 'captured'
-        ? 'CAPTURED'
-        : 'CANCELLED';
+        ? OrderStatus.CAPTURED
+        : OrderStatus.CANCELLED;
 
-    await this.prismaService.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: newStatus },
-      });
-
-      await tx.payment.upsert({
-        where: { orderId },
-        create: {
-          amount: amountInt,
-          currency: dto.currency,
-          orderId,
-        },
-        update: {
-          amount: amountInt,
-          orderStatus: newStatus,
-        },
-      });
+    await this.orderRepository.updateOrderAndUpsertPayment(orderId, newStatus, {
+      orderId,
+      amount: amountInt,
+      currency: dto.currency,
     });
 
     return {
