@@ -1,9 +1,9 @@
-jest.mock('../../../../background/prisma/prisma.service', () => ({
+jest.mock('../../../../../background/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 const { OrderRepository } =
-  require('../../../../module/core-module/payment/repository/order.repository') as {
+  require('../../../../../module/core-module/payment/repository/order.repository') as {
     OrderRepository: new (...args: never[]) => {
       findOrderById: (id: string) => Promise<unknown>;
       findOrderByIdAndUserId: (id: string, userId: string) => Promise<unknown>;

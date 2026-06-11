@@ -1,4 +1,4 @@
-jest.mock('../../../core/logger/logger.service', () => ({
+jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
