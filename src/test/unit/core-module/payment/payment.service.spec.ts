@@ -65,7 +65,6 @@ describe('PaymentService', () => {
     it('creates order when ticket is valid', async () => {
       ticketService.getTicketById.mockResolvedValue({
         id: 'ticket-1',
-        userId: 'user-1',
       });
       orderRepository.findOrderByTicketId.mockResolvedValue(null);
       orderRepository.createOrder.mockResolvedValue({ id: 'order-1' });
@@ -91,21 +90,9 @@ describe('PaymentService', () => {
       ).rejects.toThrow('Ticket not found');
     });
 
-    it('throws ForbiddenException when ticket belongs to different user', async () => {
-      ticketService.getTicketById.mockResolvedValue({
-        id: 'ticket-1',
-        userId: 'other-user',
-      });
-
-      await expect(
-        service.createOrder({ ticketId: 'ticket-1' } as never, 'user-1'),
-      ).rejects.toThrow('Ticket does not belong to this user');
-    });
-
     it('throws ConflictException when order already exists', async () => {
       ticketService.getTicketById.mockResolvedValue({
         id: 'ticket-1',
-        userId: 'user-1',
       });
       orderRepository.findOrderByTicketId.mockResolvedValue({ id: 'order-1' });
 

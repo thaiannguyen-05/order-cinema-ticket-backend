@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,10 +23,6 @@ export class PaymentService {
     const ticket = await this.ticketService.getTicketById(dto.ticketId);
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
-    }
-
-    if (ticket.userId !== userId) {
-      throw new ForbiddenException('Ticket does not belong to this user');
     }
 
     const existingOrder = await this.orderRepository.findOrderByTicketId(

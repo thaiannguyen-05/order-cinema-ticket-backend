@@ -7,12 +7,11 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 export class TicketService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createTicket(dto: CreateTicketDto, userId: string) {
+  async createTicket(dto: CreateTicketDto) {
     return await this.prismaService.ticket.create({
       data: {
         code: randomBytes(16).toString('hex'),
         price: dto.price,
-        userId: userId,
         filmOfCinemaId: dto.filmOfCinemaId,
         seatId: dto.seatId,
       },
@@ -27,12 +26,4 @@ export class TicketService {
     });
   }
 
-  async getTicketsByUserId(userId: string, seatId: string) {
-    return await this.prismaService.ticket.findUnique({
-      where: {
-        userId,
-        seatId,
-      },
-    });
-  }
 }

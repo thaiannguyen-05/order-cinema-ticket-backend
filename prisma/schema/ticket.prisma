@@ -5,16 +5,12 @@ model Ticket {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId String @db.Uuid
   filmOfCinemaId String @db.Uuid
   seatId String @db.Uuid @unique
   status TICKET_STATUS @default(AVAILABLE)
 
   order Order?
-  
+
   seat Seat @relation(fields: [seatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   filmOfCinema FilmOfCinema @relation(fields: [filmOfCinemaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@index([userId, seatId])
 }

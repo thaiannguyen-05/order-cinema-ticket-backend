@@ -5,9 +5,8 @@ jest.mock('../../../../background/prisma/prisma.service', () => ({
 const { TicketService } =
   require('../../../../module/theater-module/ticket/ticket.service') as {
     TicketService: new (...args: never[]) => {
-      createTicket: (dto: unknown, userId: string) => Promise<unknown>;
+      createTicket: (dto: unknown) => Promise<unknown>;
       getTicketById: (id: string) => Promise<unknown>;
-      getTicketsByUserId: (userId: string, seatId: string) => Promise<unknown>;
     };
   };
 
@@ -36,35 +35,25 @@ describe('TicketService', () => {
 
     const result = await service.createTicket(
       { price: 100, filmOfCinemaId: 'foc-1', seatId: 'seat-1' } as never,
-      'user-1',
     );
 
     expect(result).toEqual({ id: 't1' });
     expect(prismaService.ticket.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         price: 100,
-        userId: 'user-1',
         filmOfCinemaId: 'foc-1',
         seatId: 'seat-1',
       }),
     });
   });
 
-  it('gets ticket by id and by user-seat', async () => {
-    prismaService.ticket.findUnique
-      .mockResolvedValueOnce({ id: 't1' })
-      .mockResolvedValueOnce({ id: 't2' });
+  it('gets ticket by id', async () => {
+    prismaService.ticket.findUnique.mockResolvedValue({ id: 't1' });
 
     await expect(service.getTicketById('t1')).resolves.toEqual({ id: 't1' });
-    await expect(
-      service.getTicketsByUserId('user-1', 'seat-1'),
-    ).resolves.toEqual({ id: 't2' });
 
-    expect(prismaService.ticket.findUnique).toHaveBeenNthCalledWith(1, {
+    expect(prismaService.ticket.findUnique).toHaveBeenCalledWith({
       where: { id: 't1' },
-    });
-    expect(prismaService.ticket.findUnique).toHaveBeenNthCalledWith(2, {
-      where: { userId: 'user-1', seatId: 'seat-1' },
     });
   });
 });
