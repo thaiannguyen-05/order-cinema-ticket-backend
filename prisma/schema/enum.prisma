@@ -41,3 +41,10 @@ enum USER_ROLE {
     USER
     ADMIN
 }
+
+enum EVENT_TYPE {
+    CLICK
+    VIEW
+    SCROLL
+    SUBMIT
+}

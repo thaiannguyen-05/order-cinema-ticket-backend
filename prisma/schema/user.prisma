@@ -14,5 +14,6 @@ model User {
   orders      Order[]
   sessions    Session[]
   tickets     Ticket[]
+  eventTrackings EventTracking[]
   @@index([email])
 }

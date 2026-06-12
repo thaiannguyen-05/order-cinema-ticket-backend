@@ -1,0 +1,19 @@
+model EventTracking {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String?      @db.Uuid
+  eventType    EVENT_TYPE
+  page         String
+  elementType  String?
+  elementId    String?
+  elementText  String?
+  targetId     String?
+  metadata     Json?
+
+  createdAt    DateTime     @default(now())
+
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+}
