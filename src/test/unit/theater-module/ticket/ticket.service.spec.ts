@@ -33,9 +33,11 @@ describe('TicketService', () => {
   it('creates ticket with generated code', async () => {
     prismaService.ticket.create.mockResolvedValue({ id: 't1' });
 
-    const result = await service.createTicket(
-      { price: 100, filmOfCinemaId: 'foc-1', seatId: 'seat-1' } as never,
-    );
+    const result = await service.createTicket({
+      price: 100,
+      filmOfCinemaId: 'foc-1',
+      seatId: 'seat-1',
+    } as never);
 
     expect(result).toEqual({ id: 't1' });
     expect(prismaService.ticket.create).toHaveBeenCalledWith({
