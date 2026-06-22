@@ -19,4 +19,5 @@ model Film {
   writers Json?
 
   filmOfCinema FilmOfCinema[]
+  recommendations UserRecommendation[]
 }

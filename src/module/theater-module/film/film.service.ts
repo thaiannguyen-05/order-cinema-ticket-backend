@@ -1,11 +1,49 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { FindFilmsDto } from './dto/find-films.dto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
+import { RedisService } from '../../../background/redis/redis.service';
 
 @Injectable()
 export class FilmService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly redisService: RedisService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async getRecommendation(
+    userId: string,
+  ): Promise<{ filmId: number; rank: number }[]> {
+    const cacheKey = `${this.configService.get(
+      'REDIS_CACHE_KEY_USER_RECOMMENDATION',
+    )}${userId}`;
+    const cachedRecommendations =
+      await this.redisService.get<{ filmId: number; rank: number }[]>(cacheKey);
+
+    if (cachedRecommendations) {
+      return cachedRecommendations;
+    }
+
+    const recommendations =
+      await this.prismaService.userRecommendation.findMany({
+        where: { userId },
+        select: {
+          filmId: true,
+          rank: true,
+        },
+        orderBy: {
+          rank: 'asc',
+        },
+      });
+
+    if (recommendations.length > 0) {
+      await this.redisService.set(cacheKey, recommendations, 300); // 5 minutes TTL
+    }
+
+    return recommendations;
+  }
 
   async createFilm(data: CreateFilmDto) {
     return await this.prismaService.film.create({

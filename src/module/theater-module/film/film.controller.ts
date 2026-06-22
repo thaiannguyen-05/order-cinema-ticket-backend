@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -25,11 +26,20 @@ import { FindFilmsDto } from './dto/find-films.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Roles } from '../../../core/decorator/roles.decorator';
 import { USER_ROLE } from '@prisma/client';
+import { User } from '../../../core/decorator/user.decorator';
 
 @ApiTags('Film')
 @Controller('film')
 export class FilmController {
   constructor(private readonly filmService: FilmService) {}
+
+  @Get('recommendations')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get film recommendations for the current user' })
+  @ApiOkResponse({ description: 'Recommendations retrieved successfully.' })
+  async getRecommendations(@User('id') userId: string) {
+    return this.filmService.getRecommendation(userId);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a film' })
