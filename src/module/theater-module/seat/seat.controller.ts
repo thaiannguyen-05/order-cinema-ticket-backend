@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -58,6 +60,8 @@ export class SeatController {
 
   @Public()
   @Get('showtime/:filmId/:cinemaId')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   @ApiOperation({ summary: 'Get seats by film and cinema' })
   @ApiParam({
     name: 'filmId',
@@ -79,6 +83,8 @@ export class SeatController {
 
   @Public()
   @Get(':seatId')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(5000)
   @ApiOperation({ summary: 'Get seat by ID' })
   @ApiParam({
     name: 'seatId',

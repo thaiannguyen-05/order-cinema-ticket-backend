@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -33,6 +35,8 @@ export class CinemaController {
 
   @Public()
   @Get(':cinema_id')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300000)
   @ApiOperation({ summary: 'Get cinema by ID' })
   @ApiParam({
     name: 'cinema_id',
