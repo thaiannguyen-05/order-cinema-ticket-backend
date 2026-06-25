@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -136,6 +138,8 @@ export class FilmController {
 
   @Public()
   @Get(':film_id')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300000)
   @ApiOperation({ summary: 'Get film details by ID' })
   @ApiParam({
     name: 'film_id',

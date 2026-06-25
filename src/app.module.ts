@@ -26,6 +26,8 @@ import { SeatModule } from './module/theater-module/seat/seat.module';
 import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-job.module';
 import { TrackingFrequentDataModule } from './background/tracking-frequent-data/tracking-frequent-data.module';
+import { TrackingModule } from './module/core-module/tracking/tracking.module';
+import { PaymentModule } from './module/core-module/payment/payment.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -52,6 +54,8 @@ import { TrackingFrequentDataModule } from './background/tracking-frequent-data/
     SyncDataCronJobModule,
     OutboxCronJobModule,
     TrackingFrequentDataModule,
+    TrackingModule,
+    PaymentModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,
