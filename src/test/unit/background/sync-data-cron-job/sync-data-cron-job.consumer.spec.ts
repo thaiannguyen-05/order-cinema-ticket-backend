@@ -5,9 +5,9 @@ jest.mock('@andev2005/movie-glu-sdk', () => ({
   createMovieGluClient: jest.fn(),
 }));
 
-const { SyncDateCronJobConsumer } =
+const { SyncDataCronJobConsumer } =
   require('../../../../background/sync-data-cron-job/sync-data-cron-job.consumer') as {
-    SyncDateCronJobConsumer: new (...args: never[]) => {
+    SyncDataCronJobConsumer: new (...args: never[]) => {
       handleSyncEventCinemaDetail: (
         dto: unknown,
         context: unknown,
@@ -23,15 +23,15 @@ const { SyncDateCronJobConsumer } =
     };
   };
 
-describe('SyncDateCronJobConsumer', () => {
+describe('SyncDataCronJobConsumer', () => {
   it('delegates event handlers to callMovieGlu service', async () => {
     const callMovieGluService = {
       syncDataCinemaDetail: jest.fn().mockResolvedValue(undefined),
       syncDataCinemaShowtime: jest.fn().mockResolvedValue(undefined),
-      syncDateFilmsOfCinema: jest.fn().mockResolvedValue(undefined),
+      syncDataFilmsOfCinema: jest.fn().mockResolvedValue(undefined),
     };
 
-    const consumer = new SyncDateCronJobConsumer(callMovieGluService as never);
+    const consumer = new SyncDataCronJobConsumer(callMovieGluService as never);
     const rmqContext = {
       getMessage: jest.fn().mockReturnValue({}),
       getChannelRef: jest.fn().mockReturnValue({
@@ -55,6 +55,6 @@ describe('SyncDateCronJobConsumer', () => {
 
     expect(callMovieGluService.syncDataCinemaDetail).toHaveBeenCalled();
     expect(callMovieGluService.syncDataCinemaShowtime).toHaveBeenCalled();
-    expect(callMovieGluService.syncDateFilmsOfCinema).toHaveBeenCalled();
+    expect(callMovieGluService.syncDataFilmsOfCinema).toHaveBeenCalled();
   });
 });

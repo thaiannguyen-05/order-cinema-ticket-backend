@@ -9,10 +9,10 @@ import { ConfigService } from '@nestjs/config';
 import { hash, verify } from 'argon2';
 import { type User as PrismaUser } from '@prisma/client';
 import type { Request, Response } from 'express';
-import { EVENT_NAME } from '../../../../background/email/constant/event.type';
+import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 import { EmailWorker } from '../../../../background/email/email.worker';
 import { OutboxService } from '../../../../background/email/outbox.service';
-import { Payload } from '../../../../core';
+import type { JwtPayload } from '../../../../core';
 import { MyLogger } from '../../../../core/logger/logger.service';
 import { UserService } from '../../user/user.service';
 import { LoginDto } from '../dto/login.dto';
@@ -299,7 +299,8 @@ export class AuthService {
       throw invalidRefreshTokenError;
     }
 
-    const payload: Payload = await this.tokenService.verifyToken(refreshToken);
+    const payload: JwtPayload =
+      await this.tokenService.verifyToken(refreshToken);
     if (payload.id !== session.userId) {
       throw invalidRefreshTokenError;
     }

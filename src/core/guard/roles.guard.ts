@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { USER_ROLE } from '@prisma/client';
 import type { Request } from 'express';
-import { Payload } from '../type/type';
+import type { JwtPayload } from '../type/type';
 import { ROLES_KEY } from '../decorator/roles.decorator';
 
 @Injectable()
@@ -26,7 +26,7 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const user: Payload | undefined = request.payload;
+    const user: JwtPayload | undefined = request.payload;
 
     if (!user || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException(

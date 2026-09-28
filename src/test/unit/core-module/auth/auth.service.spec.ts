@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { EVENT_NAME } from '../../../../background/email/constant/event.type';
+import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 
 jest.mock('argon2', () => ({
   hash: jest.fn(),

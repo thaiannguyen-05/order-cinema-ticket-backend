@@ -35,5 +35,3 @@ export const CUSTOM_LOG_COLORS = {
   debug: 'blue',
   verbose: 'cyan',
 } as const;
-
-export type LogLevel = keyof typeof CUSTOM_LOG_LEVELS;

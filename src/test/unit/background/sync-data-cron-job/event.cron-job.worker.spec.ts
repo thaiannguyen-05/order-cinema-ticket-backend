@@ -1,5 +1,5 @@
 import { EventCronJobWorkerService } from '../../../../background/sync-data-cron-job/event.cron-job.worker';
-import { EVENT_NAME } from '../../../../background/email/constant/event.type';
+import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 
 describe('EventCronJobWorkerService', () => {
   it('emits all sync events', async () => {

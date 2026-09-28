@@ -1,9 +1,9 @@
 import 'express';
-import { Payload } from './type';
+import type { JwtPayload } from './type';
 
 declare module 'express' {
   interface Request {
     requestId?: string;
-    payload?: Payload;
+    payload?: JwtPayload;
   }
 }

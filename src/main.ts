@@ -11,16 +11,14 @@ import helmet from 'helmet';
 import Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
-import { QUEUE_NAME } from './background/email/constant/event.type';
+import { QUEUE_NAME } from './background/email/constant/event.constant';
 import { MyLogger } from './core/logger/logger.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
-type AmqpConnectionLike = {
-  close: () => Promise<void>;
-};
+import type { ClosableAmqpConnection } from './core/type/type';
 
 const safeConnectAmqp = connectAmqp as unknown as (
   url: string,
-) => Promise<AmqpConnectionLike>;
+) => Promise<ClosableAmqpConnection>;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -144,7 +142,7 @@ async function bootstrap() {
     transport: Transport.RMQ,
     options: {
       urls: [rabbitUrl],
-      queue: QUEUE_NAME.SYNC_DATE_SERVICE,
+      queue: QUEUE_NAME.SYNC_DATA_SERVICE,
       queueOptions: {
         durable: true,
       },

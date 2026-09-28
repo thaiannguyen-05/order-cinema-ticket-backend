@@ -31,7 +31,7 @@ const { CallMovieGluService } =
       getGeolocationByUserIp: (ip: string) => Promise<string>;
       syncDataCinemaDetail: (dto: any) => Promise<void>;
       updateFilmsDetail: (dto: any) => Promise<void>;
-      syncDateFilmsOfCinema: (dto: any) => Promise<void>;
+      syncDataFilmsOfCinema: (dto: any) => Promise<void>;
     };
   };
 
@@ -223,7 +223,7 @@ describe('CallMovieGluService', () => {
       },
     ]);
 
-    await service.syncDateFilmsOfCinema({
+    await service.syncDataFilmsOfCinema({
       cinemas: [{ cinema_id: 1 }],
     } as never);
 

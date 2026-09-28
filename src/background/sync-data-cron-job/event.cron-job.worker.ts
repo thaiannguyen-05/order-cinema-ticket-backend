@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EVENT_NAME, QUEUE_NAME } from '../email/constant/event.type';
+import { EVENT_NAME, QUEUE_NAME } from '../email/constant/event.constant';
 import { ClientProxy } from '@nestjs/microservices';
 import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
@@ -7,7 +7,7 @@ import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 @Injectable()
 export class EventCronJobWorkerService {
   constructor(
-    @Inject(QUEUE_NAME.SYNC_DATE_SERVICE)
+    @Inject(QUEUE_NAME.SYNC_DATA_SERVICE)
     private readonly clientProxy: ClientProxy,
   ) {}
 

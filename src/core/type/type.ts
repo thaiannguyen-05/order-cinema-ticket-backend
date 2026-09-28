@@ -1,3 +1,5 @@
+import type { USER_ROLE } from '@prisma/client';
+
 export type ResponseMapping<T> = {
   success: true;
   code: number;
@@ -19,10 +21,17 @@ export type ExceptionResponseMapping = {
   requestId?: string;
 };
 
-import { USER_ROLE } from '@prisma/client';
-
-export type Payload = {
+export type JwtPayload = {
   id: string;
   email: string;
   role: USER_ROLE;
+};
+
+export type RmqAckChannel = {
+  ack: (message: unknown) => void;
+  nack: (message: unknown, allUpTo?: boolean, requeue?: boolean) => void;
+};
+
+export type ClosableAmqpConnection = {
+  close: () => Promise<void>;
 };

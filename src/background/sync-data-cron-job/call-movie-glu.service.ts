@@ -12,7 +12,7 @@ import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncFilmsDetailDto } from './dto/sync.films.detail.dto';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { UpdateFilmDto } from '../../module/theater-module/film/dto/update-film.dto';
-import { IpApiResponse, PublicIpResponse } from './type';
+import type { IpApiResponse, PublicIpResponse } from './type/type';
 import { SyncFilmsShowtimeDto } from './dto/sync.films.showtime.dto';
 import { Film as PrismaFilm } from '@prisma/client';
 import { MyLogger } from '../../core/logger/logger.service';
@@ -254,7 +254,7 @@ export class CallMovieGluService {
     }
   }
 
-  async syncDateFilmsOfCinema(dto: SyncFilmsShowtimeDto): Promise<void> {
+  async syncDataFilmsOfCinema(dto: SyncFilmsShowtimeDto): Promise<void> {
     const cinemaIds = dto.cinemas.map((cinema) => cinema.cinema_id);
     const filmsShowTime = await this.cinemaService.getFilmsOfCinemas(cinemaIds);
 

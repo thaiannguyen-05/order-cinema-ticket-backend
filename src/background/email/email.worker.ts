@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { EVENT_NAME, QUEUE_NAME } from './constant/event.type';
+import { EVENT_NAME, QUEUE_NAME } from './constant/event.constant';
 
 @Injectable()
 export class EmailWorker {

@@ -5,7 +5,7 @@ import { join } from 'path';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { QUEUE_NAME } from './constant/event.type';
+import { QUEUE_NAME } from './constant/event.constant';
 import { EmailWorker } from './email.worker';
 import { EmailConsumer } from './email.consumer';
 import { existsSync } from 'fs';

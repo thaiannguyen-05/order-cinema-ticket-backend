@@ -4,15 +4,11 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Payload } from '../type/type';
-
-type RequestWithAccessTokenCookie = Request & {
-  cookies?: Record<'accessToken', string>;
-};
+import type { JwtPayload } from '../type/type';
+import type { RequestWithAccessTokenCookie } from './type/type';
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
@@ -61,7 +57,7 @@ export class AuthenticationGuard implements CanActivate {
     if (!token) throw new UnauthorizedException();
 
     try {
-      const payload: Payload = await this.jwtService.verifyAsync(token, {
+      const payload: JwtPayload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.getOrThrow('JWT_SECRET'),
       });
 
