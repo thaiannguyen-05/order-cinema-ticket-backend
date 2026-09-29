@@ -5,13 +5,9 @@ import {
   Payload,
   RmqContext,
 } from '@nestjs/microservices';
-import { EVENT_NAME } from './constant/event.type';
+import { EVENT_NAME } from './constant/event.constant';
 import { EmailService } from './email.service';
-
-type RmqAckChannel = {
-  ack: (message: unknown) => void;
-  nack: (message: unknown, allUpTo?: boolean, requeue?: boolean) => void;
-};
+import type { RmqAckChannel } from '../../core/type/type';
 
 @Controller()
 export class EmailConsumer {

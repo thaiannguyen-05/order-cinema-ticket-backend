@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { JsonValue } from '@prisma/client/runtime/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   OrderDetail,
   UserOrderFrequentData,
   TrackingFrequentResult,
 } from './dto/frequent-data.dto';
+import type { FrequentOrderWithRelations } from './type/type';
 
 function isStringArray(value: unknown): value is string[] {
   return (
@@ -57,37 +57,7 @@ const ORDER_INCLUDE = {
   },
 } as const;
 
-function buildOrderDetail(o: {
-  id: string;
-  userId: string;
-  status: string;
-  createdAt: Date;
-  user: { id: string; fullname: string; email: string };
-  ticket: {
-    code: string;
-    price: number;
-    filmOfCinema: {
-      film: {
-        film_name: string;
-        genres: JsonValue | null;
-        cast: JsonValue | null;
-        directors: JsonValue | null;
-        producers: JsonValue | null;
-        writers: JsonValue | null;
-        distributor: string | null;
-        other_title: JsonValue | null;
-        age_rating: JsonValue | null;
-        synopsis_long: string | null;
-        duration_mins: number;
-        review_stars: number;
-        review_txt: string | null;
-      };
-      cinema: { cinema_name: string; city: string };
-    };
-    seat: { row: number; column: number };
-  };
-  payment: { amount: number; orderStatus: string } | null;
-}): OrderDetail {
+function buildOrderDetail(o: FrequentOrderWithRelations): OrderDetail {
   const f = o.ticket.filmOfCinema.film;
   return {
     orderId: o.id,
@@ -119,11 +89,9 @@ function buildOrderDetail(o: {
   };
 }
 
-type OrderWithRelations = Parameters<typeof buildOrderDetail>[0];
-
 function buildUserFrequentData(
   userId: string,
-  orders: OrderWithRelations[],
+  orders: FrequentOrderWithRelations[],
 ): UserOrderFrequentData {
   const user = orders[0].user;
 

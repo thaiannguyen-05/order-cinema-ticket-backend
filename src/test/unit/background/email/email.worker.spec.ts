@@ -1,5 +1,5 @@
 import { EmailWorker } from '../../../../background/email/email.worker';
-import { EVENT_NAME } from '../../../../background/email/constant/event.type';
+import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 
 describe('EmailWorker', () => {
   it('emits verify and reset events', () => {

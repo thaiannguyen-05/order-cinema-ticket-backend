@@ -1,5 +1,5 @@
 import type { Response, CookieOptions } from 'express';
-import { COOKIE_TTL } from './type';
+import type { AuthCookiePayload } from './type';
 
 export const AUTH_COOKIE_NAME = {
   ACCESS_TOKEN: 'accessToken',
@@ -7,11 +7,11 @@ export const AUTH_COOKIE_NAME = {
   SESSION_ID: 'sessionId',
 } as const;
 
-export type AuthCookiePayload = {
-  accessToken?: string;
-  refreshToken?: string;
-  sessionId?: string;
-};
+export const COOKIE_TTL = {
+  ACCESS_TOKEN: 15 * 60, // 15 minutes
+  REFRESH_TOKEN: 7 * 24 * 60 * 60, // 7 days
+  COOKIE_TTL: 7 * 24 * 60 * 60, // 7 days
+} as const;
 
 export const getAuthCookieOptions = (isProduction: boolean): CookieOptions => ({
   httpOnly: true,

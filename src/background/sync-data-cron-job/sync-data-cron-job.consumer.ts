@@ -5,18 +5,14 @@ import {
   retryCore,
   RetryCoreOptions,
 } from '../../core/interfaces/re-try.interface';
-import { EVENT_NAME } from '../email/constant/event.type';
+import { EVENT_NAME } from '../email/constant/event.constant';
 import { CallMovieGluService } from './call-movie-glu.service';
 import type { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
 import type { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
-
-type RmqAckChannel = {
-  ack: (message: unknown) => void;
-  nack: (message: unknown, allUpTo?: boolean, requeue?: boolean) => void;
-};
+import type { RmqAckChannel } from '../../core/type/type';
 
 @Controller()
-export class SyncDateCronJobConsumer {
+export class SyncDataCronJobConsumer {
   constructor(private readonly callMovieGluService: CallMovieGluService) {}
 
   private readonly optionsRetry: RetryCoreOptions = {
@@ -78,7 +74,7 @@ export class SyncDateCronJobConsumer {
 
     try {
       await retryCore(async () => {
-        await this.callMovieGluService.syncDateFilmsOfCinema(dto);
+        await this.callMovieGluService.syncDataFilmsOfCinema(dto);
       }, this.optionsRetry);
       channel.ack(message);
     } catch {

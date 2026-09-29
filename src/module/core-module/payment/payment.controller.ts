@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Patch,
+  Post,
+  Version,
+  VERSION_NEUTRAL,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -17,7 +25,7 @@ import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
 
 @ApiTags('payment')
 @ApiBearerAuth()
-@Controller('payment')
+@Controller({ path: 'payment', version: '1' })
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
@@ -100,6 +108,7 @@ export class PaymentController {
     return this.paymentService.updatePayment(Number(paymentId), dto);
   }
 
+  @Version(VERSION_NEUTRAL)
   @Post('sepay/callback')
   @ApiOperation({ summary: 'SePay callback handler' })
   @ApiResponse({ status: 200, description: 'Callback processed' })

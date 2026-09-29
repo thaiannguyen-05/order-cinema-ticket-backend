@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { SyncDataCronJobService } from './sync-data-cron-job.service';
-import { QUEUE_NAME } from '../email/constant/event.type';
+import { QUEUE_NAME } from '../email/constant/event.constant';
 import { RedisModule } from '../redis/redis.module';
-import { SyncDateCronJobConsumer } from './sync-data-cron-job.consumer';
+import { SyncDataCronJobConsumer } from './sync-data-cron-job.consumer';
 import { EventCronJobWorkerService } from './event.cron-job.worker';
 import { CallMovieGluService } from './call-movie-glu.service';
 import { CinemaModule } from '../../module/theater-module/cinema/cinema.module';
@@ -17,7 +17,7 @@ import { FilmModule } from '../../module/theater-module/film/film.module';
     FilmModule,
     ClientsModule.registerAsync([
       {
-        name: QUEUE_NAME.SYNC_DATE_SERVICE,
+        name: QUEUE_NAME.SYNC_DATA_SERVICE,
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.RMQ,
@@ -25,7 +25,7 @@ import { FilmModule } from '../../module/theater-module/film/film.module';
             urls: [
               `amqp://${configService.getOrThrow<string>('RABBITMQ_USER')}:${configService.getOrThrow<string>('RABBITMQ_PASS')}@${configService.get<string>('RABBITMQ_HOST', 'localhost')}:${configService.getOrThrow<string>('RABBITMQ_PORT')}/${configService.get<string>('RABBITMQ_VHOST', '')}`,
             ],
-            queue: QUEUE_NAME.SYNC_DATE_SERVICE,
+            queue: QUEUE_NAME.SYNC_DATA_SERVICE,
             queueOptions: {
               durable: true,
             },
@@ -34,7 +34,7 @@ import { FilmModule } from '../../module/theater-module/film/film.module';
       },
     ]),
   ],
-  controllers: [SyncDateCronJobConsumer],
+  controllers: [SyncDataCronJobConsumer],
   providers: [
     SyncDataCronJobService,
     EventCronJobWorkerService,

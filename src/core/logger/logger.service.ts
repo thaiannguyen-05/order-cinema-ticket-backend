@@ -6,8 +6,8 @@ import {
   CUSTOM_LOG_COLORS,
   CUSTOM_LOG_LEVELS,
   LOGGER_CONFIG,
-  LogLevel,
 } from './logger.constant';
+import type { LogLevel } from './type/type';
 const customLevels = {
   levels: CUSTOM_LOG_LEVELS,
   colors: CUSTOM_LOG_COLORS,

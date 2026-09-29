@@ -23,7 +23,7 @@ describe('FilmService', () => {
       },
     };
 
-    service = new FilmService(prismaService as never);
+    service = new FilmService(prismaService as never, {} as never, {} as never);
   });
 
   it('creates film with serialized JSON fields', async () => {

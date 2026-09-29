@@ -27,7 +27,7 @@ import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Roles } from '../../../core/decorator/roles.decorator';
 
 @ApiTags('Cinema')
-@Controller('cinema')
+@Controller({ path: 'cinema', version: '1' })
 export class CinemaController {
   constructor(private readonly cinemaService: CinemaService) {}
 

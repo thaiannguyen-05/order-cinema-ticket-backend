@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>System Flow Report — order-cinema-ticket-backend</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:'dark',securityLevel:'loose'});</script>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--line:#2a2f3a;--txt:#e8eaf0;--mut:#9aa3b2;--acc:#7cc4ff;--warn:#ffb86b;--bad:#ff7a7a;--ok:#8bff9e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.6 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+a{color:var(--acc)}code{background:#0b0d12;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px}
+pre{background:#0b0d12;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav{position:sticky;top:0;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:18px}
+nav h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:6px 0 10px}
+nav ol{margin:0;padding-left:18px}nav li{margin:6px 0}nav a{text-decoration:none}
+main{padding:28px;max-width:1100px}
+.hero{border:1px solid var(--line);border-radius:14px;padding:20px;background:linear-gradient(180deg,#171a21,#111420)}
+.hero h1{margin:0 0 6px;font-size:26px}.hero p{margin:4px 0;color:var(--mut)}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin:18px 0}
+section.card h2{margin-top:0}
+table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:#0b0d12}
+.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--mut)}
+.badge.warn{color:var(--warn);border-color:var(--warn)}.badge.bad{color:var(--bad);border-color:var(--bad)}.badge.ok{color:var(--ok);border-color:var(--ok)}
+.mermaid{background:#0b0d12;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:900px){.layout{grid-template-columns:1fr}nav{position:static;height:auto}.grid2{grid-template-columns:1fr}}
+.flow-meta{color:var(--mut);font-size:13px}
+.risk{border-left:4px solid var(--warn);padding-left:12px;margin:10px 0}.risk.crit{border-color:var(--bad)}
+footer{color:var(--mut);padding:10px 0 30px}
+@media print{nav{display:none}.layout{display:block}body{background:#fff;color:#000}section.card{background:#fff;border-color:#999}pre,.mermaid{background:#f6f6f6}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+<h2>System Flow Report</h2>
+<div class="flow-meta">2026-09-28 · code-verified<br/>No momo hits · showtime drift confirmed</div>
+<ol>
+<li><a href="#s0">0 Stack / Entry points</a></li>
+<li><a href="#s1">1 Request pipeline</a></li>
+<li><a href="#s2">2 Domain model</a></li>
+<li><a href="#s3">3 Auth / User / Session</a></li>
+<li><a href="#s4">4 Catalog sync MovieGlu</a></li>
+<li><a href="#s5">5 Theater Film/Cinema/Seat/Ticket</a></li>
+<li><a href="#s6">6 Order + SePay</a></li>
+<li><a href="#s7">7 Email outbox</a></li>
+<li><a href="#s8">8 Redis / Discovery / Obs</a></li>
+<li><a href="#s9">9 Glossary vs code</a></li>
+<li><a href="#s10">10 Risks / improvements</a></li>
+</ol>
+<div class="flow-meta" style="margin-top:14px">Print → PDF works.<br/>Mermaid renders via CDN.<br/>Source file: <code>docs/system-flow-report.html</code></div>
+</nav>
+<main>
+<div class="hero">
+<h1>order-cinema-ticket-backend — full flow</h1>
+<p>NestJS 11 · Prisma 7 + Postgres 16 · RabbitMQ 3 · Redis 7 · SePay · MovieGlu SDK · Gmail SMTP</p>
+<p>Bootstrap <code>src/main.ts:97-267</code> · Modules <code>src/app.module.ts:29-89</code> · Infra <code>docker.compose.yml</code> (db 5432, rabbit 5672/15672, redis 6379) · Health <code>GET /health</code> in <code>src/app.controller.ts</code></p>
+<p><span class="badge ok">HTML only</span> <span class="badge">display risks, no fix yet</span> <span class="badge warn">MoMo = docs drift, code = SePay</span></p>
+</div>
+
+<section class="card" id="s0">
+<h2>0 — System overview</h2>
+<div class="mermaid">flowchart LR
+subgraph ext[External]
+PG[(Postgres)]
+RMQ[(RabbitMQ GMAIL_SERVICE, SYNC_SERVICE)]
+RD[(Redis)]
+MG[MovieGlu API]
+SP[SePay API]
+GM[Gmail SMTP]
+end
+subgraph app[NestJS]
+BOOT[Bootstrap wait RMQ+Redis]
+HTTP[HTTP /docs /health /auth /user /film /cinema /seat /ticket /payment]
+CRON[Crons outbox 5m sync 2h]
+CONS[Consumers EmailConsumer SyncDateCronJobConsumer]
+end
+BOOT-->HTTP
+BOOT-->CRON
+BOOT-->CONS
+HTTP&lt;--&gt;PG
+HTTP&lt;--&gt;RD
+HTTP-->RMQ
+CRON&lt;--&gt;PG
+CRON&lt;--&gt;RD
+CRON-->MG
+CRON-->RMQ
+CONS-->RMQ
+CONS-->PG
+CONS-->MG
+CONS-->GM
+HTTP-->SP
+</div>
+<p class="flow-meta">Bootstrap order: env check → <code>waitForRabbitMQConnection</code> → <code>waitForRedisConnection</code> (120s/3s retry) → <code>NestFactory.create</code> → <code>ValidationPipe whitelist/forbidNonWhitelisted/transform</code> → <code>connectMicroservice GMAIL_SERVICE + SYNC_DATE_SERVICE durable/noAck:false</code> → CORS allowlist <code>CORS_ORIGINS</code> credentials:true → <code>AddHeaderMiddleware X-Request-Id</code> → helmet+cookieParser+CSRF prod-only → <code>trust proxy loopback</code> → Swagger <code>/docs json:docs/json yaml:docs/yaml</code> → <code>startAllMicroservices listen PORT=4000</code>.</p>
+</section>
+
+<section class="card" id="s1">
+<h2>1 — Request pipeline (every call)</h2>
+<p class="flow-meta"><code>src/main.ts:122-212</code> + <code>src/app.module.ts:61-87</code></p>
+<div class="mermaid">flowchart TD
+REQ[Request]-->HDR[AddHeaderMiddleware X-Request-Id]
+HDR-->CORS[CORS + helmet + cookieParser + CSRF prod]
+CORS-->RI[ResponseInterceptor success:true/code/message/data/timestamp/path/method/requestId]
+RI-->LI[LoggingInterceptor redacts auth/cookie/password/token/signature]
+LI-->AG[AuthenticationGuard Public? else Bearer-more-than-access-token-header-more-than-accessToken-cookie]
+AG-->TH[Throttler 60s/50 tracker req.ips0-or-req.ip]
+TH-->RG[RolesGuard no-Roles=allow]
+RG-->PIPE[ValidationPipe]
+PIPE-->CTL[Controller]
+CTL-->ERR[ErrorException filter]
+</div>
+<table><tr><th>Piece</th><th>File</th></tr>
+<tr><td><code>@Public()</code> <code>@Roles()</code> <code>@User()</code> <code>Payload{id,email,role}</code></td><td><code>src/core/decorator/ispublic.decorator.ts</code>, <code>roles.decorator.ts</code>, <code>user.decorator.ts</code>, <code>src/core/type/type.ts</code></td></tr>
+<tr><td>Guards order</td><td><code>src/app.module.ts:71-82</code> Auth → Throttler → Roles</td></tr>
+<tr><td>Throttle override</td><td><code>POST /auth/refresh-token</code> 5/30s</td></tr>
+</table>
+</section>
+
+<section class="card" id="s2">
+<h2>2 — Domain model (Prisma)</h2>
+<p class="flow-meta"><code>prisma/schema/*.prisma</code>: user, session, film, cinema, filmOfCinemas, seat, ticket, payment, outbox, event_tracking, recommendation, enum</p>
+<div class="mermaid">erDiagram
+User||--o{Session:has
+User||--o{Order:places
+User||--o{EventTracking:does
+User||--o{UserRecommendation:gets
+Film||--o{FilmOfCinema:shown-as
+Cinema||--o{FilmOfCinema:hosts
+Film||--o{UserRecommendation:suggested
+FilmOfCinema||--o{Seat:has
+FilmOfCinema||--o{Ticket:sells
+Cinema||--o{Seat:contains
+Seat||--o|Ticket:locked-by
+Ticket||--o|Order:ordered-once
+Order}o--||Payment:settled-by
+Outbox||--o{User:verifies
+</div>
+<ul>
+<li><code>User.email @unique</code>, <code>Session @@unique[userId,userIp]</code> max 5/user LRU.</li>
+<li><code>Film.film_id Int @id</code> manual MovieGlu ID, <code>Cinema.cinema_id Int @id</code> manual.</li>
+<li><code>FilmOfCinema{id UUID @@unique[filmId,cinemaId]}</code> = showtime join.</li>
+<li><code>Seat.filmId → FilmOfCinema.id</code> (misleading name, not <code>Film.film_id</code>), <code>@@index[filmId,cinemaId]</code>.</li>
+<li><code>Ticket{seatId @unique}</code> 1:1, <code>Order{ticketId @unique @@unique[ticketId,userId],[id,userId]}</code>.</li>
+<li><code>Payment{orderId @unique}</code> + <code>Order.paymentId?</code> double link — see §10.</li>
+<li><code>OrderStatus{CAPTURED,CANCELLED,AUTHENTICATION_NOT_NEEDED}</code> used for both Order and Payment.</li>
+</ul>
+</section>
+
+<section class="card" id="s3">
+<h2>3 — Auth / User / Session</h2>
+<p class="flow-meta"><code>src/module/core-module/auth/auth.controller.ts</code>, <code>service/auth.service.ts</code>, <code>service/token.service.ts</code>, <code>src/module/core-module/user/user.service.ts</code>, <code>user.controller.ts</code></p>
+<table><tr><th>Route</th><th>Guard</th></tr>
+<tr><td><code>POST /auth/register</code></td><td>Public</td></tr>
+<tr><td><code>POST /auth/verify-email</code></td><td>Public</td></tr>
+<tr><td><code>POST /auth/forgot-password</code></td><td>Public</td></tr>
+<tr><td><code>POST /auth/reset-password</code></td><td>Public</td></tr>
+<tr><td><code>POST /auth/login</code></td><td>Public + IP <code>req.ips[0] ?? req.ip</code></td></tr>
+<tr><td><code>POST /auth/refresh-token</code></td><td>Public, needs <code>refreshToken+sessionId</code> cookies</td></tr>
+<tr><td><code>POST /auth/logout</code></td><td>Authenticated</td></tr>
+<tr><td><code>PATCH /user/update</code></td><td>Authenticated, forces <code>email=payload.email</code></td></tr>
+</table>
+<div class="mermaid">sequenceDiagram
+participant C as Client
+participant A as AuthService
+participant U as UserService-Prisma
+participant O as OutboxService-Prisma
+participant W as EmailWorker-RMQ
+C->>A: POST /auth/register
+A->>U: isAvailableEmail true=exists
+A->>A: argon2.hash(password)
+A->>O: createOutbox SEND_VERIFY_CODE email+code
+A->>U: createUser PENDING hashPassword
+A->>W: emit send_verify_code fire-and-forget
+C->>A: POST /auth/verify-email email+code+outBoxId
+A->>O: getOutBox check PROCESSED/5min/eventType/payload
+A->>U: updateUserByEmail ACTIVE
+A->>O: updateOutbox PROCESSED
+C->>A: POST /auth/login + IP
+A->>U: getUserByEmail 401 if not ACTIVE
+A->>A: argon2.verify + generateTokens + hash refresh
+A->>A: handleSession findUnique userId_userIp else create, evict oldest if >=5
+A->>C: set-cookie accessToken refreshToken sessionId 7d httpOnly lax
+C->>A: POST /auth/refresh-token cookies
+A->>A: getSession verify hash verifyToken payload.id==session.userId generateTokens updateSession rotate cookies
+C->>A: POST /auth/logout sessionId
+A->>A: deleteSession clear cookies
+</div>
+<p class="flow-meta">Cookies <code>src/module/core-module/auth/type/constant.ts</code>. JWT <code>JWT_SECRET</code>. Token lookup: Bearer &gt; <code>access-token</code> header (legacy) &gt; <code>accessToken</code> cookie. Sessions in Postgres, not Redis. Suspect: <code>resetPassword</code> writes <code>password</code> vs column <code>hashPassword</code> — must verify migration.</p>
+</section>
+
+<section class="card" id="s4">
+<h2>4 — Catalog sync (MovieGlu → DB → RMQ)</h2>
+<p class="flow-meta"><code>src/background/sync-data-cron-job/sync-data-cron-job.service.ts</code>, <code>call-movie-glu.service.ts</code>, <code>sync-data-cron-job.consumer.ts</code>, <code>event.cron-job.worker.ts</code></p>
+<div class="mermaid">flowchart TD
+N[nearby CINEMA_NERBY]-->UP[upsertCinema]
+UP-->E1[emit DETAIL_CINEMA]
+UP-->E2[emit FILM_SHOWTIME]
+NS[nowShowing log only]
+CS[comingSoon log only]
+FD[filmsDetails getAllFilms-details-updateFilm]
+E1-->Q[(RMQ SYNC_SERVICE)]
+E2-->Q
+Q-->CONS[Consumer EventPattern retryCore ack/nack]
+CONS-->D[syncDataCinemaDetail lock CINEMA_DETAIL updateCinema emit CINEMA_SHOWTIME]
+D-->Q
+Q-->S[syncDataCinemaShowtime lock CINEMA_SHOWTIME]
+Q-->F[syncDateFilmsOfCinema dedupe film_id hasFilmChanges updateFilm]
+N-->IP[api.ipify.org + ip-api.com + createMovieGluClient]
+</div>
+<p class="flow-meta">All <code>@Cron(EVERY_2_HOURS)</code> + <code>RedisLockService.runExclusive 10min</code> skip-if-held. SDK <code>createMovieGluClient apiKey+headers{client,x-api-key,authorization,territory,api-version,geolocation,device-datetime}</code>. Calls <code>cinemas.nearby limit:100</code>, <code>films.nowShowing/comingSoon/details</code>.</p>
+</section>
+
+<section class="card" id="s5">
+<h2>5 — Theater: Film / Cinema / Seat / Ticket</h2>
+<table><tr><th>Prefix</th><th>Route</th><th>Auth</th></tr>
+<tr><td><code>film</code></td><td><code>GET /film/recommendations</code></td><td>user, Redis 5m <code>userReco:userId</code></td></tr>
+<tr><td></td><td><code>POST /film PATCH /film/:film_id DELETE /film/:film_id</code></td><td>ADMIN</td></tr>
+<tr><td></td><td><code>GET /film/:film_id POST /film/find</code></td><td>Public</td></tr>
+<tr><td><code>cinema</code></td><td><code>GET /cinema/:cinema_id POST /cinema/find</code></td><td>Public</td></tr>
+<tr><td></td><td><code>POST /cinema PATCH/DELETE /cinema/:cinema_id</code></td><td>ADMIN</td></tr>
+<tr><td><code>seat</code></td><td><code>POST /seat PATCH/DELETE /seat/:seatId</code></td><td>ADMIN</td></tr>
+<tr><td></td><td><code>GET /seat/showtime/:filmId/:cinemaId GET /seat/:seatId POST /seat/find</code></td><td>Public</td></tr>
+<tr><td><code>ticket</code></td><td><code>GET /ticket/:id</code> only</td><td>implicit public, create internal</td></tr>
+</table>
+<div class="mermaid">flowchart LR
+C1[Client]-->|Public|F[read findUnique/findMany]
+C1-->|ADMIN|W[write create/update/delete JSON.stringify Film JSON cols]
+W-->DB[(Film JSON)]
+FOC[(FilmOfCinema no controller)]-->SEAT[Seat.filmId=FOC.id getSeatsByShowtimeId]
+SEAT-->TICK[Ticket randomHex16 internal create]
+TICK-->ORD[Order see s6]
+</div>
+<p class="flow-meta">Gotcha: <code>GET /seat/showtime/:filmId</code> <code>filmId</code> is <code>FilmOfCinema.id</code> UUID, not <code>Film.film_id</code>. <code>TicketModule</code> imported by <code>PaymentModule</code> but <code>TicketService</code> not exported.</p>
+</section>
+
+<section class="card" id="s6">
+<h2>6 — Order + SePay (MoMo absent)</h2>
+<p class="flow-meta"><code>src/module/core-module/payment/payment.controller.ts:18-110</code>, <code>payment.service.ts</code>, <code>sepay.service.ts</code>, <code>repository/order.repository.ts</code>, <code>amount.converter.ts</code>. Grep <code>momo</code> = 0 hits.</p>
+<table><tr><th>Route</th><th>Auth</th></tr>
+<tr><td><code>POST /payment/order {ticketId}</code></td><td>user</td></tr>
+<tr><td><code>POST /payment/sepay/checkout {order_invoice_number=Order.id}</code></td><td>user, Redlock per invoice</td></tr>
+<tr><td><code>PATCH /payment/order/:id/status</code></td><td>user</td></tr>
+<tr><td><code>POST /payment {orderId,amount,currency}</code></td><td>user</td></tr>
+<tr><td><code>PATCH /payment/:id</code></td><td>user</td></tr>
+<tr><td><code>POST /payment/sepay/callback</code></td><td>public HMAC webhook</td></tr>
+</table>
+<div class="mermaid">sequenceDiagram
+participant C as Client
+participant P as PaymentService
+participant S as SepayService
+participant R as OrderRepository
+participant T as TicketService
+participant SP as pay.sepay.vn
+C->>P: POST /payment/order ticketId
+P->>T: getTicketById 404
+P->>R: findOrderByTicketId 409
+P->>R: createOrder AUTHENTICATION_NOT_NEEDED
+C->>S: POST /payment/sepay/checkout
+S->>S: Redlock SEPAY_CHECKOUT 409 if held
+S->>R: findOrderByIdAndUserId 400 findPaymentByOrderId 409
+S->>S: signFields HMAC-SHA256 base64 SEPAY_SECRET_KEY
+S->>SP: POST form checkout/init checkout_url else 503
+SP-->>S: POST /payment/sepay/callback operation+amount+signature
+S->>S: verify signature 400
+S->>R: findOrderById 400
+S->>R: transaction order.update CAPTURED/CANCELLED + payment.upsert where orderId
+C->>P: POST /payment manual toIntAmount round x100
+</div>
+</section>
+
+<section class="card" id="s7">
+<h2>7 — Email outbox</h2>
+<p class="flow-meta"><code>src/background/email/email.worker.ts</code>, <code>email.consumer.ts</code>, <code>email.service.ts</code>, <code>outbox.service.ts</code>, <code>src/background/outbox-cron-job/outbox-cron-job.service.ts</code></p>
+<div class="mermaid">sequenceDiagram
+participant A as AuthService
+participant O as Outbox Postgres
+participant W as EmailWorker emit
+participant Q as RMQ GMAIL_SERVICE durable noAck:false
+participant C as EmailConsumer MessagePattern
+participant M as EmailService SMTP retryCore
+A->>O: createOutbox PENDING email+code
+A->>W: emit send_verify_code / send_forgot_password_email
+W->>Q: queue
+Q->>C: pattern
+C->>M: sendUserConfirmation / sendResetPassword Handlebars
+M-->>C: ok ack fail nack requeue 503
+A->>O: updateOutbox PROCESSED on verify/reset
+Note over O: Cron EVERY_5_MINUTES Redlock REMOVE_OUTBOX_EXP deleteMany updatedAt older than 300s
+</div>
+<p class="flow-meta">Queues <code>src/background/email/constant/event.type.ts</code>: <code>GMAIL_SERVICE</code>, <code>SYNC_SERVICE</code> (key <code>SYNC_DATE_SERVICE</code>), <code>PAYMENT_SERVICE</code> dead. <code>PAYMENT_EVENT create/update_payment</code> no producer/consumer.</p>
+</section>
+
+<section class="card" id="s8">
+<h2>8 — Redis locks / Discovery / Observability</h2>
+<ul>
+<li><code>src/background/redis/redis.module.ts</code> global Cache + <code>CacheInterceptor</code>; <code>redis.service.ts get/set/del/clear</code>; <code>redis.lock.service.ts Redlock retryCount:5 runExclusive→null on contention</code>; <code>redis.value.ts REDIS_LOCK_KEY.* TTL SHORT 5h LOCK 10min</code>. <code>REDIS_KEY REGISTER_USER/FORGOT_PASSWORD</code> unused.</li>
+<li>Discovery <code>src/background/tracking-frequent-data/tracking-frequent-data.service.ts</code> reads <code>ticket.filmOfCinema.film/cinema</code>; <code>UserRecommendation{userId,filmId,rank}</code> cached 300s.</li>
+<li>Obs: Winston DailyRotate <code>log/nest-log-%DATE%.log</code>, Prometheus global default <code>/metrics</code>, Swagger bearer+cookie.</li>
+</ul>
+</section>
+
+<section class="card" id="s9">
+<h2>9 — Glossary vs code drift</h2>
+<table><tr><th>CONTEXT term</th><th>Code drift</th></tr>
+<tr><td><code>FilmOfCinema</code> avoid Showtime</td><td><code>seat.service.ts:84 getSeatsByShowtimeId</code>, <code>seat.controller.ts:60 GET seat/showtime/*</code>, <code>SyncCinemaShowtimeDto</code>, <code>EVENT_NAME.CINEMA_SHOWTIME/FILM_SHOWTIME</code></td></tr>
+<tr><td><code>Ticket/Order</code> avoid Booking</td><td>mailer <code>cinemabooking.com</code>, Swagger <code>BOOKED</code> example, <code>CLAUDE.md /ticket Booking</code></td></tr>
+<tr><td><code>Film</code> avoid Movie</td><td><code>movie-glu-sdk CallMovieGluService MOVIE_GLU_*</code> (external)</td></tr>
+<tr><td><code>Cinema</code> avoid Theater</td><td><code>src/module/theater-module/</code></td></tr>
+<tr><td><code>Session</code> one User one IP</td><td>3 surfaces: Bearer + <code>accessToken</code> cookie + legacy <code>access-token</code> header</td></tr>
+<tr><td><code>EventTracking/UserRecommendation</code></td><td><code>TrackingFrequentData</code> module/tag</td></tr>
+<tr><td><code>Payment</code></td><td><code>Payment.orderStatus</code> misname, double link <code>Payment.orderId↔Order.paymentId</code>, <code>order_invoice_number</code> = Invoice term, <code>PAYMENT_STATUS</code> unused, MoMo vs SePay</td></tr>
+</table>
+</section>
+
+<section class="card" id="s10">
+<h2>10 — Risks / improvement candidates (display only)</h2>
+<div class="risk crit"><b>1. Double-book race.</b> Ticket has no booking write API; <code>POST /payment/order</code> does check-then-create with no seat-hold/Redlock/transaction. Concurrent orders for same <code>ticketId/seatId</code> can race.</div>
+<div class="risk crit"><b>2. DI fragility.</b> <code>PaymentModule</code> imports <code>TicketModule</code> but <code>TicketService</code> not exported.</div>
+<div class="risk"><b>3. resetPassword field.</b> Writes <code>password</code> vs column <code>hashPassword</code> — confirm migration.</div>
+<div class="risk crit"><b>4. SePay callback guard.</b> <code>POST /payment/sepay/callback</code> under global <code>AuthenticationGuard</code> — confirm <code>@Public()</code> or webhook 401s.</div>
+<div class="risk"><b>5. FilmOfCinema gap.</b> No CRUD API; <code>seat/showtime</code> param misnamed (<code>FOC.id</code> vs <code>Film.film_id</code>).</div>
+<div class="risk"><b>6. Sync overlap.</b> 4× <code>EVERY_2_HOURS</code> + chained fan-out, 10-min locks; 2 crons log-only.</div>
+<div class="risk"><b>7. Outbox GC.</b> Deletes <code>updatedAt&lt;now-5m</code> may drop unprocessed; <code>FAILED</code> never set.</div>
+<div class="risk"><b>8. Env/docker.</b> <code>Dockerfile EXPOSE 3000</code> vs <code>PORT=4000</code>; no <code>.env.production</code>; empty <code>CSRF_SECRET</code> fallback.</div>
+<div class="risk"><b>9. Docs drift.</b> <code>CLAUDE.md</code> MoMo/<code>/momo</code>, <code>/metrics</code>, <code>/ticket Booking</code>.</div>
+<div class="risk"><b>10. Order/Payment model.</b> Redundant <code>Order.paymentId? + Payment.orderId @unique</code>; opaque <code>AUTHENTICATION_NOT_NEEDED</code> default.</div>
+<p class="flow-meta">Per your Q2: listed for decision only, no code changed.</p>
+</section>
+
+<footer>Generated from code reads 2026-09-28. Open via file:// or <code>npx serve docs</code>. Mermaid needs network for CDN; print to PDF for offline.</footer>
+</main>
+</div>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -5,26 +6,32 @@ import {
   IsPositive,
   IsString,
   IsUUID,
-  Length,
+  Matches,
+  Max,
 } from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 
 export class UpdatePaymentDto {
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @IsPositive()
-  @IsOptional()
+  @Max(10000000)
   amount?: number;
 
-  @IsString()
-  @Length(3, 3)
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsString()
+  @Matches(/^[A-Z]{3}$/)
   currency?: string;
 
-  @IsEnum(OrderStatus)
   @IsOptional()
+  @IsEnum(OrderStatus)
   orderStatus?: OrderStatus;
 
-  @IsUUID()
   @IsOptional()
+  @IsUUID()
   orderId?: string;
 }

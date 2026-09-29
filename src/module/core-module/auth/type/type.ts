@@ -1,4 +1,4 @@
-import { Payload } from '../../../../core';
+import type { JwtPayload } from '../../../../core';
 
 export type UserWithoutPassword = {
   id: string;
@@ -8,10 +8,10 @@ export type UserWithoutPassword = {
   dateOfBirth: Date;
 };
 
-export type UserGenerateTokens = Required<Payload>;
+export type UserGenerateTokens = Required<JwtPayload>;
 
-export const COOKIE_TTL = {
-  ACCESS_TOKEN: 15 * 60, // 15 minutes
-  REFRESH_TOKEN: 7 * 24 * 60 * 60, // 7 days
-  COOKIE_TTL: 7 * 24 * 60 * 60, // 7 days
+export type AuthCookiePayload = {
+  accessToken?: string;
+  refreshToken?: string;
+  sessionId?: string;
 };

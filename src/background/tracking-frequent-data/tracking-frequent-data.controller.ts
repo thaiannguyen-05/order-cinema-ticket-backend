@@ -5,7 +5,7 @@ import { TrackingFrequentDataService } from './tracking-frequent-data.service';
 import { Public } from '../../core/decorator/ispublic.decorator';
 
 @ApiTags('Tracking Frequent Data')
-@Controller('tracking-frequent-data')
+@Controller({ path: 'tracking-frequent-data', version: '1' })
 export class TrackingFrequentDataController {
   constructor(private readonly service: TrackingFrequentDataService) {}
 

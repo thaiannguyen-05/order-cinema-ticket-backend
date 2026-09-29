@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../../background/prisma/prisma.service';
-import { Payload } from '../../../../core';
+import type { JwtPayload } from '../../../../core';
 import { UserGenerateTokens } from '../type/type';
 
 const MAX_SESSIONS = 5;
@@ -16,7 +16,7 @@ export class TokenService {
   ) {}
 
   async generateToken(user: UserGenerateTokens, nameToken: string) {
-    const payload: Payload = {
+    const payload: JwtPayload = {
       id: user.id,
       email: user.email,
       role: user.role,
@@ -41,7 +41,6 @@ export class TokenService {
     hashRefreshToken: string,
     ipAddress: string,
   ) {
-    // Tìm session hiện có cùng IP → update
     const existingSession = await this.prismaService.session.findUnique({
       where: { userId_userIp: { userId, userIp: ipAddress } },
     });
@@ -53,7 +52,6 @@ export class TokenService {
       });
     }
 
-    // Đếm sessions hiện tại, xóa oldest nếu vượt quá giới hạn
     const sessionCount = await this.prismaService.session.count({
       where: { userId },
     });
@@ -70,7 +68,6 @@ export class TokenService {
       }
     }
 
-    // Tạo session mới
     return this.prismaService.session.create({
       data: {
         hashRefreshToken,
@@ -100,7 +97,7 @@ export class TokenService {
   }
 
   async verifyToken(token: string) {
-    const payload: Payload = await this.jwtService.verifyAsync(token, {
+    const payload: JwtPayload = await this.jwtService.verifyAsync(token, {
       secret: this.configService.getOrThrow('JWT_SECRET'),
     });
 

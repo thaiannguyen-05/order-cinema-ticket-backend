@@ -3,7 +3,7 @@ import { Public } from '../../../core/decorator/ispublic.decorator';
 import { CreateTrackingDto } from './dto/create-tracking.dto';
 import { TrackingService } from './tracking.service';
 
-@Controller('tracking')
+@Controller({ path: 'tracking', version: '1' })
 export class TrackingController {
   constructor(private readonly trackingService: TrackingService) {}
 

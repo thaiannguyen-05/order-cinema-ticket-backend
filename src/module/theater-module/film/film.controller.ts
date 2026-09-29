@@ -29,7 +29,7 @@ import { USER_ROLE } from '@prisma/client';
 import { User } from '../../../core/decorator/user.decorator';
 
 @ApiTags('Film')
-@Controller('film')
+@Controller({ path: 'film', version: '1' })
 export class FilmController {
   constructor(private readonly filmService: FilmService) {}
 

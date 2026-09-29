@@ -57,7 +57,7 @@ describe('UserService', () => {
     await service.createUser({
       fullname: 'User A',
       email: 'a@example.com',
-      password: 'hashed',
+      hashedPassword: 'hashed',
       dateOfBirth: new Date('2000-01-01T00:00:00.000Z'),
       address: 'HCM',
       status: 'PENDING',
@@ -117,14 +117,14 @@ describe('UserService', () => {
 
     await service.updateUserByEmail({
       email: 'a@example.com',
-      password: 'new-hash',
+      hashedPassword: 'new-hash',
     });
 
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
         email: 'a@example.com',
-        password: 'new-hash',
+        hashedPassword: 'new-hash',
       },
     });
   });
