@@ -11,7 +11,10 @@ import { EVENT_NAME } from '../../../../background/email/constant/event.constant
 import { EmailWorker } from '../../../../background/email/email.worker';
 import { OutboxService } from '../../../../background/email/outbox.service';
 import type { JwtPayload } from '../../../../core';
-import { InvalidCredentialsException, InvalidRefreshTokenException } from '../../../../core/exception/auth.exception';
+import {
+  InvalidCredentialsException,
+  InvalidRefreshTokenException,
+} from '../../../../core/exception/auth.exception';
 import { MyLogger } from '../../../../core/logger/logger.service';
 import { UserService } from '../../user/user.service';
 import { LoginDto } from '../dto/login.dto';
@@ -38,7 +41,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly configService: ConfigService,
     private readonly outboxService: OutboxService,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
@@ -77,7 +80,6 @@ export class AuthService {
     };
   }
 
-
   async verifyEmail(dto: VerifyEmailDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
     if (!availableUser) {
@@ -97,10 +99,7 @@ export class AuthService {
         'This verification code has already been used',
       );
     }
-    if (
-      Date.now() - new Date(outBox.createdAt).getTime() >
-      CODE_EXPIRY_MS
-    ) {
+    if (Date.now() - new Date(outBox.createdAt).getTime() > CODE_EXPIRY_MS) {
       throw new BadRequestException('Verification code has expired');
     }
 
@@ -137,7 +136,10 @@ export class AuthService {
     }
 
     const outBox = await this.outboxService.getOutBox(email);
-    if (outBox?.createdAt && Date.now() - new Date(outBox.createdAt).getTime() < CODE_EXPIRY_MS) {
+    if (
+      outBox?.createdAt &&
+      Date.now() - new Date(outBox.createdAt).getTime() < CODE_EXPIRY_MS
+    ) {
       throw new BadRequestException(
         'A reset password request has already been sent. Please check your email.',
       );
@@ -149,7 +151,6 @@ export class AuthService {
       );
     }
 
-
     const payload: EmailPayload = {
       email: email,
       code: generateCode(),
@@ -157,7 +158,7 @@ export class AuthService {
     const resetToken = generateCode();
     const outbox = await this.outboxService.createOutboxMessage(
       EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      payload
+      payload,
     );
 
     this.emailWorker.sendResetPasswordEmail(email, resetToken);
@@ -177,10 +178,7 @@ export class AuthService {
     if (outBox.status === 'PROCESSED') {
       throw new BadRequestException('This reset code has already been used');
     }
-    if (
-      Date.now() - new Date(outBox.createdAt).getTime() >
-      CODE_EXPIRY_MS
-    ) {
+    if (Date.now() - new Date(outBox.createdAt).getTime() > CODE_EXPIRY_MS) {
       throw new BadRequestException('Reset code has expired');
     }
     if (outBox.eventType !== EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL) {
@@ -300,12 +298,9 @@ export class AuthService {
       email: availableUser.email,
       role: availableUser.role,
     });
-    const newHashRefreshToken = await hashTextByArgon2(
-      newTokens.refreshToken,
-    );
+    const newHashRefreshToken = await hashTextByArgon2(newTokens.refreshToken);
 
     await this.tokenService.updateSession(sessionId, newHashRefreshToken);
-
 
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';

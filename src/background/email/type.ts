@@ -1,4 +1,4 @@
 export type EmailPayload = {
-    email: string;
-    code: string;
-}
+  email: string;
+  code: string;
+};
