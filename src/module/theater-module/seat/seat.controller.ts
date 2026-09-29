@@ -27,7 +27,7 @@ import { Roles } from '../../../core/decorator/roles.decorator';
 import { USER_ROLE } from '@prisma/client';
 
 @ApiTags('Seat')
-@Controller('seat')
+@Controller({ path: 'seat', version: '1' })
 export class SeatController {
   constructor(private readonly seatService: SeatService) {}
 

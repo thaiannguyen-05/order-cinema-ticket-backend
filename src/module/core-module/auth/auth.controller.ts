@@ -31,7 +31,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ForgotPasswordDto } from './dto/forgot.password.dto';
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
