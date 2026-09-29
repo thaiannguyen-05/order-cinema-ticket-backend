@@ -41,7 +41,6 @@ export class TokenService {
     hashRefreshToken: string,
     ipAddress: string,
   ) {
-    // Tìm session hiện có cùng IP → update
     const existingSession = await this.prismaService.session.findUnique({
       where: { userId_userIp: { userId, userIp: ipAddress } },
     });
@@ -53,7 +52,6 @@ export class TokenService {
       });
     }
 
-    // Đếm sessions hiện tại, xóa oldest nếu vượt quá giới hạn
     const sessionCount = await this.prismaService.session.count({
       where: { userId },
     });
@@ -70,7 +68,6 @@ export class TokenService {
       }
     }
 
-    // Tạo session mới
     return this.prismaService.session.create({
       data: {
         hashRefreshToken,

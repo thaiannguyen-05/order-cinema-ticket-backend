@@ -33,7 +33,7 @@ export class UserService {
       data: {
         fullname: dto.fullname,
         email: dto.email,
-        hashPassword: dto.password,
+        hashPassword: dto.hashedPassword,
         dateOfBirth: dto.dateOfBirth,
         address: dto.address,
         status: 'PENDING',

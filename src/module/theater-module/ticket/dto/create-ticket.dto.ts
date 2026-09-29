@@ -1,20 +1,40 @@
-import { IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateTicketDto {
   @IsOptional()
-  @IsString()
+  @IsDateString()
   time?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   code?: string;
 
+  @Type(() => Number)
   @IsNumber()
-  price: number;
+  @IsNotEmpty()
+  @Min(1)
+  @Max(10000000)
+  price!: number;
 
   @IsUUID()
-  filmOfCinemaId: string;
+  @IsNotEmpty()
+  filmOfCinemaId!: string;
 
   @IsUUID()
-  seatId: string;
+  @IsNotEmpty()
+  seatId!: string;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OUTBOX_STATUS, type Outbox } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailPayload } from './type';
 
 @Injectable()
 export class OutboxService {
@@ -12,7 +13,7 @@ export class OutboxService {
 
   async createOutboxMessage(
     eventType: string,
-    payload: { email: string; code: string },
+    payload: EmailPayload,
   ): Promise<Outbox> {
     return this.prismaService.outbox.create({
       data: {

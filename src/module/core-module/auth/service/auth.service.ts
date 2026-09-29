@@ -6,13 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { hash, verify } from 'argon2';
-import { type User as PrismaUser } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 import { EmailWorker } from '../../../../background/email/email.worker';
 import { OutboxService } from '../../../../background/email/outbox.service';
 import type { JwtPayload } from '../../../../core';
+import { InvalidCredentialsException, InvalidRefreshTokenException } from '../../../../core/exception/auth.exception';
 import { MyLogger } from '../../../../core/logger/logger.service';
 import { UserService } from '../../user/user.service';
 import { LoginDto } from '../dto/login.dto';
@@ -27,6 +26,9 @@ import {
 } from '../type/constant';
 import { UserWithoutPassword } from '../type/type';
 import { TokenService } from './token.service';
+import { generateCode, hashTextByArgon2, verifyTextByArgon2 } from './helper';
+import { EmailPayload } from '../../../../background/email/type';
+import { CODE_EXPIRY_MS } from './type';
 @Injectable()
 export class AuthService {
   constructor(
@@ -36,19 +38,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly configService: ConfigService,
     private readonly outboxService: OutboxService,
-  ) {}
-
-  private hashTextByArgon2(password: string): Promise<string> {
-    return hash(password);
-  }
-
-  private verifyTextByArgon2(hash: string, text: string) {
-    return verify(hash, text);
-  }
-
-  private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
+  ) { }
 
   async register(dto: RegisterDto) {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
@@ -56,40 +46,11 @@ export class AuthService {
       throw new ConflictException('Email is already in use');
     }
 
-    const hashedPassword = await this.hashTextByArgon2(dto.password);
-    const verificationCode = this.generateCode();
-    const payload = {
-      email: dto.email,
-      code: verificationCode,
-    };
-    const outbox = await this.outboxService.createOutboxMessage(
-      EVENT_NAME.SEND_VERIFY_CODE,
-      payload,
-    );
-
-    let newUser: PrismaUser;
-    try {
-      newUser = await this.userService.createUser({
-        fullname: dto.fullname,
-        email: dto.email,
-        password: hashedPassword,
-        address: dto.address,
-        dateOfBirth: dto.dateOfBirth,
-      });
-    } catch (error: unknown) {
-      // Handle Prisma unique constraint error (P2002)
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code: string }).code === 'P2002'
-      ) {
-        throw new ConflictException('Email is already in use');
-      }
-      throw error;
-    }
-
-    this.emailWorker.sendVerifyCode(dto.email, verificationCode);
+    const hashedPassword = await hashTextByArgon2(dto.password);
+    const newUser = await this.userService.createUser({
+      ...dto,
+      hashedPassword,
+    });
 
     const result: UserWithoutPassword = {
       id: newUser.id,
@@ -99,24 +60,37 @@ export class AuthService {
       dateOfBirth: newUser.dateOfBirth,
     };
 
+    const verificationCode = generateCode();
+    const payload: EmailPayload = {
+      email: dto.email,
+      code: verificationCode,
+    };
+    const outbox = await this.outboxService.createOutboxMessage(
+      EVENT_NAME.SEND_VERIFY_CODE,
+      payload,
+    );
+    this.emailWorker.sendVerifyCode(dto.email, verificationCode);
+
     return {
       outbox,
       result,
     };
   }
 
-  private readonly CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
   async verifyEmail(dto: VerifyEmailDto): Promise<boolean> {
     const availableUser = await this.userService.isAvailableEmail(dto.email);
-    this.logger.debug(`${availableUser}`);
     if (!availableUser) {
-      return true;
+      throw new NotFoundException('User not found');
     }
 
     const outBox = await this.outboxService.getOutBox(dto.outBoxId);
     if (!outBox) {
       throw new NotFoundException('Code is expired or system has some errors');
+    }
+
+    if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
+      throw new BadRequestException('Invalid verification request');
     }
     if (outBox.status === 'PROCESSED') {
       throw new BadRequestException(
@@ -125,15 +99,15 @@ export class AuthService {
     }
     if (
       Date.now() - new Date(outBox.createdAt).getTime() >
-      this.CODE_EXPIRY_MS
+      CODE_EXPIRY_MS
     ) {
       throw new BadRequestException('Verification code has expired');
     }
-    if (outBox.eventType !== EVENT_NAME.SEND_VERIFY_CODE) {
-      throw new BadRequestException('Invalid verification request');
-    }
 
-    const payload = outBox.payload as { email?: string; code?: string };
+    const payload: EmailPayload = {
+      email: outBox.email,
+      code: outBox.code,
+    };
     const storedCode = payload.code;
     if (!storedCode) {
       throw new BadRequestException('Verification code is invalid');
@@ -162,15 +136,31 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    const resetToken = this.generateCode();
+    const outBox = await this.outboxService.getOutBox(email);
+    if (outBox?.createdAt && Date.now() - new Date(outBox.createdAt).getTime() < CODE_EXPIRY_MS) {
+      throw new BadRequestException(
+        'A reset password request has already been sent. Please check your email.',
+      );
+    }
+
+    if (outBox && outBox.status === 'PENDING') {
+      throw new BadRequestException(
+        'A reset password request is already pending. Please check your email.',
+      );
+    }
+
+
+    const payload: EmailPayload = {
+      email: email,
+      code: generateCode(),
+    };
+    const resetToken = generateCode();
     const outbox = await this.outboxService.createOutboxMessage(
       EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      { email: email, code: resetToken },
+      payload
     );
 
-    // emit() là fire-and-forget, outbox pattern đảm bảo reliability
     this.emailWorker.sendResetPasswordEmail(email, resetToken);
-
     return outbox;
   }
 
@@ -189,7 +179,7 @@ export class AuthService {
     }
     if (
       Date.now() - new Date(outBox.createdAt).getTime() >
-      this.CODE_EXPIRY_MS
+      CODE_EXPIRY_MS
     ) {
       throw new BadRequestException('Reset code has expired');
     }
@@ -197,24 +187,26 @@ export class AuthService {
       throw new BadRequestException('Invalid reset password request');
     }
 
-    const payload = outBox.payload as { email?: string; code?: string };
-    const storedCode = payload.code;
-    if (!storedCode) {
+    const payload: EmailPayload = {
+      email: outBox.email,
+      code: outBox.code,
+    };
+    if (!payload.code) {
       throw new BadRequestException('Verification code is invalid');
     }
-    if (storedCode !== dto.code) {
+    if (payload.code !== dto.code) {
       throw new BadRequestException('Invalid verification code');
     }
     if (payload.email !== dto.email) {
       throw new BadRequestException('Invalid verification code');
     }
 
-    const hashedPassword = await this.hashTextByArgon2(dto.newPassword);
+    const hashedPassword = await hashTextByArgon2(dto.newPassword);
 
     await Promise.all([
       this.userService.updateUserByEmail({
         email: dto.email,
-        password: hashedPassword,
+        hashedPassword: hashedPassword,
       }),
       this.outboxService.updateOutboxMessage(dto.outBoxId, 'PROCESSED'),
     ]);
@@ -224,28 +216,25 @@ export class AuthService {
 
   async login(dto: LoginDto, ipAddress: string, response: Response) {
     const availableUser = await this.userService.getUserByEmail(dto.email);
-    const invalidCredentialsError = new UnauthorizedException(
-      'Invalid email or password',
-    );
 
     if (!availableUser) {
-      throw invalidCredentialsError;
+      throw new InvalidCredentialsException('USER_NOT_FOUND');
     }
 
     if (availableUser.status !== 'ACTIVE') {
-      throw invalidCredentialsError;
+      throw new InvalidCredentialsException('INACTIVE_USER');
     }
 
-    const isValidPassword = await this.verifyTextByArgon2(
+    const isValidPassword = await verifyTextByArgon2(
       availableUser.hashPassword,
       dto.password,
     );
     if (!isValidPassword) {
-      throw invalidCredentialsError;
+      throw new InvalidCredentialsException('INVALID_PASSWORD');
     }
 
     const token = await this.tokenService.generateTokens(availableUser);
-    const hashRefreshToken = await this.hashTextByArgon2(token.refreshToken);
+    const hashRefreshToken = await hashTextByArgon2(token.refreshToken);
     const session = await this.tokenService.handleSession(
       availableUser.id,
       hashRefreshToken,
@@ -273,57 +262,51 @@ export class AuthService {
   }
 
   async refreshToken(req: Request, res: Response) {
-    const invalidRefreshTokenError = new UnauthorizedException(
-      'Invalid refresh token',
-    );
-
-    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID] as string;
+    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID];
     if (!sessionId) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('MISSING_SESSION_ID');
     }
     const session = await this.tokenService.getSessionById(sessionId);
     if (!session) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('SESSION_NOT_FOUND');
     }
 
-    const refreshToken = req.cookies[AUTH_COOKIE_NAME.REFRESH_TOKEN] as string;
+    const refreshToken = req.cookies[AUTH_COOKIE_NAME.REFRESH_TOKEN];
     if (!refreshToken) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('MISSING_TOKEN');
     }
 
-    const isValidRefreshToken = await this.verifyTextByArgon2(
+    const isValidRefreshToken = await verifyTextByArgon2(
       session.hashRefreshToken,
       refreshToken,
     );
     if (!isValidRefreshToken) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('INVALID_TOKEN');
     }
 
     const payload: JwtPayload =
       await this.tokenService.verifyToken(refreshToken);
     if (payload.id !== session.userId) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('USER_MISMATCH');
     }
 
     const availableUser = await this.userService.getUserById(payload.id);
     if (!availableUser) {
-      throw invalidRefreshTokenError;
+      throw new InvalidRefreshTokenException('USER_NOT_FOUND');
     }
 
-    // Generate new tokens (include role from DB)
     const newTokens = await this.tokenService.generateTokens({
       id: availableUser.id,
       email: availableUser.email,
       role: availableUser.role,
     });
-    const newHashRefreshToken = await this.hashTextByArgon2(
+    const newHashRefreshToken = await hashTextByArgon2(
       newTokens.refreshToken,
     );
 
-    // Update DB FIRST — if this fails, no cookies are set
     await this.tokenService.updateSession(sessionId, newHashRefreshToken);
 
-    // Set cookies ONLY after DB update succeeds
+
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
     const cookieOptions = getAuthCookieOptions(isProduction);
@@ -346,7 +329,7 @@ export class AuthService {
   }
 
   async logout(req: Request, res: Response) {
-    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID] as string;
+    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID];
     if (!sessionId) {
       throw new UnauthorizedException('Session ID is missing');
     }
