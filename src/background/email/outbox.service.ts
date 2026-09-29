@@ -18,7 +18,8 @@ export class OutboxService {
     return this.prismaService.outbox.create({
       data: {
         eventType,
-        payload,
+        email: payload.email,
+        code: payload.code,
         status: OUTBOX_STATUS.PENDING,
       },
     });

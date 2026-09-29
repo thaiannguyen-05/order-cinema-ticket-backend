@@ -167,7 +167,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_VERIFY_CODE,
-      payload: { email: 'a@example.com', code: '123456' },
+      email: 'a@example.com',
+      code: '123456',
     });
 
     await expect(
@@ -193,7 +194,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_VERIFY_CODE,
-      payload: { email: 'a@example.com', code: '654321' },
+      email: 'a@example.com',
+      code: '654321',
     });
 
     await expect(
@@ -234,7 +236,7 @@ describe('AuthService', () => {
     );
   });
 
-  it('returns true when verify email user is not found/already unavailable', async () => {
+  it('throws not found when verify email user does not exist', async () => {
     userService.isAvailableEmail.mockResolvedValue(false);
 
     await expect(
@@ -243,7 +245,7 @@ describe('AuthService', () => {
         code: '123456',
         outBoxId: 'o1',
       } as never),
-    ).resolves.toBe(true);
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(outboxService.getOutBox).not.toHaveBeenCalled();
     expect(outboxService.updateOutboxMessage).not.toHaveBeenCalled();
@@ -267,7 +269,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      payload: { email: 'a@example.com', code: '123456' },
+      email: 'a@example.com',
+      code: '123456',
     });
 
     await expect(
@@ -286,7 +289,7 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_VERIFY_CODE,
-      payload: { email: 'a@example.com' },
+      email: 'a@example.com',
     });
 
     await expect(
@@ -303,7 +306,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_VERIFY_CODE,
-      payload: { email: 'b@example.com', code: '123456' },
+      email: 'b@example.com',
+      code: '123456',
     });
 
     await expect(
@@ -353,7 +357,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_VERIFY_CODE,
-      payload: { email: 'a@example.com', code: '123456' },
+      email: 'a@example.com',
+      code: '123456',
     });
 
     await expect(
@@ -371,7 +376,7 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      payload: { email: 'a@example.com' },
+      email: 'a@example.com',
     });
 
     await expect(
@@ -389,7 +394,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      payload: { email: 'b@example.com', code: '123456' },
+      email: 'b@example.com',
+      code: '123456',
     });
 
     await expect(
@@ -410,7 +416,8 @@ describe('AuthService', () => {
     outboxService.getOutBox.mockResolvedValue({
       id: 'o1',
       eventType: EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
-      payload: { email: 'a@example.com', code: '123456' },
+      email: 'a@example.com',
+      code: '123456',
     });
     hash.mockResolvedValue('new-hashed-password');
 
@@ -425,7 +432,7 @@ describe('AuthService', () => {
 
     expect(userService.updateUserByEmail).toHaveBeenCalledWith({
       email: 'a@example.com',
-      password: 'new-hashed-password',
+      hashedPassword: 'new-hashed-password',
     });
     expect(outboxService.updateOutboxMessage).toHaveBeenCalledWith(
       'o1',

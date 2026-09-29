@@ -102,15 +102,13 @@ const V1_CONTROLLERS: ControllerClass[] = [
 ];
 
 describe('API versioning', () => {
-  it.each(V1_CONTROLLERS.map((controller) => [controller.name]))(
-    '%s is served under v1',
-    (name) => {
-      const target = V1_CONTROLLERS.find(
-        (controller) => controller.name === name,
-      );
-      expect(Reflect.getMetadata(VERSION_METADATA, target)).toBe('1');
-    },
+  const V1_CASES: [string, ControllerClass][] = V1_CONTROLLERS.map(
+    (controller) => [controller.name, controller],
   );
+
+  it.each(V1_CASES)('%s is served under v1', (_name, target) => {
+    expect(Reflect.getMetadata(VERSION_METADATA, target)).toBe('1');
+  });
 
   it('serves health check without a version prefix', () => {
     expect(Reflect.getMetadata(VERSION_METADATA, AppController)).toBe(
