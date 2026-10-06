@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: order-cinema-db
+    restart: 'no'
     env_file:
       - .env.development
     environment:
@@ -9,13 +10,13 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - '${DB_PORT}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - order-cinema-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
       interval: 5s
       timeout: 3s
       retries: 20
@@ -23,6 +24,7 @@ services:
   rabbit:
     image: rabbitmq:3-management-alpine
     container_name: order-cinema-rabbitmq
+    restart: 'no'
     env_file:
       - .env.development
     environment:
@@ -32,12 +34,12 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - order-cinema-network  
+      - order-cinema-network
     ports:
-      - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+      - '${RABBITMQ_PORT}:5672'
+      - '${RABBITMQ_MANAGEMENT_PORT}:15672'
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 5672 && nc -z 127.0.0.1 15672"]
+      test: ['CMD-SHELL', 'nc -z 127.0.0.1 5672 && nc -z 127.0.0.1 15672']
       interval: 10s
       timeout: 3s
       retries: 10
@@ -46,20 +48,41 @@ services:
   redis:
     image: redis:7-alpine
     container_name: order-cinema-redis
+    restart: 'no'
     env_file:
       - .env.development
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis_data:/data
     ports:
-      - "${REDIS_PORT}:6379" 
+      - '${REDIS_PORT}:6379'
     networks:
       - order-cinema-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 20
+
+  k6:
+    image: grafana/k6:latest
+    container_name: order-cinema-k6
+    restart: 'no'
+    depends_on:
+      - db
+      - redis
+      - rabbit
+    networks:
+      - order-cinema-network
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      K6_BASE_URL: http://host.docker.internal:4000
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    command: ['run', '/scripts/smoke.js']
+    profiles:
+      - k6
 
 volumes:
   postgres_data:

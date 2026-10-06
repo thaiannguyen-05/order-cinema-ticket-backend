@@ -50,5 +50,5 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsEnum(ACCOUNT_STATUS)
-  status?: ACCOUNT_STATUS;
+  status?: ACCOUNT_STATUS = 'PENDING';
 }

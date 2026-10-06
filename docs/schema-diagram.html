@@ -1,0 +1,1717 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cinema Ticket Backend — Prisma Schema Diagram</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #ffffff;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --pk: #f59e0b;
+        --fk: #3b82f6;
+        --uniq: #8b5cf6;
+        --cascade: #ef4444;
+        --restrict: #f59e0b;
+        --setnull: #10b981;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          Arial;
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+      header {
+        background: var(--bg);
+        color: #fff;
+        padding: 28px 32px;
+      }
+      header h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+      header p {
+        margin: 4px 0;
+        color: #cbd5e1;
+        font-size: 14px;
+      }
+      .stats {
+        display: flex;
+        gap: 12px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .stat {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+      .stat b {
+        color: #fff;
+      }
+      main {
+        padding: 24px 32px 60px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      h2 {
+        margin: 36px 0 12px;
+        font-size: 20px;
+        border-left: 6px solid #3b82f6;
+        padding-left: 10px;
+      }
+      h3 {
+        margin: 20px 0 8px;
+        font-size: 16px;
+      }
+      .legend {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        font-size: 13px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .pk {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+      }
+      .fk {
+        background: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+      }
+      .uq {
+        background: #ede9fe;
+        color: #5b21b6;
+        border: 1px solid #c4b5fd;
+      }
+      .cascade {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+      }
+      .restrict {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+      }
+      .setnull {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #6ee7b7;
+      }
+      .warnbox {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-left: 6px solid #f59e0b;
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 13px;
+        margin: 12px 0;
+      }
+      /* SVG diagram */
+      .diagram-wrap {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0;
+        overflow: auto;
+      }
+      svg {
+        min-width: 1240px;
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .node rect {
+        fill: #fff;
+        stroke: #334155;
+        stroke-width: 1.5;
+        rx: 8;
+      }
+      .node title {
+        font-weight: 700;
+      }
+      .node .model-name {
+        font: 700 13px sans-serif;
+        fill: #0f172a;
+      }
+      .node .model-pk {
+        font: 11px monospace;
+        fill: #92400e;
+      }
+      .node .model-fk {
+        font: 11px monospace;
+        fill: #1e40af;
+      }
+      .edge {
+        stroke: #475569;
+        stroke-width: 1.6;
+        fill: none;
+      }
+      .edge.cascade {
+        stroke: #ef4444;
+      }
+      .edge.restrict {
+        stroke: #f59e0b;
+        stroke-dasharray: 6 3;
+      }
+      .edge.setnull {
+        stroke: #10b981;
+        stroke-dasharray: 2 3;
+      }
+      .edge-label {
+        font: 10px monospace;
+        fill: #334155;
+        background: #fff;
+      }
+      /* cards */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .card-head {
+        padding: 12px 16px;
+        background: #0f172a;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card-head b {
+        font-size: 15px;
+      }
+      .card-head span {
+        font-size: 11px;
+        color: #cbd5e1;
+        font-family: monospace;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+      th {
+        text-align: left;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 7px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        vertical-align: top;
+      }
+      td:last-child {
+        font-family: ui-sans-serif, system-ui;
+      }
+      .card-foot {
+        padding: 10px 16px;
+        background: #f8fafc;
+        font-size: 12px;
+        color: #475569;
+        border-top: 1px solid var(--line);
+      }
+      .rel-table td,
+      .rel-table th {
+        font-family: ui-sans-serif, system-ui;
+      }
+      .rel-table td:nth-child(2),
+      .rel-table td:nth-child(3) {
+        font-family: ui-monospace, monospace;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      .enums {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 12px;
+      }
+      .enum-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .enum-card b {
+        font-size: 13px;
+      }
+      .enum-card ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+        font-size: 12px;
+        font-family: monospace;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 30px;
+      }
+      @media print {
+        header {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        main {
+          padding: 0;
+        }
+        .diagram-wrap {
+          overflow: visible;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Cinema Ticket Backend — Prisma Schema Diagram</h1>
+      <p>
+        Source: <code>prisma/schema/</code> — 12 models + 9 enums (PostgreSQL).
+        Full field detail + full relations for refactor.
+      </p>
+      <p>
+        Files: schema.prisma, cinema.prisma, film.prisma, filmOfCinemas.prisma,
+        seat.prisma, ticket.prisma, payment.prisma, user.prisma, session.prisma,
+        event_tracking.prisma, recommendation.prisma, outbox.prisma, enum.prisma
+      </p>
+      <div class="stats">
+        <div class="stat"><b>12</b> models</div>
+        <div class="stat"><b>13</b> FK relations</div>
+        <div class="stat"><b>9</b> enums</div>
+        <div class="stat">
+          Hub: <b>FilmOfCinema</b> + <b>Ticket/Order</b> chain
+        </div>
+        <div class="stat">Isolated: <b>Outbox</b></div>
+      </div>
+    </header>
+    <main>
+      <h2>1. Visual ER Diagram</h2>
+      <div class="legend">
+        <span><span class="badge pk">PK</span> primary key</span>
+        <span><span class="badge fk">FK</span> foreign key</span>
+        <span><span class="badge uq">UQ</span> unique</span>
+        <span
+          ><span class="badge cascade">Cascade</span> onDelete Cascade (red
+          solid)</span
+        >
+        <span
+          ><span class="badge restrict">Restrict</span> onDelete Restrict (amber
+          dashed)</span
+        >
+        <span
+          ><span class="badge setnull">SetNull</span> onDelete SetNull (green
+          dotted)</span
+        >
+        <span>◆ 1 — 1:1 via @unique FK &nbsp;&nbsp; ●—≺ 1 — N</span>
+      </div>
+      <div class="diagram-wrap">
+        <svg
+          viewBox="0 0 1280 860"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="ER diagram"
+        >
+          <defs>
+            <marker
+              id="crow"
+              markerWidth="10"
+              markerHeight="10"
+              refX="8"
+              refY="5"
+              orient="auto"
+            >
+              <path
+                d="M0,0 L10,5 L0,10"
+                fill="none"
+                stroke="#475569"
+                stroke-width="1.6"
+              />
+            </marker>
+            <marker
+              id="crowR"
+              markerWidth="10"
+              markerHeight="10"
+              refX="8"
+              refY="5"
+              orient="auto"
+            >
+              <path
+                d="M0,0 L10,5 L0,10"
+                fill="none"
+                stroke="#ef4444"
+                stroke-width="1.6"
+              />
+            </marker>
+          </defs>
+
+          <!-- USER -->
+          <g class="node">
+            <rect x="40" y="40" width="220" height="150" rx="8" />
+            <text x="52" y="62" class="model-name">User (id UUID)</text>
+            <text x="52" y="82" class="model-pk">PK id</text>
+            <text x="52" y="98" class="model-fk">→ Order[], Session[]</text>
+            <text x="52" y="114" class="model-fk">
+              → EventTracking[], UserRec[]
+            </text>
+            <text x="52" y="132" style="font: 11px sans-serif; fill: #64748b">
+              email @unique
+            </text>
+            <text x="52" y="148" style="font: 11px sans-serif; fill: #64748b">
+              ACCOUNT_STATUS, USER_ROLE
+            </text>
+            <text x="52" y="166" style="font: 11px sans-serif; fill: #64748b">
+              1 — N (parent side)
+            </text>
+          </g>
+          <!-- SESSION -->
+          <g class="node">
+            <rect x="40" y="250" width="220" height="110" rx="8" />
+            <text x="52" y="272" class="model-name">Session (id UUID)</text>
+            <text x="52" y="290" class="model-fk">FK userId → User.id</text>
+            <text x="52" y="306" style="font: 11px sans-serif">
+              UQ [userId, userIp]
+            </text>
+            <text x="52" y="322" style="font: 11px sans-serif; fill: #991b1b">
+              onDelete: Cascade
+            </text>
+            <text x="52" y="338" style="font: 11px sans-serif; fill: #64748b">
+              N — 1 to User
+            </text>
+          </g>
+          <!-- EVENT TRACKING -->
+          <g class="node">
+            <rect x="40" y="400" width="220" height="130" rx="8" />
+            <text x="52" y="422" class="model-name">EventTracking UUID</text>
+            <text x="52" y="440" class="model-fk">FK userId? → User.id</text>
+            <text x="52" y="456" style="font: 11px sans-serif">
+              nullable, SetNull
+            </text>
+            <text x="52" y="472" style="font: 11px sans-serif">
+              idx userId/eventType
+            </text>
+            <text x="52" y="488" style="font: 11px sans-serif">
+              EVENT_TYPE enum
+            </text>
+            <text x="52" y="504" style="font: 11px sans-serif; fill: #64748b">
+              N — 1 to User
+            </text>
+          </g>
+          <!-- USER RECOMMENDATION -->
+          <g class="node">
+            <rect x="40" y="570" width="220" height="140" rx="8" />
+            <text x="52" y="592" class="model-name">UserRecommendation</text>
+            <text x="52" y="610" class="model-fk">FK userId → User.id</text>
+            <text x="52" y="626" class="model-fk">
+              FK filmId → Film.film_id
+            </text>
+            <text x="52" y="642" style="font: 11px sans-serif">
+              UQ [userId,filmId]
+            </text>
+            <text x="52" y="658" style="font: 11px sans-serif">
+              UQ [userId,rank]
+            </text>
+            <text x="52" y="674" style="font: 11px sans-serif; fill: #991b1b">
+              Cascade ×2
+            </text>
+            <text x="52" y="690" style="font: 11px sans-serif; fill: #64748b">
+              N — 1 to User &amp; Film
+            </text>
+          </g>
+
+          <!-- ORDER -->
+          <g class="node">
+            <rect x="330" y="120" width="250" height="170" rx="8" />
+            <text x="342" y="142" class="model-name">Order (id UUID)</text>
+            <text x="342" y="160" class="model-pk">PK id + UQ [id,userId]</text>
+            <text x="342" y="176" class="model-fk">
+              FK userId → User (Restrict)
+            </text>
+            <text x="342" y="192" class="model-fk">
+              FK ticketId UQ → Ticket
+            </text>
+            <text x="342" y="208" style="font: 11px sans-serif">
+              ↳ Restrict, 1 — 1
+            </text>
+            <text x="342" y="224" class="model-fk">
+              FK paymentId? → Payment
+            </text>
+            <text x="342" y="240" style="font: 11px sans-serif">
+              UQ [ticketId,userId]
+            </text>
+            <text x="342" y="256" style="font: 11px sans-serif">
+              OrderStatus enum
+            </text>
+            <text x="342" y="272" style="font: 11px sans-serif; fill: #64748b">
+              N — 1 User/Payment; 1—1 Ticket
+            </text>
+          </g>
+          <!-- PAYMENT -->
+          <g class="node">
+            <rect x="330" y="340" width="250" height="170" rx="8" />
+            <text x="342" y="362" class="model-name">
+              Payment (id Int @auto)
+            </text>
+            <text x="342" y="380" class="model-pk">PK id</text>
+            <text x="342" y="396" style="font: 11px monospace; fill: #991b1b">
+              ⚠ orderId UQ, NO relation
+            </text>
+            <text x="342" y="412" style="font: 11px sans-serif">
+              ← Order.paymentId (1—N)
+            </text>
+            <text x="342" y="428" style="font: 11px sans-serif">
+              amount Int, currency
+            </text>
+            <text x="342" y="444" style="font: 11px sans-serif">
+              orderStatus OrderStatus
+            </text>
+            <text x="342" y="460" style="font: 11px sans-serif">
+              1 Payment — N Orders
+            </text>
+            <text x="342" y="476" style="font: 11px sans-serif; fill: #991b1b">
+              anomaly: dangling orderId
+            </text>
+          </g>
+          <!-- OUTBOX -->
+          <g class="node">
+            <rect
+              x="330"
+              y="570"
+              width="250"
+              height="140"
+              rx="8"
+              stroke-dasharray="6 3"
+            />
+            <text x="342" y="592" class="model-name">Outbox (isolated)</text>
+            <text x="342" y="610" class="model-pk">
+              PK id UUID (no @db.Uuid)
+            </text>
+            <text x="342" y="626" style="font: 11px sans-serif">
+              eventType, code, email
+            </text>
+            <text x="342" y="642" style="font: 11px sans-serif">
+              UQ [email,eventType]
+            </text>
+            <text x="342" y="658" style="font: 11px sans-serif">
+              OUTBOX_STATUS
+            </text>
+            <text x="342" y="674" style="font: 11px sans-serif; fill: #64748b">
+              no FK — standalone
+            </text>
+          </g>
+
+          <!-- FILM OF CINEMA (hub) -->
+          <g class="node">
+            <rect
+              x="650"
+              y="120"
+              width="260"
+              height="170"
+              rx="8"
+              style="stroke-width: 2.5; stroke: #3b82f6"
+            />
+            <text x="662" y="142" class="model-name">FilmOfCinema ★ HUB</text>
+            <text x="662" y="160" class="model-pk">PK id UUID</text>
+            <text x="662" y="176" class="model-fk">
+              FK filmId → Film (Cascade)
+            </text>
+            <text x="662" y="192" class="model-fk">
+              FK cinemaId → Cinema (Cascade)
+            </text>
+            <text x="662" y="208" style="font: 11px sans-serif">
+              UQ [filmId, cinemaId]
+            </text>
+            <text x="662" y="224" style="font: 11px sans-serif">
+              → Seat[], Ticket[]
+            </text>
+            <text x="662" y="240" style="font: 11px sans-serif">
+              pairing Film×Cinema
+            </text>
+            <text x="662" y="256" style="font: 11px sans-serif; fill: #64748b">
+              no time field!
+            </text>
+          </g>
+          <!-- SEAT -->
+          <g class="node">
+            <rect x="650" y="340" width="260" height="170" rx="8" />
+            <text x="662" y="362" class="model-name">Seat (id UUID)</text>
+            <text x="662" y="380" class="model-pk">PK id (row, column)</text>
+            <text x="662" y="396" class="model-fk">
+              FK filmId ⚠ → FilmOfCinema.id
+            </text>
+            <text x="662" y="412" class="model-fk">
+              FK cinemaId → Cinema (Cascade)
+            </text>
+            <text x="662" y="428" style="font: 11px sans-serif">
+              idx [filmId,cinemaId]
+            </text>
+            <text x="662" y="444" style="font: 11px sans-serif">
+              ← Ticket.seatId (1—1)
+            </text>
+            <text x="662" y="460" style="font: 11px sans-serif">
+              SEAT_STATUS
+            </text>
+            <text x="662" y="476" style="font: 11px sans-serif; fill: #991b1b">
+              misnamed: filmId ≠ Film
+            </text>
+          </g>
+          <!-- TICKET -->
+          <g class="node">
+            <rect x="650" y="560" width="260" height="170" rx="8" />
+            <text x="662" y="582" class="model-name">Ticket (id UUID)</text>
+            <text x="662" y="600" class="model-pk">PK id, code, price</text>
+            <text x="662" y="616" class="model-fk">
+              FK seatId UQ → Seat (Cascade)
+            </text>
+            <text x="662" y="632" class="model-fk">
+              FK filmOfCinemaId → FoC
+            </text>
+            <text x="662" y="648" style="font: 11px sans-serif">
+              ↳ Cascade, 1 — 1 to Seat
+            </text>
+            <text x="662" y="664" style="font: 11px sans-serif">
+              ← Order.ticketId (1—1)
+            </text>
+            <text x="662" y="680" style="font: 11px sans-serif">
+              TICKET_STATUS
+            </text>
+            <text x="662" y="696" style="font: 11px sans-serif; fill: #64748b">
+              triangle: Ticket-Seat-FoC
+            </text>
+          </g>
+
+          <!-- FILM -->
+          <g class="node">
+            <rect x="980" y="120" width="240" height="170" rx="8" />
+            <text x="992" y="142" class="model-name">Film (film_id Int)</text>
+            <text x="992" y="160" class="model-pk">
+              PK film_id (manual, no auto)
+            </text>
+            <text x="992" y="176" style="font: 11px sans-serif">
+              film_name, duration_mins
+            </text>
+            <text x="992" y="192" style="font: 11px sans-serif">
+              VERSION_TYPE enum
+            </text>
+            <text x="992" y="208" style="font: 11px sans-serif">
+              Json: cast, genres, etc.
+            </text>
+            <text x="992" y="224" style="font: 11px sans-serif">
+              → FilmOfCinema[], UserRec[]
+            </text>
+            <text x="992" y="240" style="font: 11px sans-serif; fill: #64748b">
+              1 — N (parent side)
+            </text>
+          </g>
+          <!-- CINEMA -->
+          <g class="node">
+            <rect x="980" y="340" width="240" height="170" rx="8" />
+            <text x="992" y="362" class="model-name">
+              Cinema (cinema_id Int)
+            </text>
+            <text x="992" y="380" class="model-pk">PK cinema_id (manual)</text>
+            <text x="992" y="396" style="font: 11px sans-serif">
+              cinema_name, city, postcode
+            </text>
+            <text x="992" y="412" style="font: 11px sans-serif">
+              logo_url, address
+            </text>
+            <text x="992" y="428" style="font: 11px sans-serif">
+              → FilmOfCinema[], Seat[]
+            </text>
+            <text x="992" y="444" style="font: 11px sans-serif; fill: #64748b">
+              1 — N (parent side)
+            </text>
+          </g>
+
+          <!-- EDGES -->
+          <!-- FilmOfCinema -> Film -->
+          <path
+            class="edge cascade"
+            d="M 910 170 L 980 170"
+            marker-end="url(#crowR)"
+          />
+          <text x="912" y="162" class="edge-label">filmId N—1 Cascade</text>
+          <!-- FilmOfCinema -> Cinema -->
+          <path
+            class="edge cascade"
+            d="M 910 230 L 950 230 L 950 410 L 980 410"
+            marker-end="url(#crowR)"
+          />
+          <text x="912" y="222" class="edge-label">cinemaId N—1 Cascade</text>
+          <!-- Seat -> FilmOfCinema -->
+          <path
+            class="edge cascade"
+            d="M 780 340 L 780 290"
+            marker-end="url(#crowR)"
+          />
+          <text x="788" y="318" class="edge-label">Seat.filmId N—1</text>
+          <!-- Seat -> Cinema -->
+          <path
+            class="edge cascade"
+            d="M 910 400 L 980 400"
+            marker-end="url(#crowR)"
+          />
+          <text x="912" y="392" class="edge-label">Seat.cinemaId N—1</text>
+          <!-- Ticket -> Seat -->
+          <path
+            class="edge cascade"
+            d="M 780 560 L 780 510"
+            marker-end="url(#crowR)"
+          />
+          <text x="788" y="538" class="edge-label">seatId 1—1 UQ Cascade</text>
+          <!-- Ticket -> FilmOfCinema -->
+          <path
+            class="edge cascade"
+            d="M 650 620 L 620 620 L 620 260 L 650 260"
+            marker-end="url(#crowR)"
+          />
+          <text
+            x="540"
+            y="450"
+            class="edge-label"
+            transform="rotate(-90 540,450)"
+          >
+            filmOfCinemaId N—1
+          </text>
+          <!-- Order -> Ticket -->
+          <path
+            class="edge restrict"
+            d="M 580 200 L 620 200 L 620 600 L 650 600"
+          />
+          <text
+            x="588"
+            y="400"
+            class="edge-label"
+            transform="rotate(-90 588,400)"
+          >
+            ticketId 1—1 Restrict
+          </text>
+          <!-- Order -> User -->
+          <path
+            class="edge restrict"
+            d="M 330 180 L 260 180 L 260 115 L 150 115"
+          />
+          <text x="262" y="172" class="edge-label">userId N—1 Restrict</text>
+          <!-- Order -> Payment -->
+          <path class="edge" d="M 455 290 L 455 340" marker-end="url(#crow)" />
+          <text x="463" y="318" class="edge-label">paymentId? N—1</text>
+          <!-- Session -> User -->
+          <path
+            class="edge cascade"
+            d="M 150 250 L 150 190"
+            marker-end="url(#crowR)"
+          />
+          <text x="158" y="222" class="edge-label">Session N—1 Cascade</text>
+          <!-- EventTracking -> User -->
+          <path class="edge setnull" d="M 150 400 L 150 190" />
+          <text x="158" y="300" class="edge-label">Event? N—1 SetNull</text>
+          <!-- UserRec -> User -->
+          <path class="edge cascade" d="M 150 570 L 150 190" />
+          <text x="158" y="380" class="edge-label">UserRec N—1 Cascade</text>
+          <!-- UserRec -> Film -->
+          <path
+            class="edge cascade"
+            d="M 260 640 L 980 640 L 980 290 L 1000 290"
+            marker-end="url(#crowR)"
+          />
+          <text x="600" y="632" class="edge-label">
+            filmId N—1 Cascade (Int, not UUID!)
+          </text>
+        </svg>
+      </div>
+
+      <div class="warnbox">
+        <b>⚠ Refactor notes (faithful to schema, not hidden):</b><br />
+        1. <code>Seat.filmId: String @db.Uuid → FilmOfCinema.id</code> — name
+        suggests <code>Film.film_id</code> but points to join hub. Consider
+        rename to <code>filmOfCinemaId</code>.<br />
+        2. <code>Payment.orderId: String @unique @db.Uuid</code> — declared but
+        has <b>no @relation</b>; real link is
+        <code>Order.paymentId: Int? → Payment.id</code> (N Orders per Payment).
+        Dangling column — decide 1-1 vs 1-N before refactor.<br />
+        3. Triangle FKs: <code>Seat→Cinema + Seat→FilmOfCinema→Cinema</code> and
+        <code>Ticket→Seat + Ticket→FilmOfCinema + Seat→FilmOfCinema</code> —
+        denormalized, needs composite guard or removal.<br />
+        4. <code>FilmOfCinema @@unique([filmId, cinemaId])</code> with no
+        datetime — one Film×Cinema pair only; cannot model two showtimes. If
+        showtimes needed, add <code>startsAt / room</code> and extend unique.<br />
+        5. Manual PKs: <code>Cinema.cinema_id Int</code> and
+        <code>Film.film_id Int</code> have no
+        <code>@default(autoincrement())</code> — external ID import assumed.<br />
+        6. Type mismatch: <code>Film.film_id Int</code> vs every other PK
+        <code>UUID</code> — <code>UserRecommendation.filmId Int</code> is
+        correct but inconsistent with UUID convention.
+      </div>
+
+      <h2>2. Full Relations (13 FK + 1 dangling)</h2>
+      <div class="card">
+        <div style="overflow: auto">
+          <table class="rel-table">
+            <tr>
+              <th>#</th>
+              <th>From (FK holder)</th>
+              <th>To</th>
+              <th>Cardinality</th>
+              <th>FK fields</th>
+              <th>onDelete / onUpdate</th>
+              <th>Notes</th>
+            </tr>
+            <tr>
+              <td>R1</td>
+              <td>FilmOfCinema → Film</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>filmId: Int → film_id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>part of UQ[filmId,cinemaId]</td>
+            </tr>
+            <tr>
+              <td>R2</td>
+              <td>FilmOfCinema → Cinema</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>cinemaId: Int → cinema_id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>part of UQ[filmId,cinemaId]</td>
+            </tr>
+            <tr>
+              <td>R3</td>
+              <td>Seat → FilmOfCinema</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>filmId: UUID → id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>⚠ misnamed; idx[filmId,cinemaId]</td>
+            </tr>
+            <tr>
+              <td>R4</td>
+              <td>Seat → Cinema</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>cinemaId: Int → cinema_id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>redundant with R3→R2</td>
+            </tr>
+            <tr>
+              <td>R5</td>
+              <td>Ticket → Seat</td>
+              <td>1 — 1</td>
+              <td>1—1</td>
+              <td><code>seatId: UUID @unique → id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>one Ticket per Seat; Seat.ticket?</td>
+            </tr>
+            <tr>
+              <td>R6</td>
+              <td>Ticket → FilmOfCinema</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>filmOfCinemaId: UUID → id</code></td>
+              <td><span class="badge cascade">Cascade</span> / Cascade</td>
+              <td>triangle with R5+R3</td>
+            </tr>
+            <tr>
+              <td>R7</td>
+              <td>Order → User</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>userId: UUID → id</code></td>
+              <td><span class="badge restrict">Restrict</span> / Cascade</td>
+              <td>cannot delete User with Orders</td>
+            </tr>
+            <tr>
+              <td>R8</td>
+              <td>Order → Ticket</td>
+              <td>1 — 1</td>
+              <td>1—1</td>
+              <td><code>ticketId: UUID @unique → id</code></td>
+              <td><span class="badge restrict">Restrict</span> / Cascade</td>
+              <td>UQ[ticketId,userId]; cannot delete sold Ticket</td>
+            </tr>
+            <tr>
+              <td>R9</td>
+              <td>Order → Payment</td>
+              <td>N — 1</td>
+              <td>N—1 opt</td>
+              <td><code>paymentId: Int? → id</code></td>
+              <td>— (optional)</td>
+              <td>many Orders can share one Payment</td>
+            </tr>
+            <tr>
+              <td>R10</td>
+              <td>Session → User</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>userId: UUID → id</code></td>
+              <td><span class="badge cascade">Cascade</span></td>
+              <td>UQ[userId,userIp]; idx[userId]</td>
+            </tr>
+            <tr>
+              <td>R11</td>
+              <td>EventTracking → User</td>
+              <td>N — 1 opt</td>
+              <td>N—1 opt</td>
+              <td><code>userId: UUID? → id</code></td>
+              <td><span class="badge setnull">SetNull</span></td>
+              <td>anonymous events allowed; idx ×3</td>
+            </tr>
+            <tr>
+              <td>R12</td>
+              <td>UserRecommendation → User</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>userId: UUID → id</code></td>
+              <td><span class="badge cascade">Cascade</span></td>
+              <td>UQ[userId,filmId], UQ[userId,rank]</td>
+            </tr>
+            <tr>
+              <td>R13</td>
+              <td>UserRecommendation → Film</td>
+              <td>N — 1</td>
+              <td>N—1</td>
+              <td><code>filmId: Int → film_id</code></td>
+              <td><span class="badge cascade">Cascade</span></td>
+              <td>Int FK (not UUID)</td>
+            </tr>
+            <tr>
+              <td>—</td>
+              <td>Payment.orderId (dangling)</td>
+              <td>—</td>
+              <td>—</td>
+              <td><code>orderId: UUID @unique, no relation</code></td>
+              <td>—</td>
+              <td>⚠ dead column, no @relation</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: #475569">
+        Inverse (parent) sides:
+        <code>Cinema.filmOfCinema[], Cinema.seats[]</code> ·
+        <code>Film.filmOfCinema[], Film.recommendations[]</code> ·
+        <code>FilmOfCinema.seats[], FilmOfCinema.tickets[]</code> ·
+        <code>Seat.ticket?</code> · <code>Ticket.order?</code> ·
+        <code
+          >User.orders[], sessions[], eventTrackings[], recommendations[]</code
+        >
+        · <code>Payment.orders[]</code>. Outbox has no relations.
+      </p>
+
+      <h2>3. Full Model Detail</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="card-head"><b>Cinema</b><span>cinema.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>cinema_id</td>
+              <td>Int</td>
+              <td><span class="badge pk">PK</span> @id (manual, no default)</td>
+            </tr>
+            <tr>
+              <td>cinema_name</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>address</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>address2</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>city</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>country</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>postcode</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>phone</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>logo_url</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>createdAt</td>
+              <td>DateTime</td>
+              <td>@default(now())</td>
+            </tr>
+            <tr>
+              <td>updatedAt</td>
+              <td>DateTime</td>
+              <td>@updatedAt</td>
+            </tr>
+            <tr>
+              <td>filmOfCinema</td>
+              <td>FilmOfCinema[]</td>
+              <td><span class="badge fk">FK inv</span> 1—N</td>
+            </tr>
+            <tr>
+              <td>seats</td>
+              <td>Seat[]</td>
+              <td><span class="badge fk">FK inv</span> 1—N</td>
+            </tr>
+          </table>
+          <div class="card-foot">No @@unique / @@index beyond PK.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>Film</b><span>film.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>film_id</td>
+              <td>Int</td>
+              <td><span class="badge pk">PK</span> @id (manual)</td>
+            </tr>
+            <tr>
+              <td>film_name</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>other_title</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>release_dates</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>age_rating</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>trailers</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>synopsis_long</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>images</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>version_type</td>
+              <td>VERSION_TYPE</td>
+              <td>required enum</td>
+            </tr>
+            <tr>
+              <td>duration_mins</td>
+              <td>Int</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>review_stars</td>
+              <td>Float</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>review_txt</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>distributor</td>
+              <td>String?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>genres / cast / directors / producers / writers</td>
+              <td>Json?</td>
+              <td>optional ×5</td>
+            </tr>
+            <tr>
+              <td>filmOfCinema</td>
+              <td>FilmOfCinema[]</td>
+              <td><span class="badge fk">FK inv</span></td>
+            </tr>
+            <tr>
+              <td>recommendations</td>
+              <td>UserRecommendation[]</td>
+              <td><span class="badge fk">FK inv</span></td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            Heavy Json denormalization — candidate for refactor to scalar
+            tables.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <b>FilmOfCinema ★ hub</b><span>filmOfCinemas.prisma</span>
+          </div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @id @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>filmId</td>
+              <td>Int</td>
+              <td>
+                <span class="badge fk">FK</span> → Film.film_id,
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>cinemaId</td>
+              <td>Int</td>
+              <td>
+                <span class="badge fk">FK</span> → Cinema.cinema_id,
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>film</td>
+              <td>Film</td>
+              <td>relation</td>
+            </tr>
+            <tr>
+              <td>cinema</td>
+              <td>Cinema</td>
+              <td>relation</td>
+            </tr>
+            <tr>
+              <td>seats</td>
+              <td>Seat[]</td>
+              <td>1—N inverse</td>
+            </tr>
+            <tr>
+              <td>tickets</td>
+              <td>Ticket[]</td>
+              <td>1—N inverse</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            <span class="badge uq">UQ</span>
+            <code>@@unique([filmId, cinemaId])</code> — one row per Film×Cinema.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>Seat</b><span>seat.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>row / column</td>
+              <td>Int</td>
+              <td>required ×2</td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>SEAT_STATUS</td>
+              <td>@default(AVAILABLE)</td>
+            </tr>
+            <tr>
+              <td>filmId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → <b>FilmOfCinema.id</b> (not
+                Film!) <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>cinemaId</td>
+              <td>Int</td>
+              <td>
+                <span class="badge fk">FK</span> → Cinema.cinema_id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>ticket</td>
+              <td>Ticket?</td>
+              <td>1—1 inverse via Ticket.seatId</td>
+            </tr>
+            <tr>
+              <td>film / cinema</td>
+              <td>relations</td>
+              <td>N—1 each</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            Index <code>@@index([filmId, cinemaId])</code>. No
+            UQ[row,column,filmId] — duplicate seat numbers possible.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>Ticket</b><span>ticket.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>code</td>
+              <td>String</td>
+              <td>required (no @unique!)</td>
+            </tr>
+            <tr>
+              <td>price</td>
+              <td>Float</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>createdAt / updatedAt</td>
+              <td>DateTime</td>
+              <td>@default(now()) / @updatedAt</td>
+            </tr>
+            <tr>
+              <td>filmOfCinemaId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → FilmOfCinema.id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>seatId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span>
+                <span class="badge uq">UQ</span> @unique → Seat.id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>TICKET_STATUS</td>
+              <td>@default(AVAILABLE)</td>
+            </tr>
+            <tr>
+              <td>order</td>
+              <td>Order?</td>
+              <td>1—1 inverse via Order.ticketId</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            Chain: Seat 1—1 Ticket 1—1 Order. <code>code</code> should likely be
+            unique.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <b>Order + Payment</b><span>payment.prisma</span>
+          </div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>Order.id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>Order.userId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → User.id
+                <span class="badge restrict">Restrict</span>
+              </td>
+            </tr>
+            <tr>
+              <td>Order.status</td>
+              <td>OrderStatus</td>
+              <td>@default(AUTHENTICATION_NOT_NEEDED)</td>
+            </tr>
+            <tr>
+              <td>Order.ticketId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span>
+                <span class="badge uq">UQ</span> @unique → Ticket.id
+                <span class="badge restrict">Restrict</span>
+              </td>
+            </tr>
+            <tr>
+              <td>Order.paymentId</td>
+              <td>Int?</td>
+              <td><span class="badge fk">FK</span> → Payment.id (optional)</td>
+            </tr>
+            <tr>
+              <td>Payment.id</td>
+              <td>Int</td>
+              <td>
+                <span class="badge pk">PK</span> @id @default(autoincrement())
+              </td>
+            </tr>
+            <tr>
+              <td>Payment.orderId ⚠</td>
+              <td>String @db.Uuid @unique</td>
+              <td><b>no @relation</b> — dangling</td>
+            </tr>
+            <tr>
+              <td>Payment.amount / currency</td>
+              <td>Int / String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>Payment.orderStatus</td>
+              <td>OrderStatus</td>
+              <td>@default(AUTHENTICATION_NOT_NEEDED)</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            <span class="badge uq">UQ</span> <code>[ticketId,userId]</code> +
+            <code>[id,userId]</code> on Order. Payment 1—N Orders.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>User</b><span>user.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>fullname / email</td>
+              <td>String</td>
+              <td>email <span class="badge uq">UQ</span> @unique</td>
+            </tr>
+            <tr>
+              <td>isActive</td>
+              <td>Boolean</td>
+              <td>@default(true)</td>
+            </tr>
+            <tr>
+              <td>hashPassword</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>dateOfBirth / address</td>
+              <td>DateTime / String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>ACCOUNT_STATUS</td>
+              <td>@default(PENDING)</td>
+            </tr>
+            <tr>
+              <td>role</td>
+              <td>USER_ROLE</td>
+              <td>@default(USER)</td>
+            </tr>
+            <tr>
+              <td>createdAt / updatedAt / deletedAt?</td>
+              <td>DateTime</td>
+              <td>soft-delete via deletedAt?</td>
+            </tr>
+            <tr>
+              <td>orders / sessions / eventTrackings / recommendations</td>
+              <td>lists</td>
+              <td>1—N inverses</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            Index <code>@@index([email])</code> (redundant with @unique).
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>Session</b><span>session.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → User.id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>hashRefreshToken</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>userIp</td>
+              <td>String</td>
+              <td>part of UQ</td>
+            </tr>
+            <tr>
+              <td>createdAt / updatedAt</td>
+              <td>DateTime</td>
+              <td>@default(now()) / @updatedAt</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            <span class="badge uq">UQ</span>
+            <code>@@unique([userId, userIp])</code> — one session per user+IP.
+            <code>@@index([userId])</code>.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <b>EventTracking</b><span>event_tracking.prisma</span>
+          </div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>String? @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → User.id
+                <span class="badge setnull">SetNull</span>, optional
+              </td>
+            </tr>
+            <tr>
+              <td>eventType</td>
+              <td>EVENT_TYPE</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>page</td>
+              <td>String</td>
+              <td>required</td>
+            </tr>
+            <tr>
+              <td>elementType / elementId / elementText / targetId</td>
+              <td>String?</td>
+              <td>optional ×4</td>
+            </tr>
+            <tr>
+              <td>metadata</td>
+              <td>Json?</td>
+              <td>optional</td>
+            </tr>
+            <tr>
+              <td>createdAt</td>
+              <td>DateTime</td>
+              <td>@default(now())</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            Indexes: <code>[userId], [eventType], [createdAt]</code>.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <b>UserRecommendation</b><span>recommendation.prisma</span>
+          </div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String @db.Uuid</td>
+              <td><span class="badge pk">PK</span> @default(uuid())</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>String @db.Uuid</td>
+              <td>
+                <span class="badge fk">FK</span> → User.id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>filmId</td>
+              <td>Int</td>
+              <td>
+                <span class="badge fk">FK</span> → Film.film_id
+                <span class="badge cascade">Cascade</span>
+              </td>
+            </tr>
+            <tr>
+              <td>rank</td>
+              <td>Int</td>
+              <td>1st, 2nd, 3rd…</td>
+            </tr>
+            <tr>
+              <td>createdAt</td>
+              <td>DateTime</td>
+              <td>@default(now())</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            <span class="badge uq">UQ</span> <code>[userId,filmId]</code> +
+            <code>[userId,rank]</code>; <code>@@index([userId])</code>.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><b>Outbox</b><span>outbox.prisma</span></div>
+          <table>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Attributes</th>
+            </tr>
+            <tr>
+              <td>id</td>
+              <td>String</td>
+              <td>
+                <span class="badge pk">PK</span> @id @default(uuid()) — no
+                @db.Uuid
+              </td>
+            </tr>
+            <tr>
+              <td>eventType / code / email</td>
+              <td>String</td>
+              <td>required ×3</td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>OUTBOX_STATUS</td>
+              <td>@default(PENDING)</td>
+            </tr>
+            <tr>
+              <td>createdAt / updatedAt</td>
+              <td>DateTime</td>
+              <td>@default(now()) / @updatedAt</td>
+            </tr>
+          </table>
+          <div class="card-foot">
+            <span class="badge uq">UQ</span>
+            <code>@@unique([email, eventType])</code> — one pending event per
+            email+type. No relations.
+          </div>
+        </div>
+      </div>
+
+      <h2>4. Enums</h2>
+      <div class="enums">
+        <div class="enum-card">
+          <b>VERSION_TYPE</b>
+          <ul>
+            <li>STANDARD</li>
+            <li>DOLBY_CINEMA</li>
+            <li>IMAX</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>ACCOUNT_STATUS</b>
+          <ul>
+            <li>ACTIVE</li>
+            <li>INACTIVE</li>
+            <li>SUSPENDED</li>
+            <li>PENDING</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>TICKET_STATUS</b>
+          <ul>
+            <li>BOOKED</li>
+            <li>CANCELLED</li>
+            <li>AVAILABLE</li>
+            <li>USED</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>PAYMENT_STATUS</b>
+          <ul>
+            <li>PENDING</li>
+            <li>COMPLETED</li>
+            <li>FAILED</li>
+            <li>REFUNDED</li>
+          </ul>
+          <div style="font-size: 11px; color: #991b1b; margin-top: 6px">
+            ⚠ declared but unused by any model
+          </div>
+        </div>
+        <div class="enum-card">
+          <b>SEAT_STATUS</b>
+          <ul>
+            <li>AVAILABLE</li>
+            <li>BOOKED</li>
+            <li>OCCUPIED</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>OUTBOX_STATUS</b>
+          <ul>
+            <li>PENDING</li>
+            <li>PROCESSED</li>
+            <li>FAILED</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>USER_ROLE</b>
+          <ul>
+            <li>USER</li>
+            <li>ADMIN</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>EVENT_TYPE</b>
+          <ul>
+            <li>CLICK</li>
+            <li>VIEW</li>
+            <li>SCROLL</li>
+            <li>SUBMIT</li>
+          </ul>
+        </div>
+        <div class="enum-card">
+          <b>OrderStatus (payment.prisma)</b>
+          <ul>
+            <li>CAPTURED</li>
+            <li>CANCELLED</li>
+            <li>AUTHENTICATION_NOT_NEEDED</li>
+          </ul>
+          <div style="font-size: 11px; color: #475569; margin-top: 6px">
+            used by Order.status + Payment.orderStatus
+          </div>
+        </div>
+      </div>
+
+      <h2>5. Reading paths for refactor</h2>
+      <div class="card">
+        <div style="padding: 14px 18px; font-size: 13px; line-height: 1.7">
+          <b>Catalog:</b> <code>Film ─≺ FilmOfCinema ≻─ Cinema</code>, then
+          <code>FilmOfCinema ─≺ Seat ─1:1─ Ticket</code>. Every Seat/Ticket
+          hangs off the hub.<br />
+          <b>Ordering:</b> <code>User ─≺ Order 1:1 Ticket 1:1 Seat</code>,
+          <code>Order ─≻ Payment</code> (N:1). Deleting a User/Ticket with an
+          Order is <b>blocked (Restrict)</b>; deleting FilmOfCinema/Cinema/Seat
+          cascades tickets away — dangerous, review before refactor.<br />
+          <b>Identity:</b> <code>User ─≺ Session</code> (Cascade, 1 per IP),
+          soft-delete via <code>User.deletedAt?</code> does not cascade.<br />
+          <b>Discovery:</b> <code>User ─≺ EventTracking</code> (SetNull keeps
+          analytics), <code>User ≺ UserRecommendation ≻ Film</code> (ranked
+          N:M).<br />
+          <b>Infra:</b> <code>Outbox</code> standalone transactional outbox
+          pattern.
+        </div>
+      </div>
+
+      <footer>
+        Generated from <code>prisma/schema/*.prisma</code> — faithful to current
+        schema including flagged anomalies. File:
+        <code>docs/schema-diagram.html</code>.
+      </footer>
+    </main>
+  </body>
+</html>
