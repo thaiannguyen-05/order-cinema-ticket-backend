@@ -19,7 +19,6 @@ export class UserService {
     return this.prismaService.user.findUnique({
       where: {
         id,
-        w,
       },
     });
   }
