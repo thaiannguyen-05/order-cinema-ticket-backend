@@ -1,15 +1,13 @@
 import type {
-  AgeRating,
-  Cast,
-  Director,
+  FilmAgeRating,
+  FilmCastMember,
+  FilmDirector,
+  FilmGenre,
   FilmImages,
-  Genre,
-  OtherTitles,
-  Producer,
-  ReleaseDate,
-  Trailers,
-  Writer,
-} from '@andev2005/movie-glu-sdk';
+  FilmProducer,
+  FilmReleaseDate,
+  FilmWriter,
+} from '@ticket-order-system/movie-sdk';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -141,23 +139,23 @@ export class CreateFilmDto {
 
   @IsObject()
   @IsNotEmpty()
-  other_title!: OtherTitles;
+  other_title!: Record<string, string> | null;
 
   @IsArray()
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => ReleaseDateDto)
-  release_dates!: ReleaseDate[];
+  release_dates!: FilmReleaseDate[];
 
   @IsObject()
   @IsNotEmpty()
   @ValidateNested()
   @Type(() => AgeRatingDto)
-  age_rating!: AgeRating;
+  age_rating!: FilmAgeRating;
 
   @IsArray()
   @ArrayMinSize(0)
-  trailers!: Trailers[];
+  trailers!: unknown[];
 
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
@@ -203,29 +201,29 @@ export class CreateFilmDto {
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => GenreDto)
-  genres!: Genre[];
+  genres!: FilmGenre[];
 
   @IsArray()
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => CastDto)
-  cast!: Cast[];
+  cast!: FilmCastMember[];
 
   @IsArray()
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => DirectorDto)
-  director!: Director[];
+  director!: FilmDirector[];
 
   @IsArray()
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => ProducerDto)
-  producers!: Producer[];
+  producers!: FilmProducer[];
 
   @IsArray()
   @ArrayMinSize(0)
   @ValidateNested({ each: true })
   @Type(() => WriterDto)
-  writers!: Writer[];
+  writers!: FilmWriter[];
 }

@@ -23,7 +23,7 @@ describe('SyncDataCronJobService', () => {
   let callMovieGluService: {
     getServerPublicIp: jest.Mock;
     getGeolocationByUserIp: jest.Mock;
-    createMovieGluClientAtCall: jest.Mock;
+    createGluClientAtCall: jest.Mock;
     updateFilmsDetail: jest.Mock;
   };
   let filmService: { getAllFilms: jest.Mock };
@@ -44,7 +44,7 @@ describe('SyncDataCronJobService', () => {
     callMovieGluService = {
       getServerPublicIp: jest.fn().mockResolvedValue('8.8.8.8'),
       getGeolocationByUserIp: jest.fn().mockResolvedValue('10;10'),
-      createMovieGluClientAtCall: jest.fn(),
+      createGluClientAtCall: jest.fn(),
       updateFilmsDetail: jest.fn().mockResolvedValue(undefined),
     };
     filmService = {
@@ -53,18 +53,20 @@ describe('SyncDataCronJobService', () => {
 
     const client = {
       cinemas: {
-        nearby: jest.fn().mockResolvedValue({
-          cinemas: [{ cinema_id: 1, cinema_name: 'A', address: 'Addr' }],
-        }),
+        nearby: jest
+          .fn()
+          .mockResolvedValue([
+            { cinema_id: 1, cinema_name: 'A', address: 'Addr' },
+          ]),
       },
       films: {
-        nowShowing: jest.fn().mockResolvedValue({ films: [{ film_id: 1 }] }),
-        comingSoon: jest.fn().mockResolvedValue({ films: [{ film_id: 2 }] }),
+        nowShowing: jest.fn().mockResolvedValue([{ film_id: 1 }]),
+        comingSoon: jest.fn().mockResolvedValue([{ film_id: 2 }]),
         details: jest.fn().mockResolvedValue({ film_id: 1, film_name: 'A' }),
       },
     };
 
-    callMovieGluService.createMovieGluClientAtCall.mockReturnValue(client);
+    callMovieGluService.createGluClientAtCall.mockReturnValue(client);
 
     service = new SyncDataCronJobService(
       logger as never,

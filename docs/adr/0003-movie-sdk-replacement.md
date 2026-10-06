@@ -1,0 +1,7 @@
+# Replace @andev2005/movie-glu-sdk with @ticket-order-system/movie-sdk
+
+`CallMovieGluService` now builds `new GluClient({ baseUrl, headers })` from `@ticket-order-system/movie-sdk@0.1.0` instead of `createMovieGluClient({ apiKey, headers })`. All four cron call sites in `sync-data-cron-job.service.ts` use the new shapes: `cinemas.nearby({ n })` returns a bare array, `films.nowShowing/comingSoon({ n })` return bare arrays, `films.details({ film_id })` takes an object. Per-call header overrides are removed; `geolocation` + `device-datetime` are baked at client creation. `device-datetime` uses the SDK's `nowDeviceDateTime()` (no timezone offset) instead of `Date.toISOString()`.
+
+Considered Options: adapter layer preserving old `{ cinemas }`/`{ films }`/`limit` shapes vs direct migration to new SDK signatures vs keeping both SDKs in parallel. Chose direct migration with no adapter to fully drop the old dependency, at the cost of touching DTO type imports (`FilmGenre`, `FilmCastMember`, `FilmDirector`, `FilmProducer`, `FilmWriter`, `FilmReleaseDate`, `FilmShowDate`, `FilmAlternateVersion`) and the four unit-test mocks.
+
+Consequences: `cinemas.nearby` no longer returns `country`/`phone`, so the nearby upsert and `SyncCinemaDetailDto` payload omit those optional fields (populated only when cinema details are fetched). `FilmDetails.trailers` is `unknown` and `status` travels inline; `updateFilmsDetail` guards the trailers spread with a ternary. New required config `GLU_BASE_URL` defaults to `https://api-gate2.movieglu.com` when unset.

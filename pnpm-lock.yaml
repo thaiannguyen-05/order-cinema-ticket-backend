@@ -7,9 +7,6 @@ settings:
 importers:
   .:
     dependencies:
-      '@andev2005/movie-glu-sdk':
-        specifier: ^1.0.8
-        version: 1.0.8
       '@keyv/redis':
         specifier: ^5.1.6
         version: 5.1.6(keyv@5.6.0)
@@ -55,6 +52,9 @@ importers:
       '@prisma/client':
         specifier: ^7.4.0
         version: 7.4.0(prisma@7.4.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@ticket-order-system/movie-sdk':
+        specifier: 0.1.0
+        version: 0.1.0
       '@types/redlock':
         specifier: ^4.0.8
         version: 4.0.8
@@ -226,12 +226,6 @@ importers:
         version: 8.55.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
 packages:
-  '@andev2005/movie-glu-sdk@1.0.8':
-    resolution:
-      {
-        integrity: sha512-fCfiKzi2+shKm+f+VYJPXVvijbwERyiqQkDYoBtXVGRyVnS88UO0giqke6Y8m7mszkJlaAFwwRATWBuPZ1+gPg==,
-      }
-
   '@angular-devkit/core@19.2.17':
     resolution:
       {
@@ -1781,6 +1775,13 @@ packages:
       {
         integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==,
       }
+
+  '@ticket-order-system/movie-sdk@0.1.0':
+    resolution:
+      {
+        integrity: sha512-vVz5UzyNomMEbdKA4ux9pqurISWl5pk/Sv169ZkcheyhzaSPpdf0cUWGQe3JmtYYZZV33XYtDRSJ+xxUUCf7dg==,
+      }
+    engines: { node: '>=20' }
 
   '@tokenizer/inflate@0.4.1':
     resolution:
@@ -8100,8 +8101,6 @@ packages:
       }
 
 snapshots:
-  '@andev2005/movie-glu-sdk@1.0.8': {}
-
   '@angular-devkit/core@19.2.17(chokidar@4.0.3)':
     dependencies:
       ajv: 8.17.1
@@ -9238,6 +9237,8 @@ snapshots:
       text-hex: 1.0.0
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@ticket-order-system/movie-sdk@0.1.0': {}
 
   '@tokenizer/inflate@0.4.1':
     dependencies:

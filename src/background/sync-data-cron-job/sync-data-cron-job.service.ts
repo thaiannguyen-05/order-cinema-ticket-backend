@@ -1,3 +1,4 @@
+import { nowDeviceDateTime } from '@ticket-order-system/movie-sdk';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MyLogger } from '../../core/logger/logger.service';
@@ -28,25 +29,17 @@ export class SyncDataCronJobService {
       REDIS_LOCK_KEY.CINEMA_NERBY,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
-        const deviceDatetime = new Date().toISOString();
+        const deviceDatetime = nowDeviceDateTime();
         const userIp = await this.callMovieGluService.getServerPublicIp();
         const geolocation =
           await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createMovieGluClientAtCall(
+        const client = this.callMovieGluService.createGluClientAtCall(
           deviceDatetime,
           geolocation,
         );
         const quantity = 100;
 
-        const { cinemas } = await client.cinemas.nearby(
-          { limit: quantity },
-          {
-            headers: {
-              geolocation,
-              'device-datetime': deviceDatetime,
-            },
-          },
-        );
+        const cinemas = await client.cinemas.nearby({ n: quantity });
         this.logger.debug(`Data cinema nearby ${JSON.stringify(cinemas)}`);
 
         for (const cinema of cinemas) {
@@ -56,9 +49,7 @@ export class SyncDataCronJobService {
             address: cinema.address,
             address2: cinema.address2,
             city: cinema.city,
-            country: cinema.country,
             postcode: cinema.postcode,
-            phone: cinema.phone,
             logo_url: cinema.logo_url,
           });
         }
@@ -70,9 +61,7 @@ export class SyncDataCronJobService {
             address: cinema.address,
             address2: cinema.address2,
             city: cinema.city,
-            country: cinema.country,
             postcode: cinema.postcode,
-            phone: cinema.phone,
             logo_url: cinema.logo_url,
           })),
           quantity: quantity,
@@ -96,17 +85,17 @@ export class SyncDataCronJobService {
       REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
-        const deviceDatetime = new Date().toISOString();
+        const deviceDatetime = nowDeviceDateTime();
         const userIp = await this.callMovieGluService.getServerPublicIp();
         const geolocation =
           await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createMovieGluClientAtCall(
+        const client = this.callMovieGluService.createGluClientAtCall(
           deviceDatetime,
           geolocation,
         );
         const quantity = 100;
 
-        const { films } = await client.films.nowShowing({ limit: quantity });
+        const films = await client.films.nowShowing({ n: quantity });
         this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
       },
     );
@@ -122,17 +111,17 @@ export class SyncDataCronJobService {
       REDIS_LOCK_KEY.CINEMA_FILM_COMINGSOON,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
-        const deviceDatetime = new Date().toISOString();
+        const deviceDatetime = nowDeviceDateTime();
         const userIp = await this.callMovieGluService.getServerPublicIp();
         const geolocation =
           await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createMovieGluClientAtCall(
+        const client = this.callMovieGluService.createGluClientAtCall(
           deviceDatetime,
           geolocation,
         );
         const quantity = 100;
 
-        const { films } = await client.films.comingSoon({ limit: quantity });
+        const films = await client.films.comingSoon({ n: quantity });
         this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
       },
     );
@@ -148,11 +137,11 @@ export class SyncDataCronJobService {
       REDIS_LOCK_KEY.CINEMA_FILM_DETAIL,
       REDIS_TTL.LOCK_SERVICE,
       async () => {
-        const deviceDatetime = new Date().toISOString();
+        const deviceDatetime = nowDeviceDateTime();
         const userIp = await this.callMovieGluService.getServerPublicIp();
         const geolocation =
           await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createMovieGluClientAtCall(
+        const client = this.callMovieGluService.createGluClientAtCall(
           deviceDatetime,
           geolocation,
         );
@@ -160,7 +149,9 @@ export class SyncDataCronJobService {
         const films = await this.filmService.getAllFilms();
 
         for (const film of films) {
-          const updatedFilm = await client.films.details(film.film_id);
+          const updatedFilm = await client.films.details({
+            film_id: film.film_id,
+          });
           this.logger.debug(`Data film details ${JSON.stringify(updatedFilm)}`);
 
           await this.callMovieGluService.updateFilmsDetail({

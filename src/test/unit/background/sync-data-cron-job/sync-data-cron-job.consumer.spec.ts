@@ -1,8 +1,9 @@
 jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
-jest.mock('@andev2005/movie-glu-sdk', () => ({
-  createMovieGluClient: jest.fn(),
+jest.mock('@ticket-order-system/movie-sdk', () => ({
+  GluClient: jest.fn(),
+  nowDeviceDateTime: jest.fn(() => '2026-01-01T00:00:00.000'),
 }));
 
 const { SyncDataCronJobConsumer } =
