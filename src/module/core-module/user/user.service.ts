@@ -23,7 +23,7 @@ export class UserService {
     });
   }
 
-  async isAvailableEmail(email: string) {
+  async isAvailableEmail(email: string): Promise<boolean> {
     const user = await this.getUserByEmail(email);
     return user ? true : false;
   }
@@ -31,12 +31,8 @@ export class UserService {
   async createUser(dto: CreateUserDto) {
     return this.prismaService.user.create({
       data: {
-        fullname: dto.fullname,
-        email: dto.email,
+        ...dto,
         hashPassword: dto.hashedPassword,
-        dateOfBirth: dto.dateOfBirth,
-        address: dto.address,
-        status: 'PENDING',
       },
     });
   }
