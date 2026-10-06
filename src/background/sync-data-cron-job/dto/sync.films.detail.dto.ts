@@ -1,15 +1,15 @@
 import type {
-  AgeRating,
-  Cast,
-  Director,
+  FilmAgeRating,
+  FilmAlternateVersion,
+  FilmCastMember,
+  FilmDirector,
+  FilmGenre,
   FilmImages,
-  Genre,
-  OtherTitles,
-  Producer,
-  ReleaseDate,
-  Trailers,
-  Writer,
-} from '@andev2005/movie-glu-sdk';
+  FilmProducer,
+  FilmReleaseDate,
+  FilmShowDate,
+  FilmWriter,
+} from '@ticket-order-system/movie-sdk';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -55,7 +55,7 @@ export class SyncFilmItemDto {
 
   @IsOptional()
   @IsObject()
-  other_titles?: OtherTitles;
+  other_titles?: Record<string, string> | null;
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
@@ -90,11 +90,11 @@ export class SyncFilmItemDto {
 
   @IsOptional()
   @IsArray()
-  release_dates?: ReleaseDate[];
+  release_dates?: FilmReleaseDate[];
 
   @IsOptional()
   @IsArray()
-  age_rating?: AgeRating[];
+  age_rating?: FilmAgeRating[];
 
   @IsOptional()
   @Type(() => Number)
@@ -113,35 +113,35 @@ export class SyncFilmItemDto {
   review_txt?: string;
 
   @IsOptional()
-  trailers?: Trailers | null;
+  trailers?: unknown;
 
   @IsOptional()
   @IsArray()
-  genres?: Genre[];
+  genres?: FilmGenre[];
 
   @IsOptional()
   @IsArray()
-  cast?: Cast[];
+  cast?: FilmCastMember[];
 
   @IsOptional()
   @IsArray()
-  directors?: Director[];
+  directors?: FilmDirector[];
 
   @IsOptional()
   @IsArray()
-  producers?: Producer[];
+  producers?: FilmProducer[];
 
   @IsOptional()
   @IsArray()
-  writers?: Writer[];
+  writers?: FilmWriter[];
 
   @IsOptional()
   @IsArray()
-  show_dates?: Array<Record<string, unknown>>;
+  show_dates?: FilmShowDate[];
 
   @IsOptional()
   @IsArray()
-  alternate_versions?: Array<Record<string, unknown>>;
+  alternate_versions?: FilmAlternateVersion[];
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))

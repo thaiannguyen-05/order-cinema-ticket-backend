@@ -29,7 +29,6 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@andev2005/movie-glu-sdk": "^1.0.8",
     "@keyv/redis": "^5.1.6",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^4.0.1",
@@ -45,6 +44,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
+    "@ticket-order-system/movie-sdk": "0.1.0",
     "@types/redlock": "^4.0.8",
     "@willsoto/nestjs-prometheus": "^6.0.2",
     "amqp-connection-manager": "^5.0.0",

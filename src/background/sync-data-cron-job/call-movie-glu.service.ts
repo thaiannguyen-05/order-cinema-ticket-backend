@@ -1,4 +1,4 @@
-import { createMovieGluClient, MovieGluSdk } from '@andev2005/movie-glu-sdk';
+import { GluClient } from '@ticket-order-system/movie-sdk';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -28,12 +28,14 @@ export class CallMovieGluService {
     private readonly filmService: FilmService,
   ) {}
 
-  createMovieGluClientAtCall(
+  createGluClientAtCall(
     deviceDatetime: string,
     geolocation: string,
-  ): MovieGluSdk {
-    return createMovieGluClient({
-      apiKey: this.configService.getOrThrow<string>('MOVIE_GLU_APIKEY'),
+  ): GluClient {
+    return new GluClient({
+      baseUrl:
+        this.configService.get<string>('GLU_BASE_URL') ??
+        'https://api-gate2.movieglu.com',
       headers: {
         client: this.configService.getOrThrow<string>('GLU_CLIENT'),
         'x-api-key': this.configService.getOrThrow<string>('MOVIE_GLU_APIKEY'),
@@ -230,7 +232,7 @@ export class CallMovieGluService {
         ...(film.other_titles && { other_title: film.other_titles }),
         ...(film.release_dates && { release_dates: film.release_dates }),
         ...(film.age_rating && { age_rating: film.age_rating as never }),
-        ...(film.trailers && { trailers: film.trailers as never }),
+        ...(film.trailers ? { trailers: film.trailers as never } : {}),
         ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
         ...(film.images && { images: film.images as never }),
         ...(film.version_type && { version_type: film.version_type as never }),
@@ -276,7 +278,7 @@ export class CallMovieGluService {
           release_dates: film.release_dates as never,
         }),
         ...(film.age_rating && { age_rating: film.age_rating as never }),
-        ...(film.trailers && { trailers: film.trailers as never }),
+        ...(film.trailers ? { trailers: film.trailers as never } : {}),
         ...(film.synopsis_long && { synopsis_long: film.synopsis_long }),
         ...(film.images && { images: film.images as never }),
         ...(film.version_type && {

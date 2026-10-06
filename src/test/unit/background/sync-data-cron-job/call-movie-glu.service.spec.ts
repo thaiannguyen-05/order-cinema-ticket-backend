@@ -2,8 +2,9 @@ jest.mock('../../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
-jest.mock('@andev2005/movie-glu-sdk', () => ({
-  createMovieGluClient: jest.fn(),
+jest.mock('@ticket-order-system/movie-sdk', () => ({
+  GluClient: jest.fn(),
+  nowDeviceDateTime: jest.fn(() => '2026-01-01T00:00:00.000'),
 }));
 
 jest.mock('axios', () => ({
@@ -13,15 +14,15 @@ jest.mock('axios', () => ({
   },
 }));
 
-const { createMovieGluClient } = require('@andev2005/movie-glu-sdk') as {
-  createMovieGluClient: jest.Mock;
+const { GluClient } = require('@ticket-order-system/movie-sdk') as {
+  GluClient: jest.Mock;
 };
 const axios = require('axios').default as { get: jest.Mock };
 
 const { CallMovieGluService } =
   require('../../../../background/sync-data-cron-job/call-movie-glu.service') as {
     CallMovieGluService: new (...args: never[]) => {
-      createMovieGluClientAtCall: (
+      createGluClientAtCall: (
         deviceDatetime: string,
         geolocation: string,
       ) => unknown;
@@ -37,6 +38,7 @@ const { CallMovieGluService } =
 
 describe('CallMovieGluService', () => {
   const configService = {
+    get: jest.fn((_key: string) => undefined),
     getOrThrow: jest.fn((key: string) => {
       const map: Record<string, string> = {
         MOVIE_GLU_APIKEY: 'api-key',
@@ -44,6 +46,7 @@ describe('CallMovieGluService', () => {
         GLU_AUTHORIZATION: 'auth',
         GLU_TERRITORY: 'VN',
         GLU_API_VER: 'v1',
+        GLU_BASE_URL: 'https://api-gate2.movieglu.com',
       };
       return map[key];
     }),
@@ -87,19 +90,22 @@ describe('CallMovieGluService', () => {
     );
   });
 
-  it('creates movie glu client with headers', () => {
-    createMovieGluClient.mockReturnValue({ sdk: true });
+  it('creates glu client with headers', () => {
+    GluClient.mockReturnValue({ sdk: true });
 
-    const result = service.createMovieGluClientAtCall(
-      '2026-01-01T00:00:00.000Z',
+    const result = service.createGluClientAtCall(
+      '2026-01-01T00:00:00.000',
       '10;10',
     );
 
     expect(result).toEqual({ sdk: true });
-    expect(createMovieGluClient).toHaveBeenCalledWith(
+    expect(GluClient).toHaveBeenCalledWith(
       expect.objectContaining({
-        apiKey: 'api-key',
-        headers: expect.objectContaining({ geolocation: '10;10' }),
+        baseUrl: expect.any(String),
+        headers: expect.objectContaining({
+          'x-api-key': 'api-key',
+          geolocation: '10;10',
+        }),
       }),
     );
   });
