@@ -33,7 +33,9 @@ export class CallMovieGluService {
     geolocation: string,
   ): GluClient {
     return new GluClient({
-      baseUrl: this.configService.getOrThrow<string>('GLU_BASE_URL'),
+      baseUrl:
+        this.configService.get<string>('GLU_BASE_URL') ??
+        'https://api-gate2.movieglu.com',
       headers: {
         client: this.configService.getOrThrow<string>('GLU_CLIENT'),
         'x-api-key': this.configService.getOrThrow<string>('MOVIE_GLU_APIKEY'),

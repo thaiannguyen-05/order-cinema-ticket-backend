@@ -46,6 +46,7 @@ describe('CallMovieGluService', () => {
         GLU_AUTHORIZATION: 'auth',
         GLU_TERRITORY: 'VN',
         GLU_API_VER: 'v1',
+        GLU_BASE_URL: 'https://api-gate2.movieglu.com',
       };
       return map[key];
     }),
