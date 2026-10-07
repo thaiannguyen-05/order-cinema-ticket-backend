@@ -1,0 +1,15 @@
+model UserRecommendation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  filmId    Int
+  rank      Int      // The order of recommendation, e.g., 1st, 2nd, 3rd
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [film_id], onDelete: Cascade)
+
+  @@unique([userId, filmId]) // A user can only have a film recommended once
+  @@unique([userId, rank])   // A user's recommendation list has unique ranks
+  @@index([userId])
+}

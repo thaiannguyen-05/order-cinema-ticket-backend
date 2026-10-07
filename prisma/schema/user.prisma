@@ -1,18 +1,19 @@
 model User {
-  id              String          @id @default(uuid()) @db.Uuid
-  fullname        String
-  email           String          @unique
-  isActive        Boolean         @default(true)
-  hashPassword    String
-  dateOfBirth     DateTime
-  address         String
-  status          ACCOUNT_STATUS  @default(PENDING)
-  role            USER_ROLE       @default(USER)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
-  sessions        Session[]
-  eventTrackings  EventTracking[]
-  orders          Order[]
+  id          String   @id @default(uuid()) @db.Uuid
+  fullname    String
+  email       String   @unique
+  isActive    Boolean  @default(true)
+  hashPassword String
+  dateOfBirth DateTime
+  address     String
+  status      ACCOUNT_STATUS @default(PENDING)
+  role        USER_ROLE @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  orders      Order[]
+  sessions    Session[]
+  eventTrackings EventTracking[]
+  recommendations UserRecommendation[]
   @@index([email])
 }
