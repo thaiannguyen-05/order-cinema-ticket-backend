@@ -1,16 +1,43 @@
-model Cinema {
-  cinema_id Int @id 
-  cinema_name String
-  address String?
-  address2 String?
-  city String
-  country String?
-  postcode String
-  phone String?
-  logo_url String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Seat {
+    id String @id @default(uuid()) @db.Uuid
 
-  filmOfCinema FilmOfCinema[]   
-  seats Seat[]
+    row    String
+    column String
+
+    seatType   SeatType
+    seatStatus SeatStatus
+
+    filmId String @db.Uuid
+
+    ticket       Ticket?
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    filmOfCinema FilmOfCinema? @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+    @@index([filmId])
+}
+
+model Ticket {
+    id    String @id @default(uuid()) @db.Uuid
+    combo Json?
+    price Int
+
+    seatId String @unique @db.Uuid
+    seat   Seat   @relation(fields: [seatId], references: [id], onDelete: Cascade)
+    order  Order?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+enum SeatType {
+    COUPLE
+    HEAVEN
+    NORMAL
+}
+
+enum SeatStatus {
+    AVAILABLE
+    BOOKED
+    NOT_AVAILABLE
 }

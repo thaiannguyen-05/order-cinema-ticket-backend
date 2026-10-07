@@ -1,36 +1,35 @@
-model Payment {
-    id          Int         @id @default(autoincrement())
-    amount      Int
-    orderStatus OrderStatus @default(AUTHENTICATION_NOT_NEEDED)
-    currency    String
-
-    orderId   String   @unique @db.Uuid
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    orders    Order[]
-}
-
 model Order {
-    id     String @id @default(uuid()) @db.Uuid
+    id String @id @default(uuid()) @db.Uuid
+
+    finalPrice Int
+    currency   String @default("VND")
+    status     OrderStatus @default(PENDING)
+
+    ticketId String @unique @db.Uuid
+    ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+
     userId String @db.Uuid
-    user   User   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+    user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-    status    OrderStatus @default(AUTHENTICATION_NOT_NEEDED)
+    expiresAt DateTime?
 
-    ticketId String @db.Uuid @unique
-    ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+    sepayOrderId       String? @unique
+    sepayTransactionId String? @unique
+    paymentMethod      String?
+    paidAmount         Int?
+    callbackPayload    Json?
 
-    payment   Payment? @relation(fields: [paymentId], references: [id])
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    paymentId Int?
 
-    @@unique([ticketId, userId])
-    @@unique([id, userId])
+    @@index([userId])
+    @@index([status, expiresAt])
 }
 
 enum OrderStatus {
-    CAPTURED
+    PENDING
+    PAID
+    FAILED
+    EXPIRED
     CANCELLED
-    AUTHENTICATION_NOT_NEEDED
 }

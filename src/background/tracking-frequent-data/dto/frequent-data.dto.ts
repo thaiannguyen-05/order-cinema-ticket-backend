@@ -126,17 +126,6 @@ export class OrderDetail {
   @Max(50)
   seatColumn!: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  paymentAmount!: number | null;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  paymentStatus!: string | null;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
