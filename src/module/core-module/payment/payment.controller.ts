@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -20,11 +22,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { User } from '../../../core/decorator/user.decorator';
+import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { SepayCheckoutDto } from './dto/sepay-checkout.dto';
+import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -93,5 +97,19 @@ export class PaymentController {
   @ApiServiceUnavailableResponse({ description: 'SePay checkout unavailable' })
   initSepayCheckout(@Body() dto: SepayCheckoutDto, @User('id') userId: string) {
     return this.sepayService.initCheckout(dto.orderId, userId);
+  }
+
+  @Public()
+  @Post('sepay/webhook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'SePay payment notification webhook' })
+  @ApiOkResponse({ description: 'Notification received' })
+  @ApiBadRequestResponse({ description: 'Invalid webhook payload' })
+  handleSepayWebhook(@Body() dto: SepayWebhookDto) {
+    return {
+      received: true,
+      notification_type: dto.notification_type,
+      order_invoice_number: dto.order?.order_invoice_number ?? null,
+    };
   }
 }

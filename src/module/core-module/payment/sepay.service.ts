@@ -11,23 +11,11 @@ import { createHmac } from 'node:crypto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS, SEPAY } from './constant';
-import type { SepayCheckoutForm, SepayCheckoutResult } from './type';
-
-// Field order for the HMAC-SHA256 (base64) signature. Assumption: SePay signs
-// the pipe-joined field values in form order. Confirm against SePay merchant
-// docs if checkout init rejects the signature.
-const SEPAY_SIGN_FIELDS = [
-  'merchant',
-  'currency',
-  'order_amount',
-  'operation',
-  'order_description',
-  'order_invoice_number',
-  'customer_id',
-  'success_url',
-  'error_url',
-  'cancel_url',
-] as const;
+import {
+  SEPAY_SIGN_FIELDS,
+  type SepayCheckoutForm,
+  type SepayCheckoutResult,
+} from './type';
 
 @Injectable()
 export class SepayService {

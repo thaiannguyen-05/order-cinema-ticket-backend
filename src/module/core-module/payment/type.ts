@@ -27,3 +27,21 @@ export type SepayCheckoutResult = {
   orderId: string;
   checkoutUrl: string;
 };
+
+// Field order for the HMAC-SHA256 (base64) signature. Assumption: SePay signs
+// the pipe-joined field values in form order. Confirm against SePay merchant
+// docs if checkout init rejects the signature.
+export const SEPAY_SIGN_FIELDS = [
+  'merchant',
+  'currency',
+  'order_amount',
+  'operation',
+  'order_description',
+  'order_invoice_number',
+  'customer_id',
+  'success_url',
+  'error_url',
+  'cancel_url',
+] as const;
+
+export type SepaySignField = (typeof SEPAY_SIGN_FIELDS)[number];
