@@ -23,6 +23,7 @@ model Order {
     updatedAt DateTime @updatedAt
 
     @@index([userId])
+    @@index([ticketId, userId])
     @@index([status, expiresAt])
 }
 
