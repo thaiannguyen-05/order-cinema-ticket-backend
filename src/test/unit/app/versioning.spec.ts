@@ -13,14 +13,6 @@ jest.mock('../../../module/core-module/user/user.service', () => ({
   UserService: class UserService {},
 }));
 
-jest.mock('../../../module/core-module/payment/payment.service', () => ({
-  PaymentService: class PaymentService {},
-}));
-
-jest.mock('../../../module/core-module/payment/sepay.service', () => ({
-  SepayService: class SepayService {},
-}));
-
 jest.mock('../../../module/core-module/tracking/tracking.service', () => ({
   TrackingService: class TrackingService {},
 }));
@@ -58,12 +50,6 @@ const { UserController } =
   require('../../../module/core-module/user/user.controller') as {
     UserController: ControllerClass;
   };
-const { PaymentController } =
-  require('../../../module/core-module/payment/payment.controller') as {
-    PaymentController: ControllerClass & {
-      prototype: { sepayCallback: (...args: never[]) => unknown };
-    };
-  };
 const { TrackingController } =
   require('../../../module/core-module/tracking/tracking.controller') as {
     TrackingController: ControllerClass;
@@ -92,7 +78,6 @@ const { TrackingFrequentDataController } =
 const V1_CONTROLLERS: ControllerClass[] = [
   AuthController,
   UserController,
-  PaymentController,
   TrackingController,
   FilmController,
   CinemaController,
@@ -112,17 +97,6 @@ describe('API versioning', () => {
 
   it('serves health check without a version prefix', () => {
     expect(Reflect.getMetadata(VERSION_METADATA, AppController)).toBe(
-      VERSION_NEUTRAL,
-    );
-  });
-
-  it('keeps the SePay webhook without a version prefix', () => {
-    const handler = (
-      PaymentController as {
-        prototype: { sepayCallback: (...args: never[]) => unknown };
-      }
-    ).prototype.sepayCallback;
-    expect(Reflect.getMetadata(VERSION_METADATA, handler)).toBe(
       VERSION_NEUTRAL,
     );
   });

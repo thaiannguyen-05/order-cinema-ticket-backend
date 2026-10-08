@@ -1,119 +1,115 @@
 import {
   Body,
   Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
-  Version,
-  VERSION_NEUTRAL,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiResponse,
+  ApiParam,
+  ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { PaymentService } from './payment.service';
-import { CreateOrderDto } from './dto/create.order.dto';
-import { UpdateOrderDto } from './dto/update.order.dto';
-import { CreatePaymentDto } from './dto/create.payment.dto';
-import { UpdatePaymentDto } from './dto/update.payment.dto';
 import { User } from '../../../core/decorator/user.decorator';
+import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
-import { SepayCallbackDto } from './dto/sepay.callback.dto';
-import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
+import { PaymentService } from './payment.service';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { SepayCheckoutDto } from './dto/sepay-checkout.dto';
+import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
-@ApiTags('payment')
-@ApiBearerAuth()
-@Controller({ path: 'payment', version: '1' })
+@ApiTags('Payment')
+@Controller('payment')
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly sepayService: SepayService,
   ) {}
 
-  @Post('order')
-  @ApiOperation({ summary: 'Create a new order from a ticket' })
-  @ApiResponse({ status: 201, description: 'Order created successfully' })
-  @ApiResponse({ status: 404, description: 'Ticket not found' })
-  @ApiResponse({
-    status: 403,
-    description: 'Ticket does not belong to this user',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Order already exists for this ticket',
-  })
-  async createOrder(@Body() dto: CreateOrderDto, @User('id') userId: string) {
-    return this.paymentService.createOrder(dto, userId);
-  }
-
-  @Post('sepay/checkout')
-  @ApiOperation({ summary: 'Initiate SePay checkout URL' })
-  @ApiResponse({ status: 201, description: 'Checkout URL generated' })
-  @ApiResponse({ status: 400, description: 'Order not found' })
-  @ApiResponse({
-    status: 409,
-    description: 'Order already paid or being processed',
-  })
-  async createCheckoutUrl(
-    @Body() dto: SepayCheckoutDto,
-    @User('id') userId: string,
-  ) {
-    return this.sepayService.createCheckoutUrl(dto, userId);
-  }
-
-  @Patch('order/:id/status')
-  @ApiOperation({ summary: 'Update order status' })
-  @ApiResponse({ status: 200, description: 'Order status updated' })
-  @ApiResponse({ status: 404, description: 'Order not found' })
-  async updateOrderStatus(
-    @Param('id') orderId: string,
-    @Body() dto: UpdateOrderDto,
-  ) {
-    return this.paymentService.updateOrderStatus(orderId, dto);
-  }
-
   @Post()
-  @ApiOperation({ summary: 'Create a new payment for an order' })
-  @ApiResponse({ status: 201, description: 'Payment created successfully' })
-  @ApiResponse({ status: 404, description: 'Order not found' })
-  @ApiResponse({
-    status: 403,
-    description: 'Order does not belong to this user',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Payment already exists for this order',
-  })
-  async createPayment(
-    @Body() dto: CreatePaymentDto,
-    @User('id') userId: string,
-  ) {
-    return this.paymentService.createPayment(dto, userId);
+  @ApiOperation({ summary: 'Create an order' })
+  @ApiCreatedResponse({ description: 'Order created successfully' })
+  @ApiBadRequestResponse({ description: 'Invalid order payload' })
+  @ApiConflictResponse({ description: 'Ticket already ordered' })
+  createOrder(@Body() dto: CreatePaymentDto, @User('id') userId: string) {
+    return this.paymentService.createOrder({ ...dto, userId });
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update payment details' })
-  @ApiResponse({ status: 200, description: 'Payment updated successfully' })
-  @ApiResponse({ status: 404, description: 'Payment not found' })
-  @ApiResponse({
-    status: 409,
-    description: 'Payment already exists for this order',
+  @ApiOperation({ summary: 'Update order status by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    schema: {
+      type: 'string',
+      format: 'uuid',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    },
   })
-  async updatePayment(
-    @Param('id') paymentId: string,
+  @ApiOkResponse({ description: 'Order updated successfully' })
+  @ApiBadRequestResponse({ description: 'Invalid update payload' })
+  updateOrder(
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePaymentDto,
   ) {
-    return this.paymentService.updatePayment(Number(paymentId), dto);
+    return this.paymentService.updateOrder(id, dto);
   }
 
-  @Version(VERSION_NEUTRAL)
-  @Post('sepay/callback')
-  @ApiOperation({ summary: 'SePay callback handler' })
-  @ApiResponse({ status: 200, description: 'Callback processed' })
-  @ApiResponse({ status: 400, description: 'Invalid signature' })
-  async sepayCallback(@Body() dto: SepayCallbackDto) {
-    return this.sepayService.handleCallback(dto);
+  @Get(':id')
+  @ApiOperation({ summary: 'Get order by ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    schema: {
+      type: 'string',
+      format: 'uuid',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    },
+  })
+  @ApiOkResponse({ description: 'Order retrieved successfully' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  async getOrder(@Param('id', ParseUUIDPipe) id: string) {
+    const order = await this.paymentService.getOrder(id);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
+  @Post('sepay/checkout')
+  @ApiOperation({ summary: 'Init SePay checkout for an order' })
+  @ApiOkResponse({ description: 'SePay checkout URL created' })
+  @ApiBadRequestResponse({ description: 'Invalid checkout payload' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  @ApiConflictResponse({ description: 'Order already paid or checkout busy' })
+  @ApiServiceUnavailableResponse({ description: 'SePay checkout unavailable' })
+  initSepayCheckout(@Body() dto: SepayCheckoutDto, @User('id') userId: string) {
+    return this.sepayService.initCheckout(dto.orderId, userId);
+  }
+
+  @Public()
+  @Post('sepay/webhook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'SePay payment notification webhook' })
+  @ApiOkResponse({ description: 'Notification received' })
+  @ApiBadRequestResponse({ description: 'Invalid webhook payload' })
+  handleSepayWebhook(@Body() dto: SepayWebhookDto) {
+    return {
+      received: true,
+      notification_type: dto.notification_type,
+      order_invoice_number: dto.order?.order_invoice_number ?? null,
+    };
   }
 }

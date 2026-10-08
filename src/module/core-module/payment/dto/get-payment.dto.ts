@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsUUID } from 'class-validator';
 
-export class CreateOrderDto {
+export class GetPaymentDto {
   @IsUUID()
   @IsNotEmpty()
-  ticketId!: string;
+  id!: string;
 }

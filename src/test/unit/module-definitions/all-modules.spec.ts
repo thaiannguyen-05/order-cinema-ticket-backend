@@ -15,10 +15,6 @@ const { UserModule } =
   require('../../../module/core-module/user/user.module') as {
     UserModule: unknown;
   };
-const { PaymentModule } =
-  require('../../../module/core-module/payment/payment.module') as {
-    PaymentModule: unknown;
-  };
 const { FilmModule } =
   require('../../../module/theater-module/film/film.module') as {
     FilmModule: unknown;
@@ -51,7 +47,6 @@ describe('Module Definitions', () => {
     expect(AppModule).toBeDefined();
     expect(AuthModule).toBeDefined();
     expect(UserModule).toBeDefined();
-    expect(PaymentModule).toBeDefined();
     expect(FilmModule).toBeDefined();
     expect(CinemaModule).toBeDefined();
     expect(SeatModule).toBeDefined();

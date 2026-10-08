@@ -1,181 +1,127 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { RedisLockService } from '../../../background/redis/redis.lock.service';
-import {
-  REDIS_LOCK_KEY,
-  REDIS_TTL,
-} from '../../../background/redis/redis.value';
-import { SepayCallbackDto } from './dto/sepay.callback.dto';
-import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
-import { toIntAmount, toDecimalAmount } from './amount.converter';
-import { OrderRepository } from './repository/order.repository';
 import { OrderStatus } from '@prisma/client';
-
-const ALLOWED_FIELDS = [
-  'order_amount',
-  'merchant',
-  'currency',
-  'operation',
-  'order_description',
-  'order_invoice_number',
-  'customer_id',
-  'payment_method',
-  'success_url',
-  'error_url',
-  'cancel_url',
-] as const;
+import axios from 'axios';
+import { createHmac } from 'node:crypto';
+import { PrismaService } from '../../../background/prisma/prisma.service';
+import { RedisLockService } from '../../../background/redis/redis.lock.service';
+import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS, SEPAY } from './constant';
+import {
+  SEPAY_SIGN_FIELDS,
+  type SepayCheckoutForm,
+  type SepayCheckoutResult,
+} from './type';
 
 @Injectable()
 export class SepayService {
-  private readonly SEPAY_CHECKOUT_URL = 'https://pay.sepay.vn/v1/checkout/init';
-
   constructor(
-    private readonly configService: ConfigService,
-    private readonly orderRepository: OrderRepository,
+    private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
-    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Generate HMAC-SHA256 signature matching SePay PHP reference:
-   *   signFields(array $fields, string $secretKey): string
-   */
-  signFields(fields: Record<string, string>): string {
-    const secretKey = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
-
-    const signed: string[] = [];
-
-    for (const field of ALLOWED_FIELDS) {
-      if (fields[field] !== undefined) {
-        signed.push(`${field}=${fields[field]}`);
-      }
-    }
-
-    const data = signed.join(',');
-    const hmac = createHmac('sha256', secretKey);
-    hmac.update(data);
-
-    return hmac.digest('base64');
+  private signCheckout(
+    payload: Omit<SepayCheckoutForm, 'signature'>,
+    secret: string,
+  ): string {
+    const message = SEPAY_SIGN_FIELDS.map((field) => payload[field]).join('|');
+    return createHmac('sha256', secret)
+      .update(message, 'utf8')
+      .digest('base64');
   }
 
-  async createCheckoutUrl(dto: SepayCheckoutDto, userId: string) {
-    const lockKey = REDIS_LOCK_KEY.SEPAY_CHECKOUT(dto.order_invoice_number);
+  async initCheckout(
+    orderId: string,
+    userId: string,
+  ): Promise<SepayCheckoutResult> {
+    const result =
+      await this.redisLockService.runExclusive<SepayCheckoutResult>(
+        PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
+        PAYMENT_LOCK_TTL_MS.CHECKOUT,
+        async () => {
+          const order = await this.prismaService.order.findFirst({
+            where: { id: orderId, userId },
+          });
 
-    const result = await this.redisLockService.runExclusive(
-      lockKey,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const existingOrder = await this.orderRepository.findOrderByIdAndUserId(
-          dto.order_invoice_number,
-          userId,
-        );
+          if (!order) {
+            throw new NotFoundException('Order not found');
+          }
 
-        if (!existingOrder) {
-          throw new BadRequestException('Order not found');
-        }
+          if (order.status === OrderStatus.PAID) {
+            throw new ConflictException('Order already paid');
+          }
 
-        const existingPayment = await this.orderRepository.findPaymentByOrderId(
-          existingOrder.id,
-        );
+          const unsigned: Omit<SepayCheckoutForm, 'signature'> = {
+            merchant: this.configService.getOrThrow<string>('SEPAY_MERCHANT'),
+            currency: order.currency,
+            order_amount: String(order.finalPrice),
+            operation: SEPAY.OPERATION,
+            order_description: `Thanh toán đơn hàng #${order.id.slice(0, 8)}`,
+            order_invoice_number: order.id,
+            customer_id: order.userId,
+            success_url:
+              this.configService.getOrThrow<string>('SEPAY_SUCCESS_URL'),
+            error_url: this.configService.getOrThrow<string>('SEPAY_ERROR_URL'),
+            cancel_url:
+              this.configService.getOrThrow<string>('SEPAY_CANCEL_URL'),
+          };
+          const form: SepayCheckoutForm = {
+            ...unsigned,
+            signature: this.signCheckout(
+              unsigned,
+              this.configService.getOrThrow<string>('SEPAY_SECRET_KEY'),
+            ),
+          };
 
-        if (existingPayment) {
-          throw new ConflictException('This order has already been paid');
-        }
+          let checkoutUrl: string;
+          try {
+            const { data } = await axios.post<unknown>(
+              `${this.configService
+                .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
+                .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`,
+              new URLSearchParams(form).toString(),
+              {
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                timeout: SEPAY.TIMEOUT_MS,
+              },
+            );
+            // Assumption: SePay answers JSON with `checkout_url` (or camelCase
+            // `checkoutUrl`). Adjust if merchant docs name it differently.
+            const record = data as Record<string, unknown>;
+            const url = record['checkout_url'] ?? record['checkoutUrl'];
+            if (typeof url !== 'string' || url.length === 0) {
+              throw new Error('Missing checkout_url in SePay response');
+            }
+            checkoutUrl = url;
+          } catch (error) {
+            throw new ServiceUnavailableException(
+              'SePay checkout unavailable',
+              error instanceof Error ? error.message : undefined,
+            );
+          }
 
-        const merchant =
-          dto.merchant ??
-          this.configService.getOrThrow<string>('SEPAY_MERCHANT');
-        const operation = dto.operation ?? 'PURCHASE';
+          await this.prismaService.order.update({
+            where: { id: order.id },
+            data: { paymentMethod: 'SEPAY' },
+          });
 
-        const fields: Record<string, string> = {
-          order_amount: String(dto.order_amount),
-          merchant,
-          currency: dto.currency,
-          operation,
-          order_description: dto.order_description,
-          order_invoice_number: dto.order_invoice_number,
-          customer_id: userId,
-          success_url: dto.success_url,
-          error_url: dto.error_url,
-          cancel_url: dto.cancel_url,
-        };
+          return { orderId: order.id, checkoutUrl };
+        },
+      );
 
-        const signature = this.signFields(fields);
-
-        const formData = new URLSearchParams();
-        for (const [key, value] of Object.entries(fields)) {
-          formData.append(key, value);
-        }
-        formData.append('signature', signature);
-
-        const response = await firstValueFrom(
-          this.httpService.postForm(this.SEPAY_CHECKOUT_URL, formData, {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          }),
-        );
-
-        return response.data as { checkout_url?: string };
-      },
-    );
-
-    if (!result) {
+    if (result === null) {
       throw new ConflictException(
-        'A checkout request is being processed, please try again',
+        'Checkout already in progress for this order',
       );
     }
 
-    if (!result.checkout_url) {
-      throw new ServiceUnavailableException('SePay returned no checkout URL');
-    }
-
-    return { checkout_url: result.checkout_url };
-  }
-
-  async handleCallback(dto: SepayCallbackDto) {
-    const { signature, ...fields } = dto;
-
-    const expectedSignature = this.signFields(fields);
-
-    if (signature !== expectedSignature) {
-      throw new BadRequestException('Invalid SePay signature');
-    }
-
-    // Map SePay fields to internal order
-    const orderId = dto.order_invoice_number;
-    const operation = dto.operation;
-
-    const order = await this.orderRepository.findOrderById(orderId);
-
-    if (!order) {
-      throw new BadRequestException(`Order ${orderId} not found`);
-    }
-
-    // Convert decimal amount from SePay → Int for DB storage
-    const amountInt = toIntAmount(Number(dto.order_amount));
-
-    const newStatus =
-      operation === 'success' || operation === 'captured'
-        ? OrderStatus.CAPTURED
-        : OrderStatus.CANCELLED;
-
-    await this.orderRepository.updateOrderAndUpsertPayment(orderId, newStatus, {
-      orderId,
-      amount: amountInt,
-      currency: dto.currency,
-    });
-
-    return {
-      success: true,
-      status: newStatus,
-      amount: toDecimalAmount(amountInt),
-    };
+    return result;
   }
 }

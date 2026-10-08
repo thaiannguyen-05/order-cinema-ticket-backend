@@ -29,5 +29,4 @@ export type FrequentOrderWithRelations = {
     };
     seat: { row: number; column: number };
   };
-  payment: { amount: number; orderStatus: string } | null;
 };
