@@ -11,8 +11,6 @@ model Order {
     userId String @db.Uuid
     user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-    expiresAt DateTime?
-
     sepayOrderId       String? @unique
     sepayTransactionId String? @unique
     paymentMethod      String?
@@ -21,6 +19,7 @@ model Order {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    expiresAt DateTime? @default(dbgenerated("(now() + interval '15 minutes')")) @db.Timestamptz
 
     @@index([userId])
     @@index([ticketId, userId])

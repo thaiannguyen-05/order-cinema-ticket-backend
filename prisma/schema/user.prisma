@@ -13,7 +13,5 @@ model User {
   deletedAt   DateTime?
   orders      Order[]
   sessions    Session[]
-  eventTrackings EventTracking[]
-  recommendations UserRecommendation[]
   @@index([email])
 }
