@@ -1,4 +1,4 @@
-import type { Order, Prisma } from '@prisma/client';
+import { OrderStatus, type Order, type Prisma } from '@prisma/client';
 
 // Payment is a view over Order (no separate Payment table).
 export type PaymentOrder = Order;
@@ -8,6 +8,20 @@ export type PaymentStatus = Order['status'];
 export type PaymentCreateData = Prisma.OrderUncheckedCreateInput;
 
 export type PaymentUpdateData = Pick<PaymentOrder, 'status'>;
+
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> =
+  {
+    [OrderStatus.PENDING]: [
+      OrderStatus.PAID,
+      OrderStatus.FAILED,
+      OrderStatus.EXPIRED,
+      OrderStatus.CANCELLED,
+    ],
+    [OrderStatus.PAID]: [],
+    [OrderStatus.FAILED]: [],
+    [OrderStatus.EXPIRED]: [],
+    [OrderStatus.CANCELLED]: [],
+  };
 
 export type SepayCheckoutForm = {
   merchant: string;
@@ -20,6 +34,7 @@ export type SepayCheckoutForm = {
   success_url: string;
   error_url: string;
   cancel_url: string;
+  payment_method?: string;
   signature: string;
 };
 
@@ -28,17 +43,25 @@ export type SepayCheckoutResult = {
   checkoutUrl: string;
 };
 
-// Field order for the HMAC-SHA256 (base64) signature. Assumption: SePay signs
-// the pipe-joined field values in form order. Confirm against SePay merchant
-// docs if checkout init rejects the signature.
+export type SepayWebhookResult = {
+  orderId: string;
+  status: PaymentStatus;
+  idempotent: boolean;
+};
+
+// Field order for HMAC-SHA256 (base64) signature per Sepay merchant docs:
+// sign `field=value` pairs joined by `,` in this exact order, skipping absent
+// optional fields (e.g. payment_method). Do NOT reorder.
+// Ref: https://developer.sepay.vn/en/cong-thanh-toan/API/don-hang/form-thanh-toan
 export const SEPAY_SIGN_FIELDS = [
+  'order_amount',
   'merchant',
   'currency',
-  'order_amount',
   'operation',
   'order_description',
   'order_invoice_number',
   'customer_id',
+  'payment_method',
   'success_url',
   'error_url',
   'cancel_url',

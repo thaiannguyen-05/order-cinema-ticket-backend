@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -29,6 +30,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { SepayCheckoutDto } from './dto/sepay-checkout.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
+import { SEPAY } from './constant';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -45,6 +47,72 @@ export class PaymentController {
   @ApiConflictResponse({ description: 'Ticket already ordered' })
   createOrder(@Body() dto: CreatePaymentDto, @User('id') userId: string) {
     return this.paymentService.createOrder({ ...dto, userId });
+  }
+
+  @Post('sepay/checkout')
+  @ApiOperation({ summary: 'Init SePay checkout for an order' })
+  @ApiOkResponse({ description: 'SePay checkout URL created' })
+  @ApiBadRequestResponse({ description: 'Invalid checkout payload' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  @ApiConflictResponse({ description: 'Order already paid or checkout busy' })
+  @ApiServiceUnavailableResponse({ description: 'SePay checkout unavailable' })
+  initSepayCheckout(@Body() dto: SepayCheckoutDto, @User('id') userId: string) {
+    return this.sepayService.initCheckout(dto.orderId, userId);
+  }
+
+  // Browser redirects from Sepay (success/error/cancel_url). Auth required,
+  // order ownership checked. Never mark PAID here; IPN webhook is the source
+  // of truth for PAID.
+  @Get('sepay/success/:orderId')
+  @ApiOperation({ summary: 'Sepay success return (read order status)' })
+  @ApiOkResponse({ description: 'Order status for success return' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  handleSepaySuccess(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @User('id') userId: string,
+  ) {
+    return this.sepayService.handleBrowserReturn(orderId, userId, 'success');
+  }
+
+  @Get('sepay/error/:orderId')
+  @ApiOperation({
+    summary: 'Sepay error return (read-only, FAILED only via IPN)',
+  })
+  @ApiOkResponse({ description: 'Order status for error return' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  handleSepayError(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @User('id') userId: string,
+  ) {
+    return this.sepayService.handleBrowserReturn(orderId, userId, 'error');
+  }
+
+  @Get('sepay/cancel/:orderId')
+  @ApiOperation({ summary: 'Sepay cancel return (PENDING -> CANCELLED)' })
+  @ApiOkResponse({ description: 'Order status for cancel return' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  handleSepayCancel(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @User('id') userId: string,
+  ) {
+    return this.sepayService.handleBrowserReturn(orderId, userId, 'cancel');
+  }
+
+  // NOTE: kept @Public() on purpose. Sepay servers call this endpoint and
+  // have no user JWT. Auth is via `X-Secret-Key: <SEPAY_SECRET_KEY>` header
+  // verified in SepayService (see Sepay IPN docs). Removing @Public() and
+  // requiring JWT would break every real callback with 401.
+  @Public()
+  @Post('sepay/webhook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'SePay payment notification webhook' })
+  @ApiOkResponse({ description: 'Notification received' })
+  @ApiBadRequestResponse({ description: 'Invalid webhook payload' })
+  handleSepayWebhook(
+    @Body() dto: SepayWebhookDto,
+    @Headers(SEPAY.WEBHOOK_SECRET_HEADER) secretKey?: string,
+  ) {
+    return this.sepayService.handleWebhook(dto, secretKey);
   }
 
   @Patch(':id')
@@ -86,30 +154,5 @@ export class PaymentController {
       throw new NotFoundException('Order not found');
     }
     return order;
-  }
-
-  @Post('sepay/checkout')
-  @ApiOperation({ summary: 'Init SePay checkout for an order' })
-  @ApiOkResponse({ description: 'SePay checkout URL created' })
-  @ApiBadRequestResponse({ description: 'Invalid checkout payload' })
-  @ApiNotFoundResponse({ description: 'Order not found' })
-  @ApiConflictResponse({ description: 'Order already paid or checkout busy' })
-  @ApiServiceUnavailableResponse({ description: 'SePay checkout unavailable' })
-  initSepayCheckout(@Body() dto: SepayCheckoutDto, @User('id') userId: string) {
-    return this.sepayService.initCheckout(dto.orderId, userId);
-  }
-
-  @Public()
-  @Post('sepay/webhook')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'SePay payment notification webhook' })
-  @ApiOkResponse({ description: 'Notification received' })
-  @ApiBadRequestResponse({ description: 'Invalid webhook payload' })
-  handleSepayWebhook(@Body() dto: SepayWebhookDto) {
-    return {
-      received: true,
-      notification_type: dto.notification_type,
-      order_invoice_number: dto.order?.order_invoice_number ?? null,
-    };
   }
 }
