@@ -1,9 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
@@ -19,20 +20,55 @@ export class PaymentService implements PaymentInterface {
     private readonly redisLockService: RedisLockService,
   ) {}
 
-  async createOrder(dto: CreatePaymentDto): Promise<PaymentOrder> {
+  async createOrder(
+    dto: CreatePaymentDto & { userId: string },
+  ): Promise<PaymentOrder> {
     const order = await this.redisLockService.runExclusive<PaymentOrder>(
       PAYMENT_LOCK_KEY.CREATE_BY_TICKET(dto.ticketId),
       PAYMENT_LOCK_TTL_MS.CREATE,
       async () => {
         try {
-          return await this.prismaService.$transaction(async (tx) =>
-            tx.order.create({
+          return await this.prismaService.$transaction(async (tx) => {
+            // Lifecycle guard: ticket must exist, price is source of truth.
+            // finalPrice client gửi lên chỉ để đối chiếu, không tin blind.
+            const ticket = await tx.ticket.findUnique({
+              where: { id: dto.ticketId },
+            });
+            if (!ticket) {
+              throw new NotFoundException('Ticket not found');
+            }
+            if (ticket.price !== dto.finalPrice) {
+              throw new BadRequestException(
+                `finalPrice ${dto.finalPrice} does not match ticket price ${ticket.price}`,
+              );
+            }
+            // 1 ticket -> N orders (retry allowed after FAILED/CANCELLED/EXPIRED).
+            // Only one active (PENDING/PAID) order per ticket.
+            const active = await tx.order.findFirst({
+              where: {
+                ticketId: dto.ticketId,
+                status: { in: [OrderStatus.PENDING, OrderStatus.PAID] },
+              },
+              select: { id: true, status: true },
+            });
+            if (active) {
+              throw new ConflictException(
+                `Ticket already has active order ${active.status}`,
+              );
+            }
+            // Only IPN may decide PAID/FAILED. Force PENDING on create and
+            // ignore gateway-controlled fields even if client sends them.
+            return await tx.order.create({
               data: {
-                ...dto,
+                finalPrice: ticket.price,
+                currency: dto.currency,
+                ticketId: dto.ticketId,
+                userId: dto.userId,
+                status: OrderStatus.PENDING,
                 expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
               },
-            }),
-          );
+            });
+          });
         } catch (error) {
           if (
             error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -56,6 +92,8 @@ export class PaymentService implements PaymentInterface {
     return order;
   }
 
+  // Internal only: no longer exposed via PATCH /payment/:id.
+  // PAID/FAILED must come from Sepay IPN (SepayService.applyIpn).
   async updateOrder(id: string, dto: UpdatePaymentDto): Promise<PaymentOrder> {
     const result = await this.redisLockService.runExclusive<PaymentOrder>(
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(id),

@@ -8,8 +8,8 @@ import {
   NotFoundException,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -22,12 +22,12 @@ import {
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { User } from '../../../core/decorator/user.decorator';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { SepayCheckoutDto } from './dto/sepay-checkout.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import { SEPAY } from './constant';
@@ -60,20 +60,24 @@ export class PaymentController {
     return this.sepayService.initCheckout(dto.orderId, userId);
   }
 
-  // Browser redirects from Sepay (success/error/cancel_url). Auth required,
-  // order ownership checked. Never mark PAID here; IPN webhook is the source
-  // of truth for PAID.
+  // Browser redirects from Sepay (success/error/cancel_url). Public with
+  // signed ?token= (HMAC orderId.userId.exp). Never mark PAID here; IPN
+  // webhook is the source of truth for PAID.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60 } })
   @Get('sepay/success/:orderId')
   @ApiOperation({ summary: 'Sepay success return (read order status)' })
   @ApiOkResponse({ description: 'Order status for success return' })
   @ApiNotFoundResponse({ description: 'Order not found' })
   handleSepaySuccess(
     @Param('orderId', ParseUUIDPipe) orderId: string,
-    @User('id') userId: string,
+    @Query('token') token?: string,
   ) {
-    return this.sepayService.handleBrowserReturn(orderId, userId, 'success');
+    return this.sepayService.handleBrowserReturn(orderId, 'success', token);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60 } })
   @Get('sepay/error/:orderId')
   @ApiOperation({
     summary: 'Sepay error return (read-only, FAILED only via IPN)',
@@ -82,20 +86,33 @@ export class PaymentController {
   @ApiNotFoundResponse({ description: 'Order not found' })
   handleSepayError(
     @Param('orderId', ParseUUIDPipe) orderId: string,
-    @User('id') userId: string,
+    @Query('token') token?: string,
   ) {
-    return this.sepayService.handleBrowserReturn(orderId, userId, 'error');
+    return this.sepayService.handleBrowserReturn(orderId, 'error', token);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60 } })
   @Get('sepay/cancel/:orderId')
   @ApiOperation({ summary: 'Sepay cancel return (PENDING -> CANCELLED)' })
   @ApiOkResponse({ description: 'Order status for cancel return' })
   @ApiNotFoundResponse({ description: 'Order not found' })
   handleSepayCancel(
     @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Query('token') token?: string,
+  ) {
+    return this.sepayService.handleBrowserReturn(orderId, 'cancel', token);
+  }
+
+  @Post('sepay/sync/:orderId')
+  @ApiOperation({ summary: 'Sync order status (ownership-checked poll)' })
+  @ApiOkResponse({ description: 'DB order status, lazy-expire if past TTL' })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  syncSepayOrder(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
     @User('id') userId: string,
   ) {
-    return this.sepayService.handleBrowserReturn(orderId, userId, 'cancel');
+    return this.sepayService.syncOrder(orderId, userId);
   }
 
   // NOTE: kept @Public() on purpose. Sepay servers call this endpoint and
@@ -113,26 +130,6 @@ export class PaymentController {
     @Headers(SEPAY.WEBHOOK_SECRET_HEADER) secretKey?: string,
   ) {
     return this.sepayService.handleWebhook(dto, secretKey);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update order status by ID' })
-  @ApiParam({
-    name: 'id',
-    required: true,
-    schema: {
-      type: 'string',
-      format: 'uuid',
-      example: '123e4567-e89b-12d3-a456-426614174000',
-    },
-  })
-  @ApiOkResponse({ description: 'Order updated successfully' })
-  @ApiBadRequestResponse({ description: 'Invalid update payload' })
-  updateOrder(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdatePaymentDto,
-  ) {
-    return this.paymentService.updateOrder(id, dto);
   }
 
   @Get(':id')

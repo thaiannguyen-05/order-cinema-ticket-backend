@@ -31,6 +31,9 @@ import type { PaymentOrder } from './type';
 
 export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 
+// Signed browser-return token TTL: 30 minutes (covers 15m order TTL + buffer).
+const SEPAY_RETURN_TOKEN_TTL_S = 30 * 60;
+
 @Injectable()
 export class SepayService {
   constructor(
@@ -55,6 +58,44 @@ export class SepayService {
     return createHmac('sha256', secret)
       .update(signingString, 'utf8')
       .digest('base64');
+  }
+
+  private buildReturnToken(orderId: string, userId: string): string {
+    const secret = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
+    const exp = Math.floor(Date.now() / 1000) + SEPAY_RETURN_TOKEN_TTL_S;
+    const data = `${orderId}.${userId}.${exp}`;
+    const sig = createHmac('sha256', secret)
+      .update(data, 'utf8')
+      .digest('base64url');
+    return `${exp}.${sig}`;
+  }
+
+  private verifyReturnToken(
+    order: PaymentOrder,
+    token: string | undefined,
+  ): void {
+    if (!token) {
+      throw new UnauthorizedException('Missing return token');
+    }
+    const parts = token.split('.');
+    if (parts.length !== 2) {
+      throw new UnauthorizedException('Invalid return token');
+    }
+    const exp = Number(parts[0]);
+    const sig = parts[1];
+    if (!Number.isFinite(exp) || exp * 1000 < Date.now()) {
+      throw new UnauthorizedException('Return token expired');
+    }
+    const secret = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
+    const data = `${order.id}.${order.userId}.${exp}`;
+    const expected = createHmac('sha256', secret)
+      .update(data, 'utf8')
+      .digest('base64url');
+    const a = Buffer.from(sig, 'utf8');
+    const b = Buffer.from(expected, 'utf8');
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      throw new UnauthorizedException('Invalid return token');
+    }
   }
 
   private async requireOrder(
@@ -157,10 +198,10 @@ export class SepayService {
     if (order.status === nextStatus) {
       return { orderId: order.id, status: order.status, idempotent: true };
     }
+    // Terminal states are immutable. Ack with 200 idempotent:true so Sepay
+    // stops retrying a notification that can never be applied.
     if (order.status !== OrderStatus.PENDING) {
-      throw new ConflictException(
-        `Order already ${order.status}, cannot move to ${nextStatus}`,
-      );
+      return { orderId: order.id, status: order.status, idempotent: true };
     }
 
     if (nextStatus === OrderStatus.PAID) {
@@ -235,7 +276,7 @@ export class SepayService {
           // endpoint serving that order: supports `{orderId}` placeholder,
           // `?orderId=` query, or REST `/<orderId>` suffix.
           // e.g. base `https://api.../payment/sepay/success`
-          //   -> `https://api.../payment/sepay/success/<orderId>`
+          //   -> `https://api.../payment/sepay/success/<orderId>?token=<signed>`
           const withOrderId = (base: string): string => {
             if (base.includes('{orderId}')) {
               return base.replace('{orderId}', order.id);
@@ -246,6 +287,12 @@ export class SepayService {
             }
             return `${base.replace(/\/+$/, '')}/${order.id}`;
           };
+          const withToken = (url: string, token: string): string => {
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}token=${encodeURIComponent(token)}`;
+          };
+
+          const returnToken = this.buildReturnToken(order.id, order.userId);
 
           const unsigned: Omit<SepayCheckoutForm, 'signature'> = {
             merchant: this.configService.getOrThrow<string>('SEPAY_MERCHANT'),
@@ -255,14 +302,23 @@ export class SepayService {
             order_description: `Thanh toán đơn hàng #${order.id.slice(0, 8)}`,
             order_invoice_number: order.id,
             customer_id: order.userId,
-            success_url: withOrderId(
-              this.configService.getOrThrow<string>('SEPAY_SUCCESS_URL'),
+            success_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_SUCCESS_URL'),
+              ),
+              returnToken,
             ),
-            error_url: withOrderId(
-              this.configService.getOrThrow<string>('SEPAY_ERROR_URL'),
+            error_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_ERROR_URL'),
+              ),
+              returnToken,
             ),
-            cancel_url: withOrderId(
-              this.configService.getOrThrow<string>('SEPAY_CANCEL_URL'),
+            cancel_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_CANCEL_URL'),
+              ),
+              returnToken,
             ),
           };
           const form: SepayCheckoutForm = {
@@ -343,8 +399,23 @@ export class SepayService {
       throw new BadRequestException('Missing order_invoice_number');
     }
 
+    // Replay guard: Sepay IPN carries Unix timestamp (seconds).
+    // Reject stale/future-skewed (>5m) payloads even if secret matches.
+    if (dto.timestamp !== undefined && dto.timestamp !== null) {
+      const tsMs =
+        typeof dto.timestamp === 'number' ? dto.timestamp * 1000 : Number.NaN;
+      if (!Number.isFinite(tsMs)) {
+        throw new BadRequestException('Invalid timestamp');
+      }
+      if (Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+        throw new BadRequestException('Stale webhook timestamp');
+      }
+    }
+
+    // Unified settle lock with browser return (same orderId) to prevent
+    // PENDING->CANCELLED vs PENDING->PAID race.
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.WEBHOOK_BY_INVOICE(invoiceNumber),
+      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(invoiceNumber),
       PAYMENT_LOCK_TTL_MS.WEBHOOK,
       async () => this.applyIpn(await this.requireOrder(invoiceNumber), dto),
     );
@@ -357,20 +428,63 @@ export class SepayService {
   }
 
   /**
-   * Single browser-return handler serving all 3 redirect urls.
-   * success/error = read-only (FAILED only via IPN); cancel -> CANCELLED.
-   * Never marks PAID, never downgrades PAID, never touches Ticket/Seat.
+   * Ownership-checked poll for frontend: returns DB status, lazily expires
+   * a PENDING order past expiresAt instead of waiting for the 5m cron.
+   * Remote Sepay PG query (https://pgapi.sepay.vn, Basic merchant:secret)
+   * to be wired here once the invoice-lookup contract is confirmed;
+   * until then IPN remains the only path to PAID.
    */
-  async handleBrowserReturn(
+  async syncOrder(
     orderId: string,
     userId: string,
-    outcome: SepayBrowserOutcome,
   ): Promise<SepayWebhookResult> {
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
         const order = await this.requireOrder(orderId, userId);
+        if (
+          order.status === OrderStatus.PENDING &&
+          order.expiresAt &&
+          order.expiresAt.getTime() <= Date.now()
+        ) {
+          const updated = await this.saveStatus(order.id, {
+            status: OrderStatus.EXPIRED,
+          });
+          return {
+            orderId: updated.id,
+            status: updated.status,
+            idempotent: false,
+          };
+        }
+        return { orderId: order.id, status: order.status, idempotent: true };
+      },
+    );
+    if (result === null) {
+      throw new ConflictException(
+        'Order update is already in progress for this order',
+      );
+    }
+    return result;
+  }
+
+  /**
+   * Single browser-return handler serving all 3 redirect urls.
+   * Public (signed ?token=), success/error = read-only (FAILED only via IPN);
+   * cancel PENDING -> CANCELLED.
+   * Never marks PAID, never downgrades PAID, never touches Ticket/Seat.
+   */
+  async handleBrowserReturn(
+    orderId: string,
+    outcome: SepayBrowserOutcome,
+    token: string | undefined,
+  ): Promise<SepayWebhookResult> {
+    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
+      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      PAYMENT_LOCK_TTL_MS.UPDATE,
+      async () => {
+        const order = await this.requireOrder(orderId);
+        this.verifyReturnToken(order, token);
         if (outcome !== 'cancel' || order.status !== OrderStatus.PENDING) {
           return { orderId: order.id, status: order.status, idempotent: true };
         }

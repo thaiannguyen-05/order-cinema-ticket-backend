@@ -25,6 +25,7 @@ import { LoggerModule } from './core/logger/logger.module';
 import { SeatModule } from './module/theater-module/seat/seat.module';
 import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-job.module';
+import { OrderExpireCronJobModule } from './background/order-expire-cron-job/order-expire-cron-job.module';
 import { TrackingFrequentDataModule } from './background/tracking-frequent-data/tracking-frequent-data.module';
 import { PaymentModule } from './module/core-module/payment/payment.module';
 @Module({
@@ -52,6 +53,7 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
     UserModule,
     SyncDataCronJobModule,
     OutboxCronJobModule,
+    OrderExpireCronJobModule,
     PaymentModule,
     TrackingFrequentDataModule,
     ScheduleModule.forRoot({}),
