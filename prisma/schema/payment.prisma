@@ -7,7 +7,6 @@ model Order {
 
     ticketId String @unique @db.Uuid
     ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
-
     userId String @db.Uuid
     user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 

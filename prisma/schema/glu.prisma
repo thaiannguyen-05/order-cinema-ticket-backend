@@ -21,14 +21,12 @@ model FilmOfCinema {
     id String @id @default(uuid()) @db.Uuid
 
     cinemaId String @db.Uuid
-    filmId   String @db.Uuid
+    cinema   Cinema @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
 
+    filmId String @db.Uuid
     film   Film   @relation(fields: [filmId], references: [id], onDelete: Cascade)
-    cinema Cinema @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
 
-    seats     Seat[]
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    showTimes ShowTime[]
 
     @@unique([filmId, cinemaId])
     @@index([cinemaId])
@@ -55,7 +53,8 @@ model Cinema {
     logo_url    String?
     show_dates  Json?
 
-    films     FilmOfCinema[]
-    createdAt DateTime       @default(now())
-    updatedAt DateTime       @updatedAt
+    filmOfCinema FilmOfCinema[]
+    romes        Room[]
+    createdAt    DateTime       @default(now())
+    updatedAt    DateTime       @updatedAt
 }

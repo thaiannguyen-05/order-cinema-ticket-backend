@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma, SEAT_STATUS } from '@prisma/client';
+import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
 import axios from 'axios';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
@@ -224,9 +224,10 @@ export class SepayService {
           if (!ticket) {
             throw new NotFoundException('Ticket not found');
           }
-          await tx.seat.update({
-            where: { id: ticket.seatId },
-            data: { status: SEAT_STATUS.BOOKED },
+          // Seat is reusable across ShowTimes; BOOKED lives on Ticket.
+          await tx.ticket.update({
+            where: { id: ticket.id },
+            data: { ticketStatus: TicketStatus.BOOKED },
           });
           return paid;
         });
@@ -253,6 +254,11 @@ export class SepayService {
       paymentMethod: dto.transaction.payment_method,
       paidAmount: Math.round(txAmount),
       callbackPayload: JSON.parse(JSON.stringify(dto)),
+    });
+    // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
+    await this.prismaService.ticket.updateMany({
+      where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+      data: { ticketStatus: TicketStatus.AVAILABLE },
     });
     return { orderId: updated.id, status: updated.status, idempotent: false };
   }
@@ -451,6 +457,13 @@ export class SepayService {
           const updated = await this.saveStatus(order.id, {
             status: OrderStatus.EXPIRED,
           });
+          await this.prismaService.ticket.updateMany({
+            where: {
+              id: order.ticketId,
+              ticketStatus: TicketStatus.PROCESSING,
+            },
+            data: { ticketStatus: TicketStatus.AVAILABLE },
+          });
           return {
             orderId: updated.id,
             status: updated.status,
@@ -491,6 +504,10 @@ export class SepayService {
         const nextStatus = OrderStatus.CANCELLED;
         const updated = await this.saveStatus(order.id, {
           status: nextStatus,
+        });
+        await this.prismaService.ticket.updateMany({
+          where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+          data: { ticketStatus: TicketStatus.AVAILABLE },
         });
         return {
           orderId: updated.id,

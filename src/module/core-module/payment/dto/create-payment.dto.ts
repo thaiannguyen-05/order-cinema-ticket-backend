@@ -1,7 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsDateString,
-  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -10,8 +9,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { OrderStatus, type Prisma } from '@prisma/client';
 
+// Client may only name the Ticket + expected price.
+// userId comes from JWT (@User), status/sepay fields are gateway-controlled
+// and rejected by whitelist+forbidNonWhitelisted if sent.
 export class CreatePaymentDto {
   @Type(() => Number)
   @IsInt()
@@ -26,49 +27,11 @@ export class CreatePaymentDto {
   @MaxLength(10)
   currency?: string;
 
-  @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
-
   @IsUUID()
   @IsNotEmpty()
   ticketId!: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  userId!: string;
-
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  sepayOrderId?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  sepayTransactionId?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  paymentMethod?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  paidAmount?: number;
-
-  @IsOptional()
-  callbackPayload?: Prisma.InputJsonValue;
 }

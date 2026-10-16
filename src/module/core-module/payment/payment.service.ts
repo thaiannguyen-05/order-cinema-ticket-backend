@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
@@ -37,13 +37,27 @@ export class PaymentService implements PaymentInterface {
             if (!ticket) {
               throw new NotFoundException('Ticket not found');
             }
+            if (ticket.ticketStatus === TicketStatus.BOOKED) {
+              throw new ConflictException('Ticket already booked');
+            }
+            if (ticket.ticketStatus === TicketStatus.CANCELLED) {
+              throw new ConflictException('Ticket is cancelled');
+            }
             if (ticket.price !== dto.finalPrice) {
               throw new BadRequestException(
                 `finalPrice ${dto.finalPrice} does not match ticket price ${ticket.price}`,
               );
             }
-            // 1 ticket -> N orders (retry allowed after FAILED/CANCELLED/EXPIRED).
-            // Only one active (PENDING/PAID) order per ticket.
+
+            const showTime = await tx.showTime.findUnique({
+              where: { id: ticket.showTimeId },
+            });
+            if (!showTime) {
+              throw new NotFoundException('Showtime not found');
+            }
+            if (showTime.endAt.getTime() <= Date.now()) {
+              throw new BadRequestException('Showtime already ended');
+            }
             const active = await tx.order.findFirst({
               where: {
                 ticketId: dto.ticketId,
@@ -56,12 +70,22 @@ export class PaymentService implements PaymentInterface {
                 `Ticket already has active order ${active.status}`,
               );
             }
+            // AVAILABLE -> PROCESSING: hold the ticket while Order is PENDING.
+            // PAID path (Sepay IPN) flips it to BOOKED; FAILED/CANCELLED/EXPIRED
+            // flips it back to AVAILABLE for retry.
+            if (ticket.ticketStatus === TicketStatus.AVAILABLE) {
+              await tx.ticket.update({
+                where: { id: ticket.id },
+                data: { ticketStatus: TicketStatus.PROCESSING },
+              });
+            }
             // Only IPN may decide PAID/FAILED. Force PENDING on create and
             // ignore gateway-controlled fields even if client sends them.
+            // Explicit whitelist: never spread ...dto into order.create.
             return await tx.order.create({
               data: {
                 finalPrice: ticket.price,
-                currency: dto.currency,
+                currency: dto.currency ?? 'VND',
                 ticketId: dto.ticketId,
                 userId: dto.userId,
                 status: OrderStatus.PENDING,
