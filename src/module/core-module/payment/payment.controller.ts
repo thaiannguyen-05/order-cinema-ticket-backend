@@ -33,7 +33,7 @@ import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import { SEPAY } from './constant';
 
 @ApiTags('Payment')
-@Controller('payment')
+@Controller({ path: 'payment', version: '1' })
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
