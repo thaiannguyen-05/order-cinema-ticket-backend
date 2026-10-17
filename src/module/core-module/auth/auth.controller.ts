@@ -25,7 +25,7 @@ import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify.dto';
 import { ResetPasswordDto } from './dto/reset.password.dto';
 import { LoginDto } from './dto/login.dto';
-import type { Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { ForgotPasswordDto } from './dto/forgot.password.dto';
@@ -108,13 +108,10 @@ export class AuthController {
   })
   async login(
     @Body() loginDto: LoginDto,
-    @Req() httpRequest: Request,
-    @Res({ passthrough: true }) httpResponse: Response,
+    @Req() httpRequest: FastifyRequest,
+    @Res({ passthrough: true }) httpResponse: FastifyReply,
   ) {
-    const ipAddress =
-      (Array.isArray(httpRequest.ips) && httpRequest.ips.length > 0
-        ? httpRequest.ips[0]
-        : httpRequest.ip) ?? 'unknown';
+    const ipAddress = httpRequest.ip ?? 'unknown';
     return this.authService.login(loginDto, ipAddress, httpResponse);
   }
 
@@ -128,8 +125,8 @@ export class AuthController {
   @ApiOkResponse({ description: 'Token refreshed successfully' })
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
   async refreshToken(
-    @Req() httpRequest: Request,
-    @Res({ passthrough: true }) httpResponse: Response,
+    @Req() httpRequest: FastifyRequest,
+    @Res({ passthrough: true }) httpResponse: FastifyReply,
   ) {
     return this.authService.refreshToken(httpRequest, httpResponse);
   }
@@ -142,8 +139,8 @@ export class AuthController {
   @ApiOkResponse({ description: 'Logout success' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async logout(
-    @Req() httpRequest: Request,
-    @Res({ passthrough: true }) httpResponse: Response,
+    @Req() httpRequest: FastifyRequest,
+    @Res({ passthrough: true }) httpResponse: FastifyReply,
   ) {
     return this.authService.logout(httpRequest, httpResponse);
   }

@@ -1,7 +1,7 @@
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 
-export type RequestWithAccessTokenCookie = Request & {
-  cookies?: {
+export type RequestWithAccessTokenCookie = FastifyRequest & {
+  cookies: FastifyRequest['cookies'] & {
     accessToken?: string;
   };
 };

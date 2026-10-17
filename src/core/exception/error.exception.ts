@@ -5,14 +5,15 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ExceptionResponseMapping } from '../type/type';
+
 @Catch()
 export class ErrorException implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
-    const request = context.getRequest<Request>();
-    const response = context.getResponse<Response>();
+    const request = context.getRequest<FastifyRequest>();
+    const response = context.getResponse<FastifyReply>();
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -48,6 +49,6 @@ export class ErrorException implements ExceptionFilter {
       requestId: request.requestId,
     };
 
-    response.status(status).json(responseMapping);
+    response.code(status).send(responseMapping);
   }
 }

@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 
 export const ClientIp = createParamDecorator((ctx: ExecutionContext) => {
-  const req = ctx.switchToHttp().getRequest<Request>();
-  return req.ips?.length ? req.ips[0] : req.ip;
+  const req = ctx.switchToHttp().getRequest<FastifyRequest>();
+  return req.ip;
 });

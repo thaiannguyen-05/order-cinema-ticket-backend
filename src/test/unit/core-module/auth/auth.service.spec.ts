@@ -477,7 +477,7 @@ describe('AuthService', () => {
       hashPassword: 'stored-hash',
     });
     verify.mockResolvedValue(false);
-    const response = { cookie: jest.fn() };
+    const response = { setCookie: jest.fn() };
 
     await expect(
       service.login(
@@ -487,7 +487,7 @@ describe('AuthService', () => {
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
-    expect(response.cookie).not.toHaveBeenCalled();
+    expect(response.setCookie).not.toHaveBeenCalled();
   });
 
   it('logs in active user and writes auth cookies', async () => {
@@ -510,7 +510,7 @@ describe('AuthService', () => {
       updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     });
 
-    const response = { cookie: jest.fn() };
+    const response = { setCookie: jest.fn() };
     const request = {
       headers: {},
       ip: '127.0.0.1',
@@ -523,7 +523,7 @@ describe('AuthService', () => {
       response as never,
     );
 
-    expect(response.cookie).toHaveBeenCalledTimes(3);
+    expect(response.setCookie).toHaveBeenCalledTimes(3);
     expect(result).toBe(true);
   });
 
@@ -531,7 +531,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: {} } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -542,7 +542,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: { sessionId: 's1', refreshToken: 'r1' } } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -557,7 +557,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: { sessionId: 's1' } } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -575,7 +575,7 @@ describe('AuthService', () => {
         {
           cookies: { sessionId: 's1', refreshToken: 'wrong-refresh' },
         } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -595,7 +595,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: { sessionId: 's1', refreshToken: 'refresh-1' } } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -616,7 +616,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: { sessionId: 's1', refreshToken: 'refresh-1' } } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -633,7 +633,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshToken(
         { cookies: { sessionId: 's1', refreshToken: 'refresh-1' } } as never,
-        { clearCookie: jest.fn(), cookie: jest.fn() } as never,
+        { clearCookie: jest.fn(), setCookie: jest.fn() } as never,
       ),
     ).rejects.toThrow('jwt expired');
   });
@@ -660,7 +660,7 @@ describe('AuthService', () => {
     });
 
     const req = { cookies: { sessionId: 's1', refreshToken: 'old-refresh' } };
-    const res = { clearCookie: jest.fn(), cookie: jest.fn() };
+    const res = { clearCookie: jest.fn(), setCookie: jest.fn() };
 
     await expect(
       service.refreshToken(req as never, res as never),
@@ -668,12 +668,12 @@ describe('AuthService', () => {
 
     expect(res.clearCookie).toHaveBeenCalledWith('accessToken', { path: '/' });
     expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/' });
-    expect(res.cookie).toHaveBeenCalledWith(
+    expect(res.setCookie).toHaveBeenCalledWith(
       'accessToken',
       'new-access',
       expect.objectContaining({ httpOnly: true }),
     );
-    expect(res.cookie).toHaveBeenCalledWith(
+    expect(res.setCookie).toHaveBeenCalledWith(
       'refreshToken',
       'new-refresh',
       expect.objectContaining({ httpOnly: true }),

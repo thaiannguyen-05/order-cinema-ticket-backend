@@ -6,13 +6,13 @@ describe('AddHeaderMiddleware', () => {
     const req: Record<string, unknown> = {
       headers: { 'x-request-id': 'req-abc' },
     };
-    const res = { setHeader: jest.fn() };
+    const res = { header: jest.fn() };
     const next = jest.fn();
 
     middleware.use(req as never, res as never, next as never);
 
     expect(req.requestId).toBe('req-abc');
-    expect(res.setHeader).toHaveBeenCalledWith('X-Request-Id', 'req-abc');
+    expect(res.header).toHaveBeenCalledWith('X-Request-Id', 'req-abc');
     expect(next).toHaveBeenCalled();
   });
 });

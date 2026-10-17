@@ -1,12 +1,15 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Request, Response, NextFunction } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+
 @Injectable()
 export class AddHeaderMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    const requestId = req.headers['x-request-id']?.toString() ?? randomUUID();
+  use(req: FastifyRequest, res: FastifyReply, next: () => void) {
+    const raw = req.headers['x-request-id'];
+    const requestId =
+      (Array.isArray(raw) ? raw[0] : raw)?.toString() ?? randomUUID();
     req.requestId = requestId;
-    res.setHeader('X-Request-Id', requestId);
+    res.header('X-Request-Id', requestId);
     next();
   }
 }
