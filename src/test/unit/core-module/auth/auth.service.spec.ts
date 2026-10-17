@@ -4,14 +4,14 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
+import { EVENT_NAME } from '../../../../module/core-module/infra/email/constant/event.constant';
 
 jest.mock('argon2', () => ({
   hash: jest.fn(),
   verify: jest.fn(),
 }));
 
-jest.mock('../../../../core/logger/logger.service', () => ({
+jest.mock('../../../../module/core-module/infra/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 

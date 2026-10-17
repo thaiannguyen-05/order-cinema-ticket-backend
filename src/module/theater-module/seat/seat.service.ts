@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../background/prisma/prisma.service';
+import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { CreateSeatDto } from './dto/create-seat.dto';
 import { UpdateSeatDto } from './dto/update-seat.dto';
 import { FindSeatDto } from './dto/find-seat.dto';

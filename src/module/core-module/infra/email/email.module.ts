@@ -14,8 +14,8 @@ import { OutboxService } from './outbox.service';
 const resolveTemplateDir = () => {
   const candidates = [
     join(__dirname, 'templates'),
-    join(process.cwd(), 'dist/src/background/email/templates'),
-    join(process.cwd(), 'src/background/email/templates'),
+    join(process.cwd(), 'dist/src/module/core-module/infra/email/templates'),
+    join(process.cwd(), 'src/module/core-module/infra/email/templates'),
   ];
 
   return candidates.find((dir) => existsSync(dir)) ?? candidates[0];

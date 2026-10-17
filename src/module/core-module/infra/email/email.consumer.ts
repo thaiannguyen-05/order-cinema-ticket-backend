@@ -7,7 +7,7 @@ import {
 } from '@nestjs/microservices';
 import { EVENT_NAME } from './constant/event.constant';
 import { EmailService } from './email.service';
-import type { RmqAckChannel } from '../../core/type/type';
+import type { RmqAckChannel } from '../../../../core/type/type';
 
 @Controller()
 export class EmailConsumer {

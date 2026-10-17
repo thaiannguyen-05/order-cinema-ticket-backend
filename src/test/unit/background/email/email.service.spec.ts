@@ -1,5 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { EmailService } from '../../../../background/email/email.service';
+import { EmailService } from '../../../../module/core-module/infra/email/email.service';
 
 describe('EmailService', () => {
   let service: EmailService;

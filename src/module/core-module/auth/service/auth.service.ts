@@ -7,15 +7,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
-import { EmailWorker } from '../../../../background/email/email.worker';
-import { OutboxService } from '../../../../background/email/outbox.service';
+import { EVENT_NAME } from '../../infra/email/constant/event.constant';
+import { EmailWorker } from '../../infra/email/email.worker';
+import { OutboxService } from '../../infra/email/outbox.service';
 import type { JwtPayload } from '../../../../core';
 import {
   InvalidCredentialsException,
   InvalidRefreshTokenException,
 } from '../../../../core/exception/auth.exception';
-import { MyLogger } from '../../../../core/logger/logger.service';
+import { MyLogger } from '../../infra/logger/logger.service';
 import { UserService } from '../../user/user.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -30,7 +30,7 @@ import {
 import { UserWithoutPassword } from '../type/type';
 import { TokenService } from './token.service';
 import { generateCode, hashTextByArgon2, verifyTextByArgon2 } from './helper';
-import { EmailPayload } from '../../../../background/email/type';
+import { EmailPayload } from '../../infra/email/type';
 import { CODE_EXPIRY_MS } from './type';
 @Injectable()
 export class AuthService {

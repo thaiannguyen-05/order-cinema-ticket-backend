@@ -1,4 +1,4 @@
-jest.mock('../../../core/logger/logger.service', () => ({
+jest.mock('../../../module/core-module/infra/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 const { AppModule } = require('../../../app.module') as { AppModule: unknown };
@@ -26,12 +26,14 @@ const { TicketModule } =
   require('../../../module/theater-module/ticket/ticket.module') as {
     TicketModule: unknown;
   };
-const { EmailModule } = require('../../../background/email/email.module') as {
-  EmailModule: unknown;
-};
-const { RedisModule } = require('../../../background/redis/redis.module') as {
-  RedisModule: unknown;
-};
+const { EmailModule } =
+  require('../../../module/core-module/infra/email/email.module') as {
+    EmailModule: unknown;
+  };
+const { RedisModule } =
+  require('../../../module/core-module/infra/redis/redis.module') as {
+    RedisModule: unknown;
+  };
 describe('Module Definitions', () => {
   it('all module classes should be defined', () => {
     expect(AppModule).toBeDefined();

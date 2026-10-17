@@ -1,4 +1,4 @@
-import { EmailConsumer } from '../../../../background/email/email.consumer';
+import { EmailConsumer } from '../../../../module/core-module/infra/email/email.consumer';
 
 describe('EmailConsumer', () => {
   it('delegates queue handlers to email service', async () => {

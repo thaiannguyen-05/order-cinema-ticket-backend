@@ -5,7 +5,7 @@ import {
   RETRY_VALUES,
   retryCore,
   RetryCoreOptions,
-} from '../../core/interfaces/re-try.interface';
+} from '../../../../core/interfaces/re-try.interface';
 
 @Injectable()
 export class EmailService {

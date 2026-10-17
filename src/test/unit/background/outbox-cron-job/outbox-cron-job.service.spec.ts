@@ -1,22 +1,22 @@
-jest.mock('../../../../core/logger/logger.service', () => ({
+jest.mock('../../../../module/core-module/infra/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 
 const { OutboxCronJobService } =
-  require('../../../../background/outbox-cron-job/outbox-cron-job.service') as {
+  require('../../../../module/core-module/infra/outbox-cron-job/outbox-cron-job.service') as {
     OutboxCronJobService: new (...args: never[]) => {
       removeOutboxExp: () => Promise<void>;
     };
   };
 
 const { REDIS_LOCK_KEY, REDIS_TTL } =
-  require('../../../../background/redis/redis.value') as {
+  require('../../../../module/core-module/infra/redis/redis.value') as {
     REDIS_LOCK_KEY: { REMOVE_OUTBOX_EXP: string };
     REDIS_TTL: { LOCK_SERVICE: number };
   };
 
 const { EXP_TIME_OUTBOX } =
-  require('../../../../background/email/constant/time') as {
+  require('../../../../module/core-module/infra/email/constant/time') as {
     EXP_TIME_OUTBOX: number;
   };
 

@@ -4,7 +4,7 @@ jest.mock('ioredis', () => {
     .mockImplementation((url: string) => ({ url, on: jest.fn() }));
 });
 
-import { RedisLockProvider } from '../../../../background/redis/redis-lock.provider';
+import { RedisLockProvider } from '../../../../module/core-module/infra/redis/redis-lock.provider';
 
 describe('RedisLockProvider', () => {
   it('creates redis client from config redis host and port', () => {

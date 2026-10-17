@@ -11,8 +11,8 @@ import type { FastifyRequest } from 'fastify';
 import { randomUUID } from 'crypto';
 import Redis from 'ioredis';
 import { AppModule } from './app.module';
-import { QUEUE_NAME } from './background/email/constant/event.constant';
-import { MyLogger } from './core/logger/logger.service';
+import { QUEUE_NAME } from './module/core-module/infra/email/constant/event.constant';
+import { MyLogger } from './module/core-module/infra/logger/logger.service';
 import type { ClosableAmqpConnection } from './core/type/type';
 import {
   FastifyAdapter,

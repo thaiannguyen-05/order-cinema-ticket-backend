@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
-import { PrismaService } from '../../../background/prisma/prisma.service';
-import { RedisLockService } from '../../../background/redis/redis.lock.service';
+import { PrismaService } from '../infra/prisma/prisma.service';
+import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
 import type { CreatePaymentDto } from './dto/create-payment.dto';
 import type { UpdatePaymentDto } from './dto/update-payment.dto';

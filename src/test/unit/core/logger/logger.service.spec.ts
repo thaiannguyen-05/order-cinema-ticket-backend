@@ -27,16 +27,17 @@ jest.mock('winston', () => ({
   },
 }));
 
-const { MyLogger } = require('../../../../core/logger/logger.service') as {
-  MyLogger: new () => {
-    log: (msg: string, ctx?: string) => void;
-    error: (msg: string, ctx?: string) => void;
-    warn: (msg: string, ctx?: string) => void;
-    debug: (msg: string, ctx?: string) => void;
-    verbose: (msg: string, ctx?: string) => void;
-    fatal: (msg: string, ctx?: string) => void;
+const { MyLogger } =
+  require('../../../../module/core-module/infra/logger/logger.service') as {
+    MyLogger: new () => {
+      log: (msg: string, ctx?: string) => void;
+      error: (msg: string, ctx?: string) => void;
+      warn: (msg: string, ctx?: string) => void;
+      debug: (msg: string, ctx?: string) => void;
+      verbose: (msg: string, ctx?: string) => void;
+      fatal: (msg: string, ctx?: string) => void;
+    };
   };
-};
 
 describe('MyLogger', () => {
   it('maps logger methods to underlying winston levels', () => {
