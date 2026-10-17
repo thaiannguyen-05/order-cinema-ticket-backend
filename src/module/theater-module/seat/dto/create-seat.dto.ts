@@ -31,7 +31,7 @@ export class CreateSeatDto {
 
   @IsOptional()
   @IsEnum(SeatStatus)
-  seatStatus?: SeatStatus = SeatStatus.AVAILABLE;
+  seatStatus: SeatStatus = SeatStatus.AVAILABLE;
 
   @IsOptional()
   @IsUUID()

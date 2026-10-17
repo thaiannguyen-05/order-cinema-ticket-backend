@@ -9,8 +9,12 @@ export class SeatService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createSeat(dto: CreateSeatDto) {
+    const { roomId, ...rest } = dto;
     return this.prismaService.seat.create({
-      data: dto,
+      data: {
+        ...rest,
+        ...(roomId && { room: { connect: { id: roomId } } }),
+      },
     });
   }
 
@@ -27,7 +31,9 @@ export class SeatService {
       where: {
         id: seatId,
       },
-      data: dto,
+      data: {
+        ...dto,
+      },
     });
   }
 

@@ -19,6 +19,9 @@ describe('TicketService', () => {
     };
   };
 
+  const SHOW_TIME_ID = '11111111-1111-4111-8111-111111111111';
+  const SEAT_ID = '22222222-2222-4222-8222-222222222222';
+
   beforeEach(() => {
     prismaService = {
       ticket: {
@@ -30,22 +33,22 @@ describe('TicketService', () => {
     service = new TicketService(prismaService as never);
   });
 
-  it('creates ticket with generated code', async () => {
+  it('creates ticket with direct foreign keys', async () => {
     prismaService.ticket.create.mockResolvedValue({ id: 't1' });
 
     const result = await service.createTicket({
       price: 100,
-      filmOfCinemaId: 'foc-1',
-      seatId: 'seat-1',
+      showTimeId: SHOW_TIME_ID,
+      seatId: SEAT_ID,
     } as never);
 
     expect(result).toEqual({ id: 't1' });
     expect(prismaService.ticket.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+      data: {
         price: 100,
-        filmOfCinemaId: 'foc-1',
-        seatId: 'seat-1',
-      }),
+        showTimeId: SHOW_TIME_ID,
+        seatId: SEAT_ID,
+      },
     });
   });
 
