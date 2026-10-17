@@ -1,4 +1,5 @@
-import type { Response, CookieOptions } from 'express';
+import type { CookieSerializeOptions } from '@fastify/cookie';
+import type { FastifyReply } from 'fastify';
 import type { AuthCookiePayload } from './type';
 
 export const AUTH_COOKIE_NAME = {
@@ -8,28 +9,30 @@ export const AUTH_COOKIE_NAME = {
 } as const;
 
 export const COOKIE_TTL = {
-  ACCESS_TOKEN: 15 * 60, // 15 minutes
-  REFRESH_TOKEN: 7 * 24 * 60 * 60, // 7 days
-  COOKIE_TTL: 7 * 24 * 60 * 60, // 7 days
+  ACCESS_TOKEN: 15 * 60, // 15 minutes in seconds
+  REFRESH_TOKEN: 7 * 24 * 60 * 60, // 7 days in seconds
+  COOKIE_TTL: 7 * 24 * 60 * 60, // 7 days in seconds
 } as const;
 
-export const getAuthCookieOptions = (isProduction: boolean): CookieOptions => ({
+export const getAuthCookieOptions = (
+  isProduction: boolean,
+): CookieSerializeOptions => ({
   httpOnly: true,
   secure: isProduction,
   sameSite: 'lax',
   path: '/',
-  maxAge: COOKIE_TTL.COOKIE_TTL * 1000, // 7 days in milliseconds
+  maxAge: COOKIE_TTL.COOKIE_TTL, // seconds for @fastify/cookie
 });
 
 export const setAuthCookies = (
-  response: Response,
+  reply: FastifyReply,
   cookies: AuthCookiePayload,
   isProduction: boolean,
 ): void => {
   const options = getAuthCookieOptions(isProduction);
 
   if (cookies.refreshToken) {
-    response.cookie(
+    reply.setCookie(
       AUTH_COOKIE_NAME.REFRESH_TOKEN,
       cookies.refreshToken,
       options,
@@ -37,7 +40,7 @@ export const setAuthCookies = (
   }
 
   if (cookies.accessToken) {
-    response.cookie(
+    reply.setCookie(
       AUTH_COOKIE_NAME.ACCESS_TOKEN,
       cookies.accessToken,
       options,
@@ -45,14 +48,14 @@ export const setAuthCookies = (
   }
 
   if (cookies.sessionId) {
-    response.cookie(AUTH_COOKIE_NAME.SESSION_ID, cookies.sessionId, options);
+    reply.setCookie(AUTH_COOKIE_NAME.SESSION_ID, cookies.sessionId, options);
   }
 };
 
-export const clearAuthCookies = (response: Response): void => {
-  const options: CookieOptions = { path: '/' };
+export const clearAuthCookies = (reply: FastifyReply): void => {
+  const options: CookieSerializeOptions = { path: '/' };
 
-  response.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, options);
-  response.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, options);
-  response.clearCookie(AUTH_COOKIE_NAME.SESSION_ID, options);
+  reply.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, options);
+  reply.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, options);
+  reply.clearCookie(AUTH_COOKIE_NAME.SESSION_ID, options);
 };

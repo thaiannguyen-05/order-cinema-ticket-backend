@@ -1,5 +1,5 @@
 import { Body, Controller, Patch, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 import type { UpdateUser } from './dto/update.user.dto';
 import { UserService } from './user.service';
 import {
@@ -38,7 +38,7 @@ export class UserController {
   @ApiOkResponse({ description: 'User updated successfully' })
   @ApiBadRequestResponse({ description: 'Invalid update payload' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async updateUser(@Req() req: Request, @Body() dto: UpdateUser) {
+  async updateUser(@Req() req: FastifyRequest, @Body() dto: UpdateUser) {
     const email = req.payload?.email;
     dto.email = email!;
     return this.userService.updateUserByEmail(dto);

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { EVENT_NAME } from '../../../../background/email/constant/event.constant';
 import { EmailWorker } from '../../../../background/email/email.worker';
 import { OutboxService } from '../../../../background/email/outbox.service';
@@ -212,7 +212,7 @@ export class AuthService {
     return true;
   }
 
-  async login(dto: LoginDto, ipAddress: string, response: Response) {
+  async login(dto: LoginDto, ipAddress: string, response: FastifyReply) {
     const availableUser = await this.userService.getUserByEmail(dto.email);
 
     if (!availableUser) {
@@ -259,8 +259,8 @@ export class AuthService {
     return true;
   }
 
-  async refreshToken(req: Request, res: Response) {
-    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID];
+  async refreshToken(req: FastifyRequest, res: FastifyReply) {
+    const sessionId = req.cookies?.[AUTH_COOKIE_NAME.SESSION_ID];
     if (!sessionId) {
       throw new InvalidRefreshTokenException('MISSING_SESSION_ID');
     }
@@ -269,7 +269,7 @@ export class AuthService {
       throw new InvalidRefreshTokenException('SESSION_NOT_FOUND');
     }
 
-    const refreshToken = req.cookies[AUTH_COOKIE_NAME.REFRESH_TOKEN];
+    const refreshToken = req.cookies?.[AUTH_COOKIE_NAME.REFRESH_TOKEN];
     if (!refreshToken) {
       throw new InvalidRefreshTokenException('MISSING_TOKEN');
     }
@@ -309,12 +309,12 @@ export class AuthService {
     res.clearCookie(AUTH_COOKIE_NAME.ACCESS_TOKEN, { path: '/' });
     res.clearCookie(AUTH_COOKIE_NAME.REFRESH_TOKEN, { path: '/' });
 
-    res.cookie(
+    res.setCookie(
       AUTH_COOKIE_NAME.ACCESS_TOKEN,
       newTokens.accessToken,
       cookieOptions,
     );
-    res.cookie(
+    res.setCookie(
       AUTH_COOKIE_NAME.REFRESH_TOKEN,
       newTokens.refreshToken,
       cookieOptions,
@@ -323,8 +323,8 @@ export class AuthService {
     return true;
   }
 
-  async logout(req: Request, res: Response) {
-    const sessionId = req.cookies[AUTH_COOKIE_NAME.SESSION_ID];
+  async logout(req: FastifyRequest, res: FastifyReply) {
+    const sessionId = req.cookies?.[AUTH_COOKIE_NAME.SESSION_ID];
     if (!sessionId) {
       throw new UnauthorizedException('Session ID is missing');
     }

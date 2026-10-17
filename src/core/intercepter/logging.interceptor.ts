@@ -4,10 +4,11 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { tap } from 'rxjs';
 import { inspect } from 'util';
 import { MyLogger } from '../logger/logger.service';
+
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: MyLogger) {}
@@ -61,9 +62,9 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler) {
     const contextRequest = context.switchToHttp();
-    const request = contextRequest.getRequest<Request>();
-    const response = contextRequest.getResponse<Response>();
-    const requestBody: unknown = request.body as unknown;
+    const request = contextRequest.getRequest<FastifyRequest>();
+    const response = contextRequest.getResponse<FastifyReply>();
+    const requestBody: unknown = (request as { body?: unknown }).body;
 
     this.logger.debug(
       [

@@ -4,17 +4,20 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { connect as connectAmqp } from 'amqplib';
-import cookieParser from 'cookie-parser';
-import { doubleCsrf } from 'csrf-csrf';
-import type { Request } from 'express';
-import helmet from 'helmet';
+import fastifyCookie from '@fastify/cookie';
+import fastifyCsrfProtection from '@fastify/csrf-protection';
+import fastifyHelmet from '@fastify/helmet';
+import type { FastifyRequest } from 'fastify';
+import { randomUUID } from 'crypto';
 import Redis from 'ioredis';
 import { AppModule } from './app.module';
-import { AddHeaderMiddleware } from './core/middleware/add.header.middleware';
 import { QUEUE_NAME } from './background/email/constant/event.constant';
 import { MyLogger } from './core/logger/logger.service';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import type { ClosableAmqpConnection } from './core/type/type';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 
 const safeConnectAmqp = connectAmqp as unknown as (
   url: string,
@@ -114,7 +117,10 @@ async function bootstrap() {
   await waitForRabbitMQConnection(rabbitUrl, bootstrapLogger);
   await waitForRedisConnection(redisUrl, bootstrapLogger);
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ trustProxy: true }),
+  );
   const configService = app.get(ConfigService);
 
   app.enableVersioning({
@@ -164,15 +170,18 @@ async function bootstrap() {
       .map((origin) => origin.trim())
       .filter(Boolean);
 
+    await app.register(fastifyHelmet);
+    await app.register(fastifyCookie);
+
     app.enableCors({
       origin: (
         origin: string | undefined,
-        callback: (error: Error | null, allow?: boolean) => void,
+        callback: (err: Error | null, origin: boolean | string) => void,
       ) => {
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
-          callback(new Error('Not allowed by CORS'));
+          callback(new Error('Not allowed by CORS'), false);
         }
       },
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -181,38 +190,54 @@ async function bootstrap() {
     const isDevelopment =
       configService.get<string>('NODE_ENV', 'development') === 'development';
 
-    // apply middleware
-    const addHeaderMiddleware = new AddHeaderMiddleware();
-    app.use(addHeaderMiddleware.use.bind(addHeaderMiddleware));
+    // X-Request-Id hook (thay AddHeaderMiddleware Express app.use)
+    const fastify = app.getHttpAdapter().getInstance();
+    fastify.addHook('onRequest', async (req: FastifyRequest, reply) => {
+      const raw = req.headers['x-request-id'];
+      const requestId =
+        (Array.isArray(raw) ? raw[0] : raw)?.toString() ?? randomUUID();
+      req.requestId = requestId;
+      reply.header('X-Request-Id', requestId);
+    });
 
-    // using safety
-    app.use(helmet());
-    app.use(cookieParser());
     if (!isDevelopment) {
-      const csrfSecret = configService.get<string>(
-        'CSRF_SECRET',
-        configService.getOrThrow<string>('JWT_SECRET'),
-      );
-
-      const { doubleCsrfProtection } = doubleCsrf({
-        getSecret: () => csrfSecret,
-        getSessionIdentifier: (req: Request) =>
-          `${req.ip ?? ''}-${req.headers['user-agent'] ?? ''}`,
-        cookieName: '__Host-csrf-token',
-        cookieOptions: {
-          secure: process.env.NODE_ENV === 'production',
+      await app.register(fastifyCsrfProtection, {
+        cookieKey: '__Host-csrf-token',
+        cookieOpts: {
+          secure: true,
           sameSite: 'lax',
           httpOnly: true,
           path: '/',
         },
-        size: 64,
-        ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+        getToken: (req: FastifyRequest) => {
+          const h = req.headers as Record<string, unknown>;
+          return (
+            (h['x-csrf-token'] as string | undefined) ??
+            (h['csrf-token'] as string | undefined) ??
+            (h['x-xsrf-token'] as string | undefined)
+          );
+        },
+        getUserInfo: (req: FastifyRequest) =>
+          `${req.ip ?? ''}-${String(req.headers['user-agent'] ?? '')}`,
       });
 
-      app.use(doubleCsrfProtection);
+      // Bỏ qua GET/HEAD/OPTIONS như ignoredMethods cũ
+      fastify.addHook('onRequest', (req, reply, done) => {
+        if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+          done();
+          return;
+        }
+        (
+          fastify as unknown as {
+            csrfProtection: (
+              req: unknown,
+              reply: unknown,
+              done: () => void,
+            ) => void;
+          }
+        ).csrfProtection(req, reply, done);
+      });
     }
-
-    app.set('trust proxy', 'loopback');
 
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Order Cinema Ticket Backend API')
@@ -266,7 +291,7 @@ async function bootstrap() {
     });
 
     await app.startAllMicroservices();
-    await app.listen(port);
+    await app.listen(Number(port), '0.0.0.0');
   }
 }
 void bootstrap();

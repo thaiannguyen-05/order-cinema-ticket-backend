@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { USER_ROLE } from '@prisma/client';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 import type { JwtPayload } from '../type/type';
 import { ROLES_KEY } from '../decorator/roles.decorator';
 
@@ -25,7 +25,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
     const user: JwtPayload | undefined = request.payload;
 
     if (!user || !requiredRoles.includes(user.role)) {

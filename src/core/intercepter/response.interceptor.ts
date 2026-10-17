@@ -4,9 +4,10 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { map, Observable } from 'rxjs';
 import { ResponseMapping } from '../type/type';
+
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
   T,
@@ -17,8 +18,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     next: CallHandler,
   ): Observable<ResponseMapping<T>> {
     const contextRequest = context.switchToHttp();
-    const request = contextRequest.getRequest<Request>();
-    const response = contextRequest.getResponse<Response>();
+    const request = contextRequest.getRequest<FastifyRequest>();
+    const response = contextRequest.getResponse<FastifyReply>();
     return next.handle().pipe(
       map((data: T): ResponseMapping<T> => {
         return {
