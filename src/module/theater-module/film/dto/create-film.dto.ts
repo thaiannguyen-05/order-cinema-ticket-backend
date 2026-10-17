@@ -1,134 +1,26 @@
-import type {
-  FilmAgeRating,
-  FilmCastMember,
-  FilmDirector,
-  FilmGenre,
-  FilmImages,
-  FilmProducer,
-  FilmReleaseDate,
-  FilmWriter,
-} from '@ticket-order-system/movie-sdk';
+// Json fields typed as any so Prisma FilmCreateInput accepts direct DTO passthrough.
 import { Transform, Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
-  IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
-import { VERSION_TYPE } from '@prisma/client';
-
-export class ReleaseDateDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(30)
-  release_date?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @MaxLength(255)
-  notes?: string;
-}
-
-export class AgeRatingDto {
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @MaxLength(20)
-  rating?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2048)
-  age_rating_image?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @MaxLength(500)
-  age_advisory?: string;
-}
-
-export class GenreDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  genre_id!: number;
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  genre_name!: string;
-}
-
-export class CastDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  cast_id!: number;
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  cast_name!: string;
-}
-
-export class DirectorDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  director_id!: number;
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  director_name!: string;
-}
-
-export class ProducerDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  producer_id!: number;
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  producer_name!: string;
-}
-
-export class WriterDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  writer_id!: number;
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  writer_name!: string;
-}
 
 export class CreateFilmDto {
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
   film_id!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @IsNotEmpty()
+  imdb_id!: number;
 
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
@@ -137,93 +29,30 @@ export class CreateFilmDto {
   @MaxLength(255)
   film_name!: string;
 
-  @IsObject()
-  @IsNotEmpty()
-  other_title!: Record<string, string> | null;
-
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => ReleaseDateDto)
-  release_dates!: FilmReleaseDate[];
-
-  @IsObject()
-  @IsNotEmpty()
-  @ValidateNested()
-  @Type(() => AgeRatingDto)
-  age_rating!: FilmAgeRating;
-
-  @IsArray()
-  @ArrayMinSize(0)
-  trailers!: unknown[];
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  synopsis_long!: string;
+  other_titles?: string | null;
 
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(0)
-  images!: FilmImages[];
+  release_dates?: any;
 
-  @IsEnum(VERSION_TYPE)
-  @IsNotEmpty()
-  version_type!: VERSION_TYPE;
-
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  @Min(1)
-  @Max(600)
-  duration_mins!: number;
-
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  @Min(0)
-  @Max(5)
-  review_stars!: number;
+  @IsOptional()
+  @IsArray()
+  age_rating?: any;
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @MaxLength(2000)
-  review_txt?: string;
+  @MaxLength(2048)
+  film_trailer?: string | null;
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  distributor?: string;
+  synopsis_long?: string;
 
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => GenreDto)
-  genres!: FilmGenre[];
-
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => CastDto)
-  cast!: FilmCastMember[];
-
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => DirectorDto)
-  director!: FilmDirector[];
-
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => ProducerDto)
-  producers!: FilmProducer[];
-
-  @IsArray()
-  @ArrayMinSize(0)
-  @ValidateNested({ each: true })
-  @Type(() => WriterDto)
-  writers!: FilmWriter[];
+  @IsOptional()
+  @IsObject()
+  images?: any;
 }

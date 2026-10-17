@@ -1,169 +1,169 @@
-import { nowDeviceDateTime } from '@ticket-order-system/movie-sdk';
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { MyLogger } from '../../core/logger/logger.service';
-import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
-import { FilmService } from '../../module/theater-module/film/film.service';
-import { RedisLockService } from '../redis/redis.lock.service';
-import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
-import { CallMovieGluService } from './call-movie-glu.service';
-import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
-import { EventCronJobWorkerService } from './event.cron-job.worker';
+// import { nowDeviceDateTime } from '@ticket-order-system/movie-sdk';
+// import { Injectable } from '@nestjs/common';
+// import { Cron, CronExpression } from '@nestjs/schedule';
+// import { MyLogger } from '../../core/logger/logger.service';
+// import { CinemaService } from '../../module/theater-module/cinema/cinema.service';
+// import { FilmService } from '../../module/theater-module/film/film.service';
+// import { RedisLockService } from '../redis/redis.lock.service';
+// import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
+// import { CallMovieGluService } from './call-movie-glu.service';
+// import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
+// import { EventCronJobWorkerService } from './event.cron-job.worker';
 
-@Injectable()
-export class SyncDataCronJobService {
-  constructor(
-    private readonly logger: MyLogger,
-    private readonly cinemaService: CinemaService,
-    private readonly redisLockService: RedisLockService,
-    private readonly eventCronJobService: EventCronJobWorkerService,
-    private readonly callMovieGluService: CallMovieGluService,
-    private readonly filmService: FilmService,
-  ) {}
-  /*
-    
-  */
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async syncDataCinemaNearBy(): Promise<void> {
-    const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.CINEMA_NERBY,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const deviceDatetime = nowDeviceDateTime();
-        const userIp = await this.callMovieGluService.getServerPublicIp();
-        const geolocation =
-          await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createGluClientAtCall(
-          deviceDatetime,
-          geolocation,
-        );
-        const quantity = 100;
+// @Injectable()
+// export class SyncDataCronJobService {
+//   constructor(
+//     private readonly logger: MyLogger,
+//     private readonly cinemaService: CinemaService,
+//     private readonly redisLockService: RedisLockService,
+//     private readonly eventCronJobService: EventCronJobWorkerService,
+//     private readonly callMovieGluService: CallMovieGluService,
+//     private readonly filmService: FilmService,
+//   ) {}
+//   /*
 
-        const cinemas = await client.cinemas.nearby({ n: quantity });
-        this.logger.debug(`Data cinema nearby ${JSON.stringify(cinemas)}`);
+//   */
+//   @Cron(CronExpression.EVERY_2_HOURS)
+//   async syncDataCinemaNearBy(): Promise<void> {
+//     const lockResult = await this.redisLockService.runExclusive<void>(
+//       REDIS_LOCK_KEY.CINEMA_NERBY,
+//       REDIS_TTL.LOCK_SERVICE,
+//       async () => {
+//         const deviceDatetime = nowDeviceDateTime();
+//         const userIp = await this.callMovieGluService.getServerPublicIp();
+//         const geolocation =
+//           await this.callMovieGluService.getGeolocationByUserIp(userIp);
+//         const client = this.callMovieGluService.createGluClientAtCall(
+//           deviceDatetime,
+//           geolocation,
+//         );
+//         const quantity = 100;
 
-        for (const cinema of cinemas) {
-          await this.cinemaService.upsertCinema({
-            cinema_id: cinema.cinema_id,
-            cinema_name: cinema.cinema_name,
-            address: cinema.address,
-            address2: cinema.address2,
-            city: cinema.city,
-            postcode: cinema.postcode,
-            logo_url: cinema.logo_url,
-          });
-        }
+//         const cinemas = await client.cinemas.nearby({ n: quantity });
+//         this.logger.debug(`Data cinema nearby ${JSON.stringify(cinemas)}`);
 
-        const payload: SyncCinemaDetailDto = {
-          cinemas: cinemas.map((cinema) => ({
-            cinema_id: cinema.cinema_id,
-            cinema_name: cinema.cinema_name,
-            address: cinema.address,
-            address2: cinema.address2,
-            city: cinema.city,
-            postcode: cinema.postcode,
-            logo_url: cinema.logo_url,
-          })),
-          quantity: quantity,
-        };
+//         for (const cinema of cinemas) {
+//           await this.cinemaService.upsertCinema({
+//             cinema_id: cinema.cinema_id,
+//             cinema_name: cinema.cinema_name,
+//             address: cinema.address,
+//             address2: cinema.address2,
+//             city: cinema.city,
+//             postcode: cinema.postcode,
+//             logo_url: cinema.logo_url,
+//           });
+//         }
 
-        await this.eventCronJobService.callSyncDataWithCinemaDetail(payload);
-        await this.eventCronJobService.callSyncDataWithFilmShowTime(payload);
-      },
-    );
+//         const payload: SyncCinemaDetailDto = {
+//           cinemas: cinemas.map((cinema) => ({
+//             cinema_id: cinema.cinema_id,
+//             cinema_name: cinema.cinema_name,
+//             address: cinema.address,
+//             address2: cinema.address2,
+//             city: cinema.city,
+//             postcode: cinema.postcode,
+//             logo_url: cinema.logo_url,
+//           })),
+//           quantity: quantity,
+//         };
 
-    if (lockResult === null) {
-      this.logger.debug(
-        'Skip syncDataCinemaNearBy because lock is already held',
-      );
-    }
-  }
+//         await this.eventCronJobService.callSyncDataWithCinemaDetail(payload);
+//         await this.eventCronJobService.callSyncDataWithFilmShowTime(payload);
+//       },
+//     );
 
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async syncNowShowingFilms() {
-    const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const deviceDatetime = nowDeviceDateTime();
-        const userIp = await this.callMovieGluService.getServerPublicIp();
-        const geolocation =
-          await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createGluClientAtCall(
-          deviceDatetime,
-          geolocation,
-        );
-        const quantity = 100;
+//     if (lockResult === null) {
+//       this.logger.debug(
+//         'Skip syncDataCinemaNearBy because lock is already held',
+//       );
+//     }
+//   }
 
-        const films = await client.films.nowShowing({ n: quantity });
-        this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
-      },
-    );
+//   @Cron(CronExpression.EVERY_2_HOURS)
+//   async syncNowShowingFilms() {
+//     const lockResult = await this.redisLockService.runExclusive<void>(
+//       REDIS_LOCK_KEY.CINEMA_NOWSHOWING,
+//       REDIS_TTL.LOCK_SERVICE,
+//       async () => {
+//         const deviceDatetime = nowDeviceDateTime();
+//         const userIp = await this.callMovieGluService.getServerPublicIp();
+//         const geolocation =
+//           await this.callMovieGluService.getGeolocationByUserIp(userIp);
+//         const client = this.callMovieGluService.createGluClientAtCall(
+//           deviceDatetime,
+//           geolocation,
+//         );
+//         const quantity = 100;
 
-    if (lockResult === null) {
-      this.logger.debug('Skip because lock is already held');
-    }
-  }
+//         const films = await client.films.nowShowing({ n: quantity });
+//         this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
+//       },
+//     );
 
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async syncNowFilmsComingSoon() {
-    const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.CINEMA_FILM_COMINGSOON,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const deviceDatetime = nowDeviceDateTime();
-        const userIp = await this.callMovieGluService.getServerPublicIp();
-        const geolocation =
-          await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createGluClientAtCall(
-          deviceDatetime,
-          geolocation,
-        );
-        const quantity = 100;
+//     if (lockResult === null) {
+//       this.logger.debug('Skip because lock is already held');
+//     }
+//   }
 
-        const films = await client.films.comingSoon({ n: quantity });
-        this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
-      },
-    );
+//   @Cron(CronExpression.EVERY_2_HOURS)
+//   async syncNowFilmsComingSoon() {
+//     const lockResult = await this.redisLockService.runExclusive<void>(
+//       REDIS_LOCK_KEY.CINEMA_FILM_COMINGSOON,
+//       REDIS_TTL.LOCK_SERVICE,
+//       async () => {
+//         const deviceDatetime = nowDeviceDateTime();
+//         const userIp = await this.callMovieGluService.getServerPublicIp();
+//         const geolocation =
+//           await this.callMovieGluService.getGeolocationByUserIp(userIp);
+//         const client = this.callMovieGluService.createGluClientAtCall(
+//           deviceDatetime,
+//           geolocation,
+//         );
+//         const quantity = 100;
 
-    if (lockResult === null) {
-      this.logger.debug('Skip because lock is already held');
-    }
-  }
+//         const films = await client.films.comingSoon({ n: quantity });
+//         this.logger.debug(`Data cinema nearby ${JSON.stringify(films)}`);
+//       },
+//     );
 
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async syncFilmsDetails() {
-    const lockResult = await this.redisLockService.runExclusive<void>(
-      REDIS_LOCK_KEY.CINEMA_FILM_DETAIL,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const deviceDatetime = nowDeviceDateTime();
-        const userIp = await this.callMovieGluService.getServerPublicIp();
-        const geolocation =
-          await this.callMovieGluService.getGeolocationByUserIp(userIp);
-        const client = this.callMovieGluService.createGluClientAtCall(
-          deviceDatetime,
-          geolocation,
-        );
+//     if (lockResult === null) {
+//       this.logger.debug('Skip because lock is already held');
+//     }
+//   }
 
-        const films = await this.filmService.getAllFilms();
+//   @Cron(CronExpression.EVERY_2_HOURS)
+//   async syncFilmsDetails() {
+//     const lockResult = await this.redisLockService.runExclusive<void>(
+//       REDIS_LOCK_KEY.CINEMA_FILM_DETAIL,
+//       REDIS_TTL.LOCK_SERVICE,
+//       async () => {
+//         const deviceDatetime = nowDeviceDateTime();
+//         const userIp = await this.callMovieGluService.getServerPublicIp();
+//         const geolocation =
+//           await this.callMovieGluService.getGeolocationByUserIp(userIp);
+//         const client = this.callMovieGluService.createGluClientAtCall(
+//           deviceDatetime,
+//           geolocation,
+//         );
 
-        for (const film of films) {
-          const updatedFilm = await client.films.details({
-            film_id: film.film_id,
-          });
-          this.logger.debug(`Data film details ${JSON.stringify(updatedFilm)}`);
+//         const films = await this.filmService.getAllFilms();
 
-          await this.callMovieGluService.updateFilmsDetail({
-            film: [updatedFilm],
-          });
-        }
-      },
-    );
+//         for (const film of films) {
+//           const updatedFilm = await client.films.details({
+//             film_id: film.film_id,
+//           });
+//           this.logger.debug(`Data film details ${JSON.stringify(updatedFilm)}`);
 
-    if (lockResult === null) {
-      this.logger.debug('Skip because lock is already held');
-      return;
-    }
-  }
-}
+//           await this.callMovieGluService.updateFilmsDetail({
+//             film: [updatedFilm],
+//           });
+//         }
+//       },
+//     );
+
+//     if (lockResult === null) {
+//       this.logger.debug('Skip because lock is already held');
+//       return;
+//     }
+//   }
+// }

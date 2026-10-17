@@ -1,40 +1,39 @@
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
+  IsString,
   IsUUID,
-  Max,
-  Min,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
-import { SEAT_STATUS } from '@prisma/client';
+import { SeatStatus, SeatType } from '@prisma/client';
 
 export class CreateSeatDto {
-  @Type(() => Number)
-  @IsInt()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
   @IsNotEmpty()
-  @Min(1)
-  @Max(50)
-  row!: number;
+  @MinLength(1)
+  @MaxLength(10)
+  row!: string;
 
-  @Type(() => Number)
-  @IsInt()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
   @IsNotEmpty()
-  @Min(1)
-  @Max(50)
-  column!: number;
+  @MinLength(1)
+  @MaxLength(10)
+  column!: string;
+
+  @IsEnum(SeatType)
+  @IsNotEmpty()
+  seatType!: SeatType;
 
   @IsOptional()
-  @IsEnum(SEAT_STATUS)
-  status?: SEAT_STATUS;
+  @IsEnum(SeatStatus)
+  seatStatus?: SeatStatus = SeatStatus.AVAILABLE;
 
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  filmId!: string;
-
-  @Type(() => Number)
-  @IsInt()
-  @IsNotEmpty()
-  cinemaId!: number;
+  roomId?: string;
 }

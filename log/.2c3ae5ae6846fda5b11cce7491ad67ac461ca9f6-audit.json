@@ -1,15 +1,15 @@
 {
-    "keep": {
-        "days": true,
-        "amount": 14
-    },
-    "auditLog": "log/.2c3ae5ae6846fda5b11cce7491ad67ac461ca9f6-audit.json",
-    "files": [
-        {
-            "date": 1780824367117,
-            "name": "log/nest-log-2026-06-07-16.log",
-            "hash": "5723f5faa019c0dbea81e5f6a2d0b8ebae18db876d0251513958cbc7f5af6739"
-        }
-    ],
-    "hashType": "sha256"
+  "keep": {
+    "days": true,
+    "amount": 14
+  },
+  "auditLog": "log/.2c3ae5ae6846fda5b11cce7491ad67ac461ca9f6-audit.json",
+  "files": [
+    {
+      "date": 1792214110879,
+      "name": "log/nest-log-2026-10-17-12.log",
+      "hash": "377cae59134a0249f6a14b77ead2ca9e56df2a4098442232fedb9993b5c4a058"
+    }
+  ],
+  "hashType": "sha256"
 }

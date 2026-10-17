@@ -14,23 +14,17 @@ export class FindFilmsDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number;
+  limit: number = 10;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  cursor?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number;
+  page: number = 1;
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MaxLength(100)
-  search?: string;
+  search: string = '';
 }

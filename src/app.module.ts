@@ -14,7 +14,7 @@ import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
 import { RolesGuard } from './core/guard/roles.guard';
 import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
-import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
+//import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AuthModule } from './module/core-module/auth/auth.module';
@@ -26,7 +26,6 @@ import { SeatModule } from './module/theater-module/seat/seat.module';
 import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './background/outbox-cron-job/outbox-cron-job.module';
 import { OrderExpireCronJobModule } from './background/order-expire-cron-job/order-expire-cron-job.module';
-import { TrackingFrequentDataModule } from './background/tracking-frequent-data/tracking-frequent-data.module';
 import { PaymentModule } from './module/core-module/payment/payment.module';
 @Module({
   imports: [
@@ -51,11 +50,10 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
     SeatModule,
     TicketModule,
     UserModule,
-    SyncDataCronJobModule,
+    //SyncDataCronJobModule,
     OutboxCronJobModule,
     OrderExpireCronJobModule,
     PaymentModule,
-    TrackingFrequentDataModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,

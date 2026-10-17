@@ -40,53 +40,39 @@ export class SeatService {
   }
 
   async findSeats(dto: FindSeatDto) {
-    if (!dto.page) dto.page = 1;
-    if (!dto.limit) dto.limit = 10;
+    const { limit, page, roomId, seatType, seatStatus } = dto;
 
     const where = {
-      ...(dto.filmId && { filmId: dto.filmId }),
-      ...(dto.cinemaId !== undefined && { cinemaId: dto.cinemaId }),
-      ...(dto.status && { status: dto.status }),
+      ...(roomId && { roomId }),
+      ...(seatType && { seatType }),
+      ...(seatStatus && { seatStatus }),
     };
 
-    if (dto.cursor) {
-      const seats = await this.prismaService.seat.findMany({
+    const [total, seats] = await Promise.all([
+      this.prismaService.seat.count({ where }),
+      this.prismaService.seat.findMany({
         where,
-        take: dto.limit + 1,
-        cursor: { id: dto.cursor },
-        skip: 1,
-      });
-
-      const hasNextPage = seats.length > dto.limit;
-      const nextCursor = hasNextPage ? seats[seats.length - 1].id : null;
-
-      return {
-        seats: hasNextPage ? seats.slice(0, -1) : seats,
-        nextCursor,
-      };
-    }
-
-    const seats = await this.prismaService.seat.findMany({
-      where,
-      take: dto.limit + 1,
-      skip: (dto.page - 1) * dto.limit,
-    });
-
-    const hasNextPage = seats.length > dto.limit;
-    const nextCursor = hasNextPage ? seats[seats.length - 1].id : null;
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: { id: 'asc' },
+      }),
+    ]);
 
     return {
-      seats: hasNextPage ? seats.slice(0, -1) : seats,
-      nextCursor,
+      seats,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
-  async getSeatsByShowtimeId(filmId: string, cinemaId: number) {
+  async getSeatsByRoomId(roomId: string) {
     return this.prismaService.seat.findMany({
       where: {
-        cinemaId,
-        filmId,
+        roomId,
       },
+      orderBy: { id: 'asc' },
     });
   }
 }

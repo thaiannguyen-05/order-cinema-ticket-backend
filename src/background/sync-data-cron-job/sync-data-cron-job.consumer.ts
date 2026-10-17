@@ -1,87 +1,87 @@
-import { Controller, ServiceUnavailableException } from '@nestjs/common';
-import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
-import {
-  RETRY_VALUES,
-  retryCore,
-  RetryCoreOptions,
-} from '../../core/interfaces/re-try.interface';
-import { EVENT_NAME } from '../email/constant/event.constant';
-import { CallMovieGluService } from './call-movie-glu.service';
-import type { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
-import type { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
-import type { RmqAckChannel } from '../../core/type/type';
+// import { Controller, ServiceUnavailableException } from '@nestjs/common';
+// import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
+// import {
+//   RETRY_VALUES,
+//   retryCore,
+//   RetryCoreOptions,
+// } from '../../core/interfaces/re-try.interface';
+// import { EVENT_NAME } from '../email/constant/event.constant';
+// import { CallMovieGluService } from './call-movie-glu.service';
+// import type { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';
+// import type { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
+// import type { RmqAckChannel } from '../../core/type/type';
 
-@Controller()
-export class SyncDataCronJobConsumer {
-  constructor(private readonly callMovieGluService: CallMovieGluService) {}
+// @Controller()
+// export class SyncDataCronJobConsumer {
+//   constructor(private readonly callMovieGluService: CallMovieGluService) {}
 
-  private readonly optionsRetry: RetryCoreOptions = {
-    maxRetryTimes: RETRY_VALUES.MAX_RETRY_TIMES,
-    backoffMultiplier: RETRY_VALUES.BACKOFF_MUL,
-    baseDelayMs: RETRY_VALUES.BASE_DELAY_MS,
-    maxDelayMs: RETRY_VALUES.MAX_DELAY_MS,
-  };
+//   private readonly optionsRetry: RetryCoreOptions = {
+//     maxRetryTimes: RETRY_VALUES.MAX_RETRY_TIMES,
+//     backoffMultiplier: RETRY_VALUES.BACKOFF_MUL,
+//     baseDelayMs: RETRY_VALUES.BASE_DELAY_MS,
+//     maxDelayMs: RETRY_VALUES.MAX_DELAY_MS,
+//   };
 
-  @EventPattern(EVENT_NAME.DETAIL_CINEMA)
-  async handleSyncEventCinemaDetail(
-    @Payload() dto: SyncCinemaDetailDto,
-    @Ctx() context: RmqContext,
-  ) {
-    const message: unknown = context.getMessage();
-    const channel = context.getChannelRef() as RmqAckChannel;
+//   @EventPattern(EVENT_NAME.DETAIL_CINEMA)
+//   async handleSyncEventCinemaDetail(
+//     @Payload() dto: SyncCinemaDetailDto,
+//     @Ctx() context: RmqContext,
+//   ) {
+//     const message: unknown = context.getMessage();
+//     const channel = context.getChannelRef() as RmqAckChannel;
 
-    try {
-      await retryCore(async () => {
-        await this.callMovieGluService.syncDataCinemaDetail(dto);
-      }, this.optionsRetry);
-      channel.ack(message);
-    } catch {
-      channel.nack(message, false, true);
-      throw new ServiceUnavailableException(
-        'Event service is temporarily unavailable',
-      );
-    }
-  }
+//     try {
+//       await retryCore(async () => {
+//         await this.callMovieGluService.syncDataCinemaDetail(dto);
+//       }, this.optionsRetry);
+//       channel.ack(message);
+//     } catch {
+//       channel.nack(message, false, true);
+//       throw new ServiceUnavailableException(
+//         'Event service is temporarily unavailable',
+//       );
+//     }
+//   }
 
-  @EventPattern(EVENT_NAME.CINEMA_SHOWTIME)
-  async handleSyncEventCinemaShowtime(
-    @Payload() dto: SyncCinemaShowtimeDto,
-    @Ctx() context: RmqContext,
-  ) {
-    const message: unknown = context.getMessage();
-    const channel = context.getChannelRef() as RmqAckChannel;
+//   @EventPattern(EVENT_NAME.CINEMA_SHOWTIME)
+//   async handleSyncEventCinemaShowtime(
+//     @Payload() dto: SyncCinemaShowtimeDto,
+//     @Ctx() context: RmqContext,
+//   ) {
+//     const message: unknown = context.getMessage();
+//     const channel = context.getChannelRef() as RmqAckChannel;
 
-    try {
-      await retryCore(async () => {
-        await this.callMovieGluService.syncDataCinemaShowtime(dto);
-      }, this.optionsRetry);
-      channel.ack(message);
-    } catch {
-      channel.nack(message, false, true);
-      throw new ServiceUnavailableException(
-        'Event service is temporarily unavailable',
-      );
-    }
-  }
+//     try {
+//       await retryCore(async () => {
+//         await this.callMovieGluService.syncDataCinemaShowtime(dto);
+//       }, this.optionsRetry);
+//       channel.ack(message);
+//     } catch {
+//       channel.nack(message, false, true);
+//       throw new ServiceUnavailableException(
+//         'Event service is temporarily unavailable',
+//       );
+//     }
+//   }
 
-  @EventPattern(EVENT_NAME.FILM_SHOWTIME)
-  async handleSyncEventFilmShowtime(
-    @Payload() dto: SyncCinemaShowtimeDto,
-    @Ctx() context: RmqContext,
-  ) {
-    const message: unknown = context.getMessage();
-    const channel = context.getChannelRef() as RmqAckChannel;
+//   @EventPattern(EVENT_NAME.FILM_SHOWTIME)
+//   async handleSyncEventFilmShowtime(
+//     @Payload() dto: SyncCinemaShowtimeDto,
+//     @Ctx() context: RmqContext,
+//   ) {
+//     const message: unknown = context.getMessage();
+//     const channel = context.getChannelRef() as RmqAckChannel;
 
-    try {
-      await retryCore(async () => {
-        await this.callMovieGluService.syncDataFilmsOfCinema(dto);
-      }, this.optionsRetry);
-      channel.ack(message);
-    } catch {
-      channel.nack(message, false, true);
-      throw new ServiceUnavailableException(
-        'Event service is temporarily unavailable',
-      );
-    }
-  }
-}
+//     try {
+//       await retryCore(async () => {
+//         await this.callMovieGluService.syncDataFilmsOfCinema(dto);
+//       }, this.optionsRetry);
+//       channel.ack(message);
+//     } catch {
+//       channel.nack(message, false, true);
+//       throw new ServiceUnavailableException(
+//         'Event service is temporarily unavailable',
+//       );
+//     }
+//   }
+// }

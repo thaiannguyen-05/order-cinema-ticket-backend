@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -33,55 +33,22 @@ import { User } from '../../../core/decorator/user.decorator';
 export class FilmController {
   constructor(private readonly filmService: FilmService) {}
 
-  @Get('recommendations')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get film recommendations for the current user' })
-  @ApiOkResponse({ description: 'Recommendations retrieved successfully.' })
-  async getRecommendations(@User('id') userId: string) {
-    return this.filmService.getRecommendation(userId);
-  }
-
   @Post()
   @ApiOperation({ summary: 'Create a film' })
   @ApiBody({
     schema: {
       type: 'object',
-      required: [
-        'film_id',
-        'film_name',
-        'other_title',
-        'release_dates',
-        'age_rating',
-        'trailers',
-        'images',
-        'version_type',
-        'duration_mins',
-        'review_stars',
-        'genres',
-        'cast',
-        'director',
-        'producers',
-        'writers',
-      ],
+      required: ['film_id', 'imdb_id', 'film_name'],
       properties: {
         film_id: { type: 'number', example: 12345 },
+        imdb_id: { type: 'number', example: 67890 },
         film_name: { type: 'string', example: 'Inception' },
-        other_title: { type: 'object', additionalProperties: true },
+        other_titles: { type: 'string', example: '{"vi":"Phim A"}' },
         release_dates: { type: 'array', items: { type: 'object' } },
-        age_rating: { type: 'object', additionalProperties: true },
-        trailers: { type: 'array', items: { type: 'object' } },
+        age_rating: { type: 'array', items: { type: 'object' } },
+        film_trailer: { type: 'string', example: 'https://...' },
         synopsis_long: { type: 'string', example: 'Film synopsis...' },
-        images: { type: 'array', items: { type: 'object' } },
-        version_type: { type: 'string', example: 'STANDARD' },
-        duration_mins: { type: 'number', example: 148 },
-        review_stars: { type: 'number', example: 4.7 },
-        review_txt: { type: 'string', example: 'Great movie' },
-        distributor: { type: 'string', example: 'Warner Bros' },
-        genres: { type: 'array', items: { type: 'object' } },
-        cast: { type: 'array', items: { type: 'object' } },
-        director: { type: 'array', items: { type: 'object' } },
-        producers: { type: 'array', items: { type: 'object' } },
-        writers: { type: 'array', items: { type: 'object' } },
+        images: { type: 'object', additionalProperties: true },
       },
     },
   })
@@ -92,12 +59,12 @@ export class FilmController {
     return this.filmService.createFilm(createFilmDto);
   }
 
-  @Patch(':film_id')
+  @Patch(':id')
   @ApiOperation({ summary: 'Update a film by ID' })
   @ApiParam({
-    name: 'film_id',
+    name: 'id',
     required: true,
-    schema: { type: 'integer', example: 12345 },
+    schema: { type: 'string', format: 'uuid' },
   })
   @ApiBody({
     schema: {
@@ -105,7 +72,7 @@ export class FilmController {
       properties: {
         film_name: { type: 'string', example: 'Inception (Updated)' },
         synopsis_long: { type: 'string', example: 'Updated synopsis...' },
-        review_stars: { type: 'number', example: 4.9 },
+        film_trailer: { type: 'string', example: 'https://...' },
       },
     },
   })
@@ -114,38 +81,38 @@ export class FilmController {
   @ApiNotFoundResponse({ description: 'Film not found' })
   @ApiBadRequestResponse({ description: 'Invalid update payload' })
   async updateFilm(
-    @Param('film_id', ParseIntPipe) filmId: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateFilmDto: UpdateFilmDto,
   ) {
-    return this.filmService.updateFilm(filmId, updateFilmDto);
+    return this.filmService.updateFilm(id, updateFilmDto);
   }
 
   @Roles(USER_ROLE.ADMIN)
-  @Delete(':film_id')
+  @Delete(':id')
   @ApiOperation({ summary: 'Delete a film by ID' })
   @ApiParam({
-    name: 'film_id',
+    name: 'id',
     required: true,
-    schema: { type: 'integer', example: 12345 },
+    schema: { type: 'string', format: 'uuid' },
   })
   @ApiOkResponse({ description: 'Film deleted successfully' })
   @ApiNotFoundResponse({ description: 'Film not found' })
-  async deleteFilm(@Param('film_id', ParseIntPipe) filmId: number) {
-    return this.filmService.deleteFilm(filmId);
+  async deleteFilm(@Param('id', ParseUUIDPipe) id: string) {
+    return this.filmService.deleteFilm(id);
   }
 
   @Public()
-  @Get(':film_id')
+  @Get(':id')
   @ApiOperation({ summary: 'Get film details by ID' })
   @ApiParam({
-    name: 'film_id',
+    name: 'id',
     required: true,
-    schema: { type: 'integer', example: 12345 },
+    schema: { type: 'string', format: 'uuid' },
   })
   @ApiOkResponse({ description: 'Film retrieved successfully' })
   @ApiNotFoundResponse({ description: 'Film not found' })
-  async getFilm(@Param('film_id', ParseIntPipe) filmId: number) {
-    return this.filmService.getFilm(filmId);
+  async getFilm(@Param('id', ParseUUIDPipe) id: string) {
+    return this.filmService.getFilm(id);
   }
 
   @Public()
@@ -157,7 +124,6 @@ export class FilmController {
       properties: {
         limit: { type: 'number', example: 10 },
         page: { type: 'number', example: 1 },
-        cursor: { type: 'number', example: 12345 },
         search: { type: 'string', example: 'inception' },
       },
     },
@@ -168,7 +134,10 @@ export class FilmController {
       type: 'object',
       properties: {
         films: { type: 'array', items: { type: 'object' } },
-        nextCursor: { type: 'number', nullable: true, example: 12399 },
+        total: { type: 'number', example: 100 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+        totalPages: { type: 'number', example: 10 },
       },
     },
   })
