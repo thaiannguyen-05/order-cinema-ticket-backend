@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { MyLogger } from '../../core/logger/logger.service';
+import { MyLogger } from '../logger/logger.service';
 import { RedisLockService } from '../redis/redis.lock.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 

@@ -8,8 +8,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { PrismaService } from '../../../background/prisma/prisma.service';
-import { RedisLockService } from '../../../background/redis/redis.lock.service';
+import { PrismaService } from '../infra/prisma/prisma.service';
+import { RedisLockService } from '../infra/redis/redis.lock.service';
 import {
   PAYMENT_LOCK_KEY,
   PAYMENT_LOCK_TTL_MS,

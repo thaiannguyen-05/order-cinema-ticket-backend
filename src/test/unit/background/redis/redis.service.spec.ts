@@ -1,4 +1,4 @@
-import { RedisService } from '../../../../background/redis/redis.service';
+import { RedisService } from '../../../../module/core-module/infra/redis/redis.service';
 
 describe('RedisService', () => {
   let service: RedisService;

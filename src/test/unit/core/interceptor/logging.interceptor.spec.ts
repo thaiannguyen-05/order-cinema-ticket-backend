@@ -1,6 +1,6 @@
 import { CallHandler, NestInterceptor } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
-jest.mock('../../../../core/logger/logger.service', () => ({
+jest.mock('../../../../module/core-module/infra/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
 

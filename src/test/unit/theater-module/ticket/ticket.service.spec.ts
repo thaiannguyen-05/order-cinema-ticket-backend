@@ -1,4 +1,4 @@
-jest.mock('../../../../background/prisma/prisma.service', () => ({
+jest.mock('../../../../module/core-module/infra/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 

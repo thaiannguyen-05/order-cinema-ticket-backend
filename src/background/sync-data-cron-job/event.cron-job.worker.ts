@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EVENT_NAME, QUEUE_NAME } from '../email/constant/event.constant';
+import {
+  EVENT_NAME,
+  QUEUE_NAME,
+} from '../../module/core-module/infra/email/constant/event.constant';
 import { ClientProxy } from '@nestjs/microservices';
 import { SyncCinemaShowtimeDto } from './dto/sync.cinema.showtime.dto';
 import { SyncCinemaDetailDto } from './dto/sync.cinema.detail.dto';

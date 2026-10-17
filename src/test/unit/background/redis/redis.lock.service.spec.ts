@@ -10,7 +10,7 @@ jest.mock('redlock', () => {
 });
 
 const { RedisLockService } =
-  require('../../../../background/redis/redis.lock.service') as {
+  require('../../../../module/core-module/infra/redis/redis.lock.service') as {
     RedisLockService: new (...args: never[]) => {
       runExclusive: <T>(
         resource: string,

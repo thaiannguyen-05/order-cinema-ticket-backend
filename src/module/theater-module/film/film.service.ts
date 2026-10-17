@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { FindFilmsDto } from './dto/find-films.dto';
-import { PrismaService } from '../../../background/prisma/prisma.service';
+import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 
 @Injectable()
 export class FilmService {

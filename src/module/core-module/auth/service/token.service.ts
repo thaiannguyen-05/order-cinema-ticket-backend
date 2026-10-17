@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../../../background/prisma/prisma.service';
+import { PrismaService } from '../../infra/prisma/prisma.service';
 import type { JwtPayload } from '../../../../core';
 import { UserGenerateTokens } from '../type/type';
 

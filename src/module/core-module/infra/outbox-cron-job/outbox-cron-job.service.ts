@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisLockService } from '../redis/redis.lock.service';
-import { MyLogger } from '../../core/logger/logger.service';
+import { MyLogger } from '../logger/logger.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
 import { OutboxService } from '../email/outbox.service';
 import { EXP_TIME_OUTBOX } from '../email/constant/time';

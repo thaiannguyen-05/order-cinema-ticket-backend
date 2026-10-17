@@ -9,7 +9,7 @@ jest.mock('@prisma/client', () => ({
 }));
 
 const { PrismaService } =
-  require('../../../../background/prisma/prisma.service') as {
+  require('../../../../module/core-module/infra/prisma/prisma.service') as {
     PrismaService: new (...args: never[]) => unknown;
   };
 

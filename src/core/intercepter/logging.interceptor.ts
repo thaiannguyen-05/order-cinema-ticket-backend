@@ -7,7 +7,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { tap } from 'rxjs';
 import { inspect } from 'util';
-import { MyLogger } from '../logger/logger.service';
+import { MyLogger } from '../../module/core-module/infra/logger/logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
