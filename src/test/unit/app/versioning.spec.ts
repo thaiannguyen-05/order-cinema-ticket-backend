@@ -29,6 +29,14 @@ jest.mock('../../../module/theater-module/ticket/ticket.service', () => ({
   TicketService: class TicketService {},
 }));
 
+jest.mock('../../../module/core-module/payment/payment.service', () => ({
+  PaymentService: class PaymentService {},
+}));
+
+jest.mock('../../../module/core-module/payment/sepay.service', () => ({
+  SepayService: class SepayService {},
+}));
+
 type ControllerClass = new (...args: never[]) => object;
 
 const { AuthController } =
@@ -55,6 +63,10 @@ const { TicketController } =
   require('../../../module/theater-module/ticket/ticket.controller') as {
     TicketController: ControllerClass;
   };
+const { PaymentController } =
+  require('../../../module/core-module/payment/payment.controller') as {
+    PaymentController: ControllerClass;
+  };
 
 const V1_CONTROLLERS: ControllerClass[] = [
   AuthController,
@@ -63,6 +75,7 @@ const V1_CONTROLLERS: ControllerClass[] = [
   CinemaController,
   SeatController,
   TicketController,
+  PaymentController,
 ];
 
 describe('API versioning', () => {

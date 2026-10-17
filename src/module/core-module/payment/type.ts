@@ -40,7 +40,9 @@ export type SepayCheckoutForm = {
 
 export type SepayCheckoutResult = {
   orderId: string;
-  checkoutUrl: string;
+  action: string;
+  method: 'POST';
+  fields: SepayCheckoutForm;
 };
 
 export type SepayWebhookResult = {

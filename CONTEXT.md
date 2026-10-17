@@ -44,6 +44,14 @@ _Avoid_: Booking, Reservation, Purchase
 Settlement of money for Orders.
 _Avoid_: Transaction, Bill
 
+**CheckoutForm**:
+Signed browser form (action + fields) BE builds for one Order so the caller POSTs to SePay checkout/init. SePay replies 302, never JSON checkout*url.
+\_Avoid*: CheckoutUrl
+
+**SepayNotification**:
+JSON IPN SePay calls to BE webhook; only path that may move Order to PAID/FAILED.
+_Avoid_: Callback
+
 ### Identity
 
 **User**:
