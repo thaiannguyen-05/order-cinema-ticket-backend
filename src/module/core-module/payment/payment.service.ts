@@ -84,11 +84,8 @@ export class PaymentService implements PaymentInterface {
             // Explicit whitelist: never spread ...dto into order.create.
             return await tx.order.create({
               data: {
+                ...dto,
                 finalPrice: ticket.price,
-                currency: dto.currency ?? 'VND',
-                ticketId: dto.ticketId,
-                userId: dto.userId,
-                status: OrderStatus.PENDING,
                 expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
               },
             });
