@@ -7,8 +7,8 @@ Backend for browsing films and cinemas and ordering tickets for seats. Single co
 ### Catalog
 
 **Film**:
-A movie available for showing, with title, duration, and version type.
-_Avoid_: Movie
+A movie available for showing, identified by Glu film*id, with title, trailer, images, release dates and age rating.
+\_Avoid*: Movie
 
 **Cinema**:
 A physical venue where films are shown.

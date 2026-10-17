@@ -24,23 +24,36 @@ describe('FilmController', () => {
   });
 
   it('delegates create/update/delete/get/find', async () => {
-    filmService.createFilm.mockResolvedValue({ id: 1 });
-    filmService.updateFilm.mockResolvedValue({ id: 1, film_name: 'new' });
+    filmService.createFilm.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+    filmService.updateFilm.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      film_name: 'new',
+    });
     filmService.deleteFilm.mockResolvedValue({});
-    filmService.getFilm.mockResolvedValue({ id: 1 });
+    filmService.getFilm.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
     filmService.findFilms.mockResolvedValue({ films: [] });
 
     await expect(
       controller.createFilm({ film_id: 1 } as never),
-    ).resolves.toEqual({ id: 1 });
+    ).resolves.toEqual({ id: '11111111-1111-4111-8111-111111111111' });
     await expect(
-      controller.updateFilm(1, { film_name: 'new' } as never),
+      controller.updateFilm('11111111-1111-4111-8111-111111111111', {
+        film_name: 'new',
+      } as never),
     ).resolves.toEqual({
-      id: 1,
+      id: '11111111-1111-4111-8111-111111111111',
       film_name: 'new',
     });
-    await expect(controller.deleteFilm(1)).resolves.toEqual({});
-    await expect(controller.getFilm(1)).resolves.toEqual({ id: 1 });
+    await expect(
+      controller.deleteFilm('11111111-1111-4111-8111-111111111111'),
+    ).resolves.toEqual({});
+    await expect(
+      controller.getFilm('11111111-1111-4111-8111-111111111111'),
+    ).resolves.toEqual({ id: '11111111-1111-4111-8111-111111111111' });
     await expect(
       controller.findFilms({ search: 'a' } as never),
     ).resolves.toEqual({ films: [] });

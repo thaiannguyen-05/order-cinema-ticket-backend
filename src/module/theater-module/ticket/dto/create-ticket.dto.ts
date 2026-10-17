@@ -1,30 +1,18 @@
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
-  IsDateString,
+  IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
-  IsString,
   IsUUID,
   Max,
-  MaxLength,
   Min,
 } from 'class-validator';
+import { TicketStatus } from '@prisma/client';
 
 export class CreateTicketDto {
-  @IsOptional()
-  @IsDateString()
-  time?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  code?: string;
-
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
   @Min(1)
   @Max(10000000)
@@ -32,9 +20,13 @@ export class CreateTicketDto {
 
   @IsUUID()
   @IsNotEmpty()
-  filmOfCinemaId!: string;
+  showTimeId!: string;
 
   @IsUUID()
   @IsNotEmpty()
   seatId!: string;
+
+  @IsOptional()
+  @IsEnum(TicketStatus)
+  ticketStatus?: TicketStatus;
 }

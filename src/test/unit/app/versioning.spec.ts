@@ -13,10 +13,6 @@ jest.mock('../../../module/core-module/user/user.service', () => ({
   UserService: class UserService {},
 }));
 
-jest.mock('../../../module/core-module/tracking/tracking.service', () => ({
-  TrackingService: class TrackingService {},
-}));
-
 jest.mock('../../../module/theater-module/film/film.service', () => ({
   FilmService: class FilmService {},
 }));
@@ -33,13 +29,6 @@ jest.mock('../../../module/theater-module/ticket/ticket.service', () => ({
   TicketService: class TicketService {},
 }));
 
-jest.mock(
-  '../../../background/tracking-frequent-data/tracking-frequent-data.service',
-  () => ({
-    TrackingFrequentDataService: class TrackingFrequentDataService {},
-  }),
-);
-
 type ControllerClass = new (...args: never[]) => object;
 
 const { AuthController } =
@@ -49,10 +38,6 @@ const { AuthController } =
 const { UserController } =
   require('../../../module/core-module/user/user.controller') as {
     UserController: ControllerClass;
-  };
-const { TrackingController } =
-  require('../../../module/core-module/tracking/tracking.controller') as {
-    TrackingController: ControllerClass;
   };
 const { FilmController } =
   require('../../../module/theater-module/film/film.controller') as {
@@ -70,20 +55,14 @@ const { TicketController } =
   require('../../../module/theater-module/ticket/ticket.controller') as {
     TicketController: ControllerClass;
   };
-const { TrackingFrequentDataController } =
-  require('../../../background/tracking-frequent-data/tracking-frequent-data.controller') as {
-    TrackingFrequentDataController: ControllerClass;
-  };
 
 const V1_CONTROLLERS: ControllerClass[] = [
   AuthController,
   UserController,
-  TrackingController,
   FilmController,
   CinemaController,
   SeatController,
   TicketController,
-  TrackingFrequentDataController,
 ];
 
 describe('API versioning', () => {

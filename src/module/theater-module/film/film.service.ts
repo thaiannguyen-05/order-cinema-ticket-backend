@@ -1,167 +1,69 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { FindFilmsDto } from './dto/find-films.dto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
-import { RedisService } from '../../../background/redis/redis.service';
 
 @Injectable()
 export class FilmService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
-  async getRecommendation(
-    userId: string,
-  ): Promise<{ filmId: number; rank: number }[]> {
-    const cacheKey = `${this.configService.get(
-      'REDIS_CACHE_KEY_USER_RECOMMENDATION',
-    )}${userId}`;
-    const cachedRecommendations =
-      await this.redisService.get<{ filmId: number; rank: number }[]>(cacheKey);
-
-    if (cachedRecommendations) {
-      return cachedRecommendations;
-    }
-
-    const recommendations =
-      await this.prismaService.userRecommendation.findMany({
-        where: { userId },
-        select: {
-          filmId: true,
-          rank: true,
-        },
-        orderBy: {
-          rank: 'asc',
-        },
-      });
-
-    if (recommendations.length > 0) {
-      await this.redisService.set(cacheKey, recommendations, 300); // 5 minutes TTL
-    }
-
-    return recommendations;
-  }
-
-  async createFilm(data: CreateFilmDto) {
+  async createFilm(dto: CreateFilmDto) {
     return await this.prismaService.film.create({
-      data: {
-        film_id: data.film_id,
-        film_name: data.film_name,
-        other_title: JSON.stringify(data.other_title),
-        release_dates: JSON.stringify(data.release_dates),
-        age_rating: JSON.stringify(data.age_rating),
-        trailers: JSON.stringify(data.trailers),
-        synopsis_long: data.synopsis_long,
-        images: JSON.stringify(data.images),
-        version_type: data.version_type,
-        duration_mins: data.duration_mins,
-        review_stars: data.review_stars,
-        review_txt: data.review_txt,
-        distributor: data.distributor,
-        genres: JSON.stringify(data.genres),
-        cast: JSON.stringify(data.cast),
-        directors: JSON.stringify(data.director),
-        producers: JSON.stringify(data.producers),
-        writers: JSON.stringify(data.writers),
-      },
+      data: dto,
     });
   }
 
-  async updateFilm(film_id: number, data: Partial<CreateFilmDto>) {
+  async updateFilm(id: string, data: Partial<CreateFilmDto>) {
     return await this.prismaService.film.update({
-      where: { film_id },
-      data: {
-        film_name: data.film_name,
-        other_title: data.other_title
-          ? JSON.stringify(data.other_title)
-          : undefined,
-        release_dates: data.release_dates
-          ? JSON.stringify(data.release_dates)
-          : undefined,
-        age_rating: data.age_rating
-          ? JSON.stringify(data.age_rating)
-          : undefined,
-        trailers: data.trailers ? JSON.stringify(data.trailers) : undefined,
-        synopsis_long: data.synopsis_long,
-        images: data.images ? JSON.stringify(data.images) : undefined,
-        version_type: data.version_type,
-        duration_mins: data.duration_mins,
-        review_stars: data.review_stars,
-        review_txt: data.review_txt,
-        distributor: data.distributor,
-        genres: data.genres ? JSON.stringify(data.genres) : undefined,
-        cast: data.cast ? JSON.stringify(data.cast) : undefined,
-        directors: data.director ? JSON.stringify(data.director) : undefined,
-        producers: data.producers ? JSON.stringify(data.producers) : undefined,
-        writers: data.writers ? JSON.stringify(data.writers) : undefined,
-      },
+      where: { id },
+      data,
     });
   }
 
   async getAllFilms() {
-    return await this.prismaService.film.findMany();
-  }
-
-  async deleteFilm(film_id: number) {
-    return await this.prismaService.film.delete({
-      where: { film_id },
+    return await this.prismaService.film.findMany({
+      orderBy: { id: 'asc' },
     });
   }
 
-  async getFilm(film_id: number) {
+  async deleteFilm(id: string) {
+    return await this.prismaService.film.delete({
+      where: { id },
+    });
+  }
+
+  async getFilm(id: string) {
     return await this.prismaService.film.findUnique({
-      where: { film_id },
+      where: { id },
     });
   }
 
   async findFilms(dto: FindFilmsDto) {
-    if (!dto.limit) dto.limit = 10;
-    if (!dto.page) dto.page = 1;
+    const { limit, page, search } = dto;
 
-    if (dto.cursor) {
-      const films = await this.prismaService.film.findMany({
-        where: {
-          film_name: {
-            contains: dto.search || '',
-            mode: 'insensitive',
-          },
-        },
-        take: dto.limit + 1,
-        skip: 1,
-        cursor: {
-          film_id: dto.cursor,
-        },
-      });
-
-      const hasNextPage = films.length > dto.limit;
-      const nextCursor = hasNextPage ? films[films.length - 1].film_id : null;
-
-      return {
-        films: hasNextPage ? films.slice(0, -1) : films,
-        nextCursor,
-      };
-    }
-
-    const films = await this.prismaService.film.findMany({
-      where: {
-        film_name: {
-          contains: dto.search || '',
-          mode: 'insensitive',
-        },
+    const where = {
+      film_name: {
+        contains: search,
+        mode: 'insensitive' as const,
       },
-      take: dto.limit + 1,
-      skip: (dto.page - 1) * dto.limit,
-    });
+    };
 
-    const hasNextPage = films.length > dto.limit;
-    const nextCursor = hasNextPage ? films[films.length - 1].film_id : null;
+    const [total, films] = await Promise.all([
+      this.prismaService.film.count({ where }),
+      this.prismaService.film.findMany({
+        where,
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: { id: 'asc' },
+      }),
+    ]);
 
     return {
-      films: hasNextPage ? films.slice(0, -1) : films,
-      nextCursor,
+      films,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 }

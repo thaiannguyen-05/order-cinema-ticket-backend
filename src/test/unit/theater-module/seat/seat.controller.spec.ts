@@ -4,7 +4,7 @@ import { IS_PUBLIC_KEY } from '../../../../core/decorator/ispublic.decorator';
 describe('SeatController', () => {
   let seatService: {
     createSeat: jest.Mock;
-    getSeatsByShowtimeId: jest.Mock;
+    getSeatsByRoomId: jest.Mock;
     getSeat: jest.Mock;
     updateSeat: jest.Mock;
     deleteSeat: jest.Mock;
@@ -12,10 +12,12 @@ describe('SeatController', () => {
   };
   let controller: SeatController;
 
+  const UUID = '11111111-1111-4111-8111-111111111111';
+
   beforeEach(() => {
     seatService = {
       createSeat: jest.fn(),
-      getSeatsByShowtimeId: jest.fn(),
+      getSeatsByRoomId: jest.fn(),
       getSeat: jest.fn(),
       updateSeat: jest.fn(),
       deleteSeat: jest.fn(),
@@ -27,26 +29,28 @@ describe('SeatController', () => {
 
   it('delegates all seat endpoints', async () => {
     seatService.createSeat.mockResolvedValue({ id: 's1' });
-    seatService.getSeatsByShowtimeId.mockResolvedValue([{ id: 's1' }]);
+    seatService.getSeatsByRoomId.mockResolvedValue([{ id: 's1' }]);
     seatService.getSeat.mockResolvedValue({ id: 's1' });
-    seatService.updateSeat.mockResolvedValue({ id: 's1', row: 2 });
+    seatService.updateSeat.mockResolvedValue({ id: 's1', row: 'B' });
     seatService.deleteSeat.mockResolvedValue({});
     seatService.findSeats.mockResolvedValue({ seats: [] });
 
-    await expect(controller.createSeat({ row: 1 } as never)).resolves.toEqual({
-      id: 's1',
-    });
-    await expect(controller.getSeatsByShowtimeId('film-1', 1)).resolves.toEqual(
-      [{ id: 's1' }],
+    await expect(controller.createSeat({ row: 'A' } as never)).resolves.toEqual(
+      {
+        id: 's1',
+      },
     );
-    await expect(controller.getSeat('s1')).resolves.toEqual({ id: 's1' });
+    await expect(controller.getSeatsByRoomId(UUID)).resolves.toEqual([
+      { id: 's1' },
+    ]);
+    await expect(controller.getSeat(UUID)).resolves.toEqual({ id: 's1' });
     await expect(
-      controller.updateSeat('s1', { row: 2 } as never),
+      controller.updateSeat(UUID, { row: 'B' } as never),
     ).resolves.toEqual({
       id: 's1',
-      row: 2,
+      row: 'B',
     });
-    await expect(controller.deleteSeat('s1')).resolves.toEqual({});
+    await expect(controller.deleteSeat(UUID)).resolves.toEqual({});
     await expect(controller.findSeats({} as never)).resolves.toEqual({
       seats: [],
     });
@@ -57,9 +61,9 @@ describe('SeatController', () => {
       IS_PUBLIC_KEY,
       SeatController.prototype.getSeat,
     );
-    const getShowtimeMetadata = Reflect.getMetadata(
+    const getRoomMetadata = Reflect.getMetadata(
       IS_PUBLIC_KEY,
-      SeatController.prototype.getSeatsByShowtimeId,
+      SeatController.prototype.getSeatsByRoomId,
     );
     const findSeatsMetadata = Reflect.getMetadata(
       IS_PUBLIC_KEY,
@@ -79,7 +83,7 @@ describe('SeatController', () => {
     );
 
     expect(getSeatMetadata).toBe(true);
-    expect(getShowtimeMetadata).toBe(true);
+    expect(getRoomMetadata).toBe(true);
     expect(findSeatsMetadata).toBe(true);
     expect(createSeatMetadata).toBeUndefined();
     expect(updateSeatMetadata).toBeUndefined();

@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -36,16 +36,17 @@ export class SeatController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['row', 'column', 'filmId', 'cinemaId'],
+      required: ['row', 'column', 'seatType'],
       properties: {
-        row: { type: 'integer', example: 3 },
-        column: { type: 'integer', example: 5 },
-        status: { type: 'string', example: 'AVAILABLE' },
-        filmId: {
+        row: { type: 'string', example: 'A' },
+        column: { type: 'string', example: '12' },
+        seatType: { type: 'string', example: 'NORMAL' },
+        seatStatus: { type: 'string', example: 'AVAILABLE' },
+        roomId: {
           type: 'string',
+          format: 'uuid',
           example: '0d9dd241-7f36-4518-b628-8b4ec4fd4943',
         },
-        cinemaId: { type: 'integer', example: 101 },
       },
     },
   })
@@ -57,24 +58,16 @@ export class SeatController {
   }
 
   @Public()
-  @Get('showtime/:filmId/:cinemaId')
-  @ApiOperation({ summary: 'Get seats by film and cinema' })
+  @Get('room/:roomId')
+  @ApiOperation({ summary: 'Get seats by room' })
   @ApiParam({
-    name: 'filmId',
+    name: 'roomId',
     required: true,
     schema: { type: 'string', format: 'uuid' },
   })
-  @ApiParam({
-    name: 'cinemaId',
-    required: true,
-    schema: { type: 'integer', example: 101 },
-  })
   @ApiOkResponse({ description: 'Seats retrieved successfully' })
-  getSeatsByShowtimeId(
-    @Param('filmId') filmId: string,
-    @Param('cinemaId', ParseIntPipe) cinemaId: number,
-  ) {
-    return this.seatService.getSeatsByShowtimeId(filmId, cinemaId);
+  getSeatsByRoomId(@Param('roomId', ParseUUIDPipe) roomId: string) {
+    return this.seatService.getSeatsByRoomId(roomId);
   }
 
   @Public()
@@ -87,7 +80,7 @@ export class SeatController {
   })
   @ApiOkResponse({ description: 'Seat retrieved successfully' })
   @ApiNotFoundResponse({ description: 'Seat not found' })
-  getSeat(@Param('seatId') seatId: string) {
+  getSeat(@Param('seatId', ParseUUIDPipe) seatId: string) {
     return this.seatService.getSeat(seatId);
   }
 
@@ -103,14 +96,15 @@ export class SeatController {
     schema: {
       type: 'object',
       properties: {
-        row: { type: 'integer', example: 4 },
-        column: { type: 'integer', example: 8 },
-        status: { type: 'string', example: 'BOOKED' },
-        filmId: {
+        row: { type: 'string', example: 'B' },
+        column: { type: 'string', example: '8' },
+        seatType: { type: 'string', example: 'COUPLE' },
+        seatStatus: { type: 'string', example: 'NOT_AVAILABLE' },
+        roomId: {
           type: 'string',
+          format: 'uuid',
           example: '0d9dd241-7f36-4518-b628-8b4ec4fd4943',
         },
-        cinemaId: { type: 'integer', example: 102 },
       },
     },
   })
@@ -118,7 +112,7 @@ export class SeatController {
   @ApiNotFoundResponse({ description: 'Seat not found' })
   @ApiBadRequestResponse({ description: 'Invalid update payload' })
   updateSeat(
-    @Param('seatId') seatId: string,
+    @Param('seatId', ParseUUIDPipe) seatId: string,
     @Body() updateSeatDto: UpdateSeatDto,
   ) {
     return this.seatService.updateSeat(seatId, updateSeatDto);
@@ -134,7 +128,7 @@ export class SeatController {
   })
   @ApiOkResponse({ description: 'Seat deleted successfully' })
   @ApiNotFoundResponse({ description: 'Seat not found' })
-  deleteSeat(@Param('seatId') seatId: string) {
+  deleteSeat(@Param('seatId', ParseUUIDPipe) seatId: string) {
     return this.seatService.deleteSeat(seatId);
   }
 
@@ -145,12 +139,11 @@ export class SeatController {
     schema: {
       type: 'object',
       properties: {
-        filmId: { type: 'string', format: 'uuid' },
-        cinemaId: { type: 'integer', example: 101 },
-        status: { type: 'string', example: 'AVAILABLE' },
+        roomId: { type: 'string', format: 'uuid' },
+        seatType: { type: 'string', example: 'NORMAL' },
+        seatStatus: { type: 'string', example: 'AVAILABLE' },
         limit: { type: 'integer', example: 10 },
         page: { type: 'integer', example: 1 },
-        cursor: { type: 'string', format: 'uuid' },
       },
     },
   })
@@ -160,7 +153,10 @@ export class SeatController {
       type: 'object',
       properties: {
         seats: { type: 'array', items: { type: 'object' } },
-        nextCursor: { type: 'string', nullable: true, format: 'uuid' },
+        total: { type: 'number', example: 100 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+        totalPages: { type: 'number', example: 10 },
       },
     },
   })

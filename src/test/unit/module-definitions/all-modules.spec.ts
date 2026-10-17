@@ -1,11 +1,6 @@
 jest.mock('../../../core/logger/logger.service', () => ({
   MyLogger: class MyLogger {},
 }));
-jest.mock('@ticket-order-system/movie-sdk', () => ({
-  GluClient: jest.fn(),
-  nowDeviceDateTime: jest.fn(() => '2026-01-01T00:00:00.000'),
-}));
-
 const { AppModule } = require('../../../app.module') as { AppModule: unknown };
 const { AuthModule } =
   require('../../../module/core-module/auth/auth.module') as {
@@ -37,11 +32,6 @@ const { EmailModule } = require('../../../background/email/email.module') as {
 const { RedisModule } = require('../../../background/redis/redis.module') as {
   RedisModule: unknown;
 };
-const { SyncDataCronJobModule } =
-  require('../../../background/sync-data-cron-job/sync-data-cron-job.module') as {
-    SyncDataCronJobModule: unknown;
-  };
-
 describe('Module Definitions', () => {
   it('all module classes should be defined', () => {
     expect(AppModule).toBeDefined();
@@ -53,6 +43,5 @@ describe('Module Definitions', () => {
     expect(TicketModule).toBeDefined();
     expect(EmailModule).toBeDefined();
     expect(RedisModule).toBeDefined();
-    expect(SyncDataCronJobModule).toBeDefined();
   });
 });

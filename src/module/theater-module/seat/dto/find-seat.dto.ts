@@ -1,35 +1,30 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
-import { SEAT_STATUS } from '@prisma/client';
+import { SeatStatus, SeatType } from '@prisma/client';
 
 export class FindSeatDto {
   @IsOptional()
   @IsUUID()
-  filmId?: string;
+  roomId?: string;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  cinemaId?: number;
+  @IsEnum(SeatType)
+  seatType?: SeatType;
 
   @IsOptional()
-  @IsEnum(SEAT_STATUS)
-  status?: SEAT_STATUS;
+  @IsEnum(SeatStatus)
+  seatStatus?: SeatStatus;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number;
+  limit: number = 10;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number;
-
-  @IsOptional()
-  @IsUUID()
-  cursor?: string;
+  page: number = 1;
 }

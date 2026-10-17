@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 
@@ -10,10 +9,7 @@ export class TicketService {
   async createTicket(dto: CreateTicketDto) {
     return await this.prismaService.ticket.create({
       data: {
-        code: randomBytes(16).toString('hex'),
-        price: dto.price,
-        filmOfCinemaId: dto.filmOfCinemaId,
-        seatId: dto.seatId,
+        ...dto,
       },
     });
   }
