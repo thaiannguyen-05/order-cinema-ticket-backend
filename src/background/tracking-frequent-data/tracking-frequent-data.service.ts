@@ -52,9 +52,6 @@ const ORDER_INCLUDE = {
       },
     },
   },
-  payment: {
-    select: { amount: true, orderStatus: true },
-  },
 } as const;
 
 function buildOrderDetail(o: FrequentOrderWithRelations): OrderDetail {
@@ -82,8 +79,6 @@ function buildOrderDetail(o: FrequentOrderWithRelations): OrderDetail {
     cinemaCity: o.ticket.filmOfCinema.cinema.city,
     seatRow: o.ticket.seat.row,
     seatColumn: o.ticket.seat.column,
-    paymentAmount: o.payment?.amount ?? null,
-    paymentStatus: o.payment?.orderStatus ?? null,
     orderStatus: o.status,
     createdAt: o.createdAt,
   };

@@ -15,21 +15,29 @@ A physical venue where films are shown.
 _Avoid_: Theater
 
 **FilmOfCinema**:
-A pairing of one Film with one Cinema in which seats and tickets can be sold.
+A pairing of one Film with one Cinema that can be scheduled as showtimes.
 _Avoid_: Showtime, Screening, Schedule, Show
 
+**Room**:
+A physical hall inside one Cinema that holds Seats and hosts ShowTimes.
+_Avoid_: Hall, Auditorium, Theater
+
+**ShowTime**:
+One screening of a FilmOfCinema in a Room, with start/end time and base price.
+_Avoid_: Screening, Schedule, Session
+
 **Seat**:
-A numbered position (row, column) sellable for one FilmOfCinema at one Cinema.
-_Avoid_: Chair, Slot
+A numbered position (row, column) in one Room, reusable across ShowTimes. `seatStatus` is only for maintenance (NOT*AVAILABLE), never for booking.
+\_Avoid*: Chair, Slot
 
 ### Ordering
 
 **Ticket**:
-An entitlement to one Seat for one FilmOfCinema.
+An entitlement to one Seat for one ShowTime, with its own price and `ticketStatus` (AVAILABLE -> PROCESSING -> BOOKED, back to AVAILABLE on FAILED/CANCELLED/EXPIRED).
 _Avoid_: Booking, Reservation
 
 **Order**:
-A User's request to acquire one Ticket.
+A User's request to acquire one Ticket (1-1, FK on `Order.ticketId`). Only Sepay IPN may move it to PAID/FAILED.
 _Avoid_: Booking, Reservation, Purchase
 
 **Payment**:

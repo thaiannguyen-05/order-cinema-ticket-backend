@@ -2,180 +2,525 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
+import axios from 'axios';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
 import {
-  REDIS_LOCK_KEY,
-  REDIS_TTL,
-} from '../../../background/redis/redis.value';
-import { SepayCallbackDto } from './dto/sepay.callback.dto';
-import { SepayCheckoutDto } from './dto/sepay.checkout.dto';
-import { toIntAmount, toDecimalAmount } from './amount.converter';
-import { OrderRepository } from './repository/order.repository';
-import { OrderStatus } from '@prisma/client';
+  PAYMENT_LOCK_KEY,
+  PAYMENT_LOCK_TTL_MS,
+  SEPAY,
+  SEPAY_NOTIFICATION_TYPE,
+  SEPAY_SUCCESS_ORDER_STATUSES,
+  SEPAY_SUCCESS_TRANSACTION_STATUSES,
+} from './constant';
+import {
+  SEPAY_SIGN_FIELDS,
+  type SepayCheckoutForm,
+  type SepayCheckoutResult,
+  type SepayWebhookResult,
+} from './type';
+import type { SepayWebhookDto } from './dto/sepay-webhook.dto';
+import type { PaymentOrder } from './type';
 
-const ALLOWED_FIELDS = [
-  'order_amount',
-  'merchant',
-  'currency',
-  'operation',
-  'order_description',
-  'order_invoice_number',
-  'customer_id',
-  'payment_method',
-  'success_url',
-  'error_url',
-  'cancel_url',
-] as const;
+export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
+
+// Signed browser-return token TTL: 30 minutes (covers 15m order TTL + buffer).
+const SEPAY_RETURN_TOKEN_TTL_S = 30 * 60;
 
 @Injectable()
 export class SepayService {
-  private readonly SEPAY_CHECKOUT_URL = 'https://pay.sepay.vn/v1/checkout/init';
-
   constructor(
-    private readonly configService: ConfigService,
-    private readonly orderRepository: OrderRepository,
+    private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
-    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {}
 
+  private signCheckout(
+    payload: Omit<SepayCheckoutForm, 'signature'>,
+    secret: string,
+  ): string {
+    // Per Sepay docs: `field=value` joined by `,`, skip absent optionals.
+    const signingString = SEPAY_SIGN_FIELDS.filter(
+      (field) =>
+        payload[field] !== undefined &&
+        payload[field] !== null &&
+        payload[field] !== '',
+    )
+      .map((field) => `${field}=${payload[field]}`)
+      .join(',');
+    return createHmac('sha256', secret)
+      .update(signingString, 'utf8')
+      .digest('base64');
+  }
+
+  private buildReturnToken(orderId: string, userId: string): string {
+    const secret = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
+    const exp = Math.floor(Date.now() / 1000) + SEPAY_RETURN_TOKEN_TTL_S;
+    const data = `${orderId}.${userId}.${exp}`;
+    const sig = createHmac('sha256', secret)
+      .update(data, 'utf8')
+      .digest('base64url');
+    return `${exp}.${sig}`;
+  }
+
+  private verifyReturnToken(
+    order: PaymentOrder,
+    token: string | undefined,
+  ): void {
+    if (!token) {
+      throw new UnauthorizedException('Missing return token');
+    }
+    const parts = token.split('.');
+    if (parts.length !== 2) {
+      throw new UnauthorizedException('Invalid return token');
+    }
+    const exp = Number(parts[0]);
+    const sig = parts[1];
+    if (!Number.isFinite(exp) || exp * 1000 < Date.now()) {
+      throw new UnauthorizedException('Return token expired');
+    }
+    const secret = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
+    const data = `${order.id}.${order.userId}.${exp}`;
+    const expected = createHmac('sha256', secret)
+      .update(data, 'utf8')
+      .digest('base64url');
+    const a = Buffer.from(sig, 'utf8');
+    const b = Buffer.from(expected, 'utf8');
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      throw new UnauthorizedException('Invalid return token');
+    }
+  }
+
+  private async requireOrder(
+    id: string,
+    userId?: string,
+  ): Promise<PaymentOrder> {
+    const order = userId
+      ? await this.prismaService.order.findFirst({ where: { id, userId } })
+      : await this.prismaService.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
+  private async saveStatus(
+    orderId: string,
+    data: Prisma.OrderUpdateInput,
+  ): Promise<PaymentOrder> {
+    try {
+      return await this.prismaService.order.update({
+        where: { id: orderId },
+        data,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Duplicate Sepay reference');
+      }
+      throw error;
+    }
+  }
+
   /**
-   * Generate HMAC-SHA256 signature matching SePay PHP reference:
-   *   signFields(array $fields, string $secretKey): string
+   * Single IPN settler: validate + map notification to OrderStatus + persist.
+   * Sepay `notification_type` != browser return != domain `OrderStatus`.
+   * Only IPN may decide PAID.
    */
-  signFields(fields: Record<string, string>): string {
-    const secretKey = this.configService.getOrThrow<string>('SEPAY_SECRET_KEY');
+  private async applyIpn(
+    order: PaymentOrder,
+    dto: SepayWebhookDto,
+  ): Promise<SepayWebhookResult> {
+    if (
+      dto.customer?.customer_id &&
+      dto.customer.customer_id !== order.userId
+    ) {
+      throw new BadRequestException('Customer mismatch');
+    }
+    if (
+      dto.order.order_currency !== order.currency ||
+      dto.transaction.transaction_currency !== order.currency
+    ) {
+      throw new BadRequestException('Currency mismatch');
+    }
 
-    const signed: string[] = [];
+    const toNumber = (raw: unknown, field: string): number => {
+      const n =
+        typeof raw === 'number'
+          ? raw
+          : typeof raw === 'string'
+            ? Number(raw.trim())
+            : NaN;
+      if (!Number.isFinite(n) || n <= 0) {
+        throw new BadRequestException(`Invalid ${field}`);
+      }
+      return n;
+    };
+    const txAmount = toNumber(
+      dto.transaction.transaction_amount,
+      'transaction_amount',
+    );
+    const orderAmount = toNumber(dto.order.order_amount, 'order_amount');
+    if (
+      Math.round(txAmount) !== order.finalPrice ||
+      Math.round(orderAmount) !== order.finalPrice
+    ) {
+      throw new ConflictException('Amount mismatch');
+    }
 
-    for (const field of ALLOWED_FIELDS) {
-      if (fields[field] !== undefined) {
-        signed.push(`${field}=${fields[field]}`);
+    let nextStatus: OrderStatus;
+    if (dto.notification_type === SEPAY_NOTIFICATION_TYPE.ORDER_PAID) {
+      const ok =
+        (SEPAY_SUCCESS_ORDER_STATUSES as readonly string[]).includes(
+          dto.order.order_status,
+        ) &&
+        (SEPAY_SUCCESS_TRANSACTION_STATUSES as readonly string[]).includes(
+          dto.transaction.transaction_status,
+        );
+      nextStatus = ok ? OrderStatus.PAID : OrderStatus.FAILED;
+    } else if (
+      dto.notification_type === SEPAY_NOTIFICATION_TYPE.TRANSACTION_VOID
+    ) {
+      nextStatus = OrderStatus.CANCELLED;
+    } else {
+      throw new BadRequestException('Unsupported notification_type');
+    }
+
+    if (order.status === nextStatus) {
+      return { orderId: order.id, status: order.status, idempotent: true };
+    }
+    // Terminal states are immutable. Ack with 200 idempotent:true so Sepay
+    // stops retrying a notification that can never be applied.
+    if (order.status !== OrderStatus.PENDING) {
+      return { orderId: order.id, status: order.status, idempotent: true };
+    }
+
+    if (nextStatus === OrderStatus.PAID) {
+      try {
+        const updated = await this.prismaService.$transaction(async (tx) => {
+          const paid = await tx.order.update({
+            where: { id: order.id },
+            data: {
+              status: nextStatus,
+              sepayOrderId: dto.order.order_id,
+              sepayTransactionId: dto.transaction.transaction_id,
+              paymentMethod: dto.transaction.payment_method,
+              paidAmount: Math.round(txAmount),
+              callbackPayload: JSON.parse(JSON.stringify(dto)),
+            },
+          });
+          const ticket = await tx.ticket.findUnique({
+            where: { id: order.ticketId },
+          });
+          if (!ticket) {
+            throw new NotFoundException('Ticket not found');
+          }
+          // Seat is reusable across ShowTimes; BOOKED lives on Ticket.
+          await tx.ticket.update({
+            where: { id: ticket.id },
+            data: { ticketStatus: TicketStatus.BOOKED },
+          });
+          return paid;
+        });
+        return {
+          orderId: updated.id,
+          status: updated.status,
+          idempotent: false,
+        };
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException('Duplicate Sepay reference');
+        }
+        throw error;
       }
     }
 
-    const data = signed.join(',');
-    const hmac = createHmac('sha256', secretKey);
-    hmac.update(data);
-
-    return hmac.digest('base64');
+    const updated = await this.saveStatus(order.id, {
+      status: nextStatus,
+      sepayOrderId: dto.order.order_id,
+      sepayTransactionId: dto.transaction.transaction_id,
+      paymentMethod: dto.transaction.payment_method,
+      paidAmount: Math.round(txAmount),
+      callbackPayload: JSON.parse(JSON.stringify(dto)),
+    });
+    // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
+    await this.prismaService.ticket.updateMany({
+      where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+      data: { ticketStatus: TicketStatus.AVAILABLE },
+    });
+    return { orderId: updated.id, status: updated.status, idempotent: false };
   }
 
-  async createCheckoutUrl(dto: SepayCheckoutDto, userId: string) {
-    const lockKey = REDIS_LOCK_KEY.SEPAY_CHECKOUT(dto.order_invoice_number);
+  async initCheckout(
+    orderId: string,
+    userId: string,
+  ): Promise<SepayCheckoutResult> {
+    const result =
+      await this.redisLockService.runExclusive<SepayCheckoutResult>(
+        PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
+        PAYMENT_LOCK_TTL_MS.CHECKOUT,
+        async () => {
+          const order = await this.requireOrder(orderId, userId);
 
-    const result = await this.redisLockService.runExclusive(
-      lockKey,
-      REDIS_TTL.LOCK_SERVICE,
-      async () => {
-        const existingOrder = await this.orderRepository.findOrderByIdAndUserId(
-          dto.order_invoice_number,
-          userId,
-        );
+          if (order.status === OrderStatus.PAID) {
+            throw new ConflictException('Order already paid');
+          }
 
-        if (!existingOrder) {
-          throw new BadRequestException('Order not found');
-        }
+          // Build per-order return urls so Sepay redirects back to the
+          // endpoint serving that order: supports `{orderId}` placeholder,
+          // `?orderId=` query, or REST `/<orderId>` suffix.
+          // e.g. base `https://api.../payment/sepay/success`
+          //   -> `https://api.../payment/sepay/success/<orderId>?token=<signed>`
+          const withOrderId = (base: string): string => {
+            if (base.includes('{orderId}')) {
+              return base.replace('{orderId}', order.id);
+            }
+            if (base.includes('?')) {
+              const sep = base.endsWith('?') || base.endsWith('&') ? '' : '&';
+              return `${base}${sep}orderId=${order.id}`;
+            }
+            return `${base.replace(/\/+$/, '')}/${order.id}`;
+          };
+          const withToken = (url: string, token: string): string => {
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}token=${encodeURIComponent(token)}`;
+          };
 
-        const existingPayment = await this.orderRepository.findPaymentByOrderId(
-          existingOrder.id,
-        );
+          const returnToken = this.buildReturnToken(order.id, order.userId);
 
-        if (existingPayment) {
-          throw new ConflictException('This order has already been paid');
-        }
+          const unsigned: Omit<SepayCheckoutForm, 'signature'> = {
+            merchant: this.configService.getOrThrow<string>('SEPAY_MERCHANT'),
+            currency: order.currency,
+            order_amount: String(order.finalPrice),
+            operation: SEPAY.OPERATION,
+            order_description: `Thanh toán đơn hàng #${order.id.slice(0, 8)}`,
+            order_invoice_number: order.id,
+            customer_id: order.userId,
+            success_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_SUCCESS_URL'),
+              ),
+              returnToken,
+            ),
+            error_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_ERROR_URL'),
+              ),
+              returnToken,
+            ),
+            cancel_url: withToken(
+              withOrderId(
+                this.configService.getOrThrow<string>('SEPAY_CANCEL_URL'),
+              ),
+              returnToken,
+            ),
+          };
+          const form: SepayCheckoutForm = {
+            ...unsigned,
+            signature: this.signCheckout(
+              unsigned,
+              this.configService.getOrThrow<string>('SEPAY_SECRET_KEY'),
+            ),
+          };
 
-        const merchant =
-          dto.merchant ??
-          this.configService.getOrThrow<string>('SEPAY_MERCHANT');
-        const operation = dto.operation ?? 'PURCHASE';
+          let checkoutUrl: string;
+          try {
+            const { data } = await axios.post<unknown>(
+              `${this.configService
+                .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
+                .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`,
+              new URLSearchParams(
+                Object.fromEntries(
+                  Object.entries(form).filter(([, v]) => v !== undefined),
+                ) as Record<string, string>,
+              ).toString(),
+              {
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                timeout: SEPAY.TIMEOUT_MS,
+              },
+            );
+            const record = data as Record<string, unknown>;
+            const url = record['checkout_url'] ?? record['checkoutUrl'];
+            if (typeof url !== 'string' || url.length === 0) {
+              throw new Error('Missing checkout_url in SePay response');
+            }
+            checkoutUrl = url;
+          } catch (error) {
+            throw new ServiceUnavailableException(
+              'SePay checkout unavailable',
+              error instanceof Error ? error.message : undefined,
+            );
+          }
 
-        const fields: Record<string, string> = {
-          order_amount: String(dto.order_amount),
-          merchant,
-          currency: dto.currency,
-          operation,
-          order_description: dto.order_description,
-          order_invoice_number: dto.order_invoice_number,
-          customer_id: userId,
-          success_url: dto.success_url,
-          error_url: dto.error_url,
-          cancel_url: dto.cancel_url,
-        };
+          await this.prismaService.order.update({
+            where: { id: order.id },
+            data: { paymentMethod: 'SEPAY' },
+          });
 
-        const signature = this.signFields(fields);
+          return { orderId: order.id, checkoutUrl };
+        },
+      );
 
-        const formData = new URLSearchParams();
-        for (const [key, value] of Object.entries(fields)) {
-          formData.append(key, value);
-        }
-        formData.append('signature', signature);
-
-        const response = await firstValueFrom(
-          this.httpService.postForm(this.SEPAY_CHECKOUT_URL, formData, {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          }),
-        );
-
-        return response.data as { checkout_url?: string };
-      },
-    );
-
-    if (!result) {
+    if (result === null) {
       throw new ConflictException(
-        'A checkout request is being processed, please try again',
+        'Checkout already in progress for this order',
       );
     }
 
-    if (!result.checkout_url) {
-      throw new ServiceUnavailableException('SePay returned no checkout URL');
-    }
-
-    return { checkout_url: result.checkout_url };
+    return result;
   }
 
-  async handleCallback(dto: SepayCallbackDto) {
-    const { signature, ...fields } = dto;
-
-    const expectedSignature = this.signFields(fields);
-
-    if (signature !== expectedSignature) {
-      throw new BadRequestException('Invalid SePay signature');
+  async handleWebhook(
+    dto: SepayWebhookDto,
+    secretKeyHeader: string | undefined,
+  ): Promise<SepayWebhookResult> {
+    const secret = this.configService.get<string>('SEPAY_SECRET_KEY');
+    if (secret && secret !== 'REPLACE_ME') {
+      if (!secretKeyHeader) {
+        throw new UnauthorizedException('Missing webhook secret');
+      }
+      const a = Buffer.from(secretKeyHeader, 'utf8');
+      const b = Buffer.from(secret, 'utf8');
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        throw new UnauthorizedException('Invalid webhook secret');
+      }
     }
 
-    // Map SePay fields to internal order
-    const orderId = dto.order_invoice_number;
-    const operation = dto.operation;
-
-    const order = await this.orderRepository.findOrderById(orderId);
-
-    if (!order) {
-      throw new BadRequestException(`Order ${orderId} not found`);
+    const invoiceNumber = dto.order?.order_invoice_number;
+    if (!invoiceNumber) {
+      throw new BadRequestException('Missing order_invoice_number');
     }
 
-    // Convert decimal amount from SePay → Int for DB storage
-    const amountInt = toIntAmount(Number(dto.order_amount));
+    // Replay guard: Sepay IPN carries Unix timestamp (seconds).
+    // Reject stale/future-skewed (>5m) payloads even if secret matches.
+    if (dto.timestamp !== undefined && dto.timestamp !== null) {
+      const tsMs =
+        typeof dto.timestamp === 'number' ? dto.timestamp * 1000 : Number.NaN;
+      if (!Number.isFinite(tsMs)) {
+        throw new BadRequestException('Invalid timestamp');
+      }
+      if (Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+        throw new BadRequestException('Stale webhook timestamp');
+      }
+    }
 
-    const newStatus =
-      operation === 'success' || operation === 'captured'
-        ? OrderStatus.CAPTURED
-        : OrderStatus.CANCELLED;
+    // Unified settle lock with browser return (same orderId) to prevent
+    // PENDING->CANCELLED vs PENDING->PAID race.
+    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
+      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(invoiceNumber),
+      PAYMENT_LOCK_TTL_MS.WEBHOOK,
+      async () => this.applyIpn(await this.requireOrder(invoiceNumber), dto),
+    );
 
-    await this.orderRepository.updateOrderAndUpsertPayment(orderId, newStatus, {
-      orderId,
-      amount: amountInt,
-      currency: dto.currency,
-    });
+    if (result === null) {
+      throw new ConflictException('Webhook already in progress for this order');
+    }
 
-    return {
-      success: true,
-      status: newStatus,
-      amount: toDecimalAmount(amountInt),
-    };
+    return result;
+  }
+
+  /**
+   * Ownership-checked poll for frontend: returns DB status, lazily expires
+   * a PENDING order past expiresAt instead of waiting for the 5m cron.
+   * Remote Sepay PG query (https://pgapi.sepay.vn, Basic merchant:secret)
+   * to be wired here once the invoice-lookup contract is confirmed;
+   * until then IPN remains the only path to PAID.
+   */
+  async syncOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<SepayWebhookResult> {
+    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
+      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      PAYMENT_LOCK_TTL_MS.UPDATE,
+      async () => {
+        const order = await this.requireOrder(orderId, userId);
+        if (
+          order.status === OrderStatus.PENDING &&
+          order.expiresAt &&
+          order.expiresAt.getTime() <= Date.now()
+        ) {
+          const updated = await this.saveStatus(order.id, {
+            status: OrderStatus.EXPIRED,
+          });
+          await this.prismaService.ticket.updateMany({
+            where: {
+              id: order.ticketId,
+              ticketStatus: TicketStatus.PROCESSING,
+            },
+            data: { ticketStatus: TicketStatus.AVAILABLE },
+          });
+          return {
+            orderId: updated.id,
+            status: updated.status,
+            idempotent: false,
+          };
+        }
+        return { orderId: order.id, status: order.status, idempotent: true };
+      },
+    );
+    if (result === null) {
+      throw new ConflictException(
+        'Order update is already in progress for this order',
+      );
+    }
+    return result;
+  }
+
+  /**
+   * Single browser-return handler serving all 3 redirect urls.
+   * Public (signed ?token=), success/error = read-only (FAILED only via IPN);
+   * cancel PENDING -> CANCELLED.
+   * Never marks PAID, never downgrades PAID, never touches Ticket/Seat.
+   */
+  async handleBrowserReturn(
+    orderId: string,
+    outcome: SepayBrowserOutcome,
+    token: string | undefined,
+  ): Promise<SepayWebhookResult> {
+    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
+      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      PAYMENT_LOCK_TTL_MS.UPDATE,
+      async () => {
+        const order = await this.requireOrder(orderId);
+        this.verifyReturnToken(order, token);
+        if (outcome !== 'cancel' || order.status !== OrderStatus.PENDING) {
+          return { orderId: order.id, status: order.status, idempotent: true };
+        }
+        const nextStatus = OrderStatus.CANCELLED;
+        const updated = await this.saveStatus(order.id, {
+          status: nextStatus,
+        });
+        await this.prismaService.ticket.updateMany({
+          where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+          data: { ticketStatus: TicketStatus.AVAILABLE },
+        });
+        return {
+          orderId: updated.id,
+          status: updated.status,
+          idempotent: false,
+        };
+      },
+    );
+    if (result === null) {
+      throw new ConflictException(
+        'Order update is already in progress for this order',
+      );
+    }
+    return result;
   }
 }

@@ -1,16 +1,78 @@
-model Cinema {
-  cinema_id Int @id 
-  cinema_name String
-  address String?
-  address2 String?
-  city String
-  country String?
-  postcode String
-  phone String?
-  logo_url String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Seat {
+    id String @id @default(uuid()) @db.Uuid
 
-  filmOfCinema FilmOfCinema[]   
-  seats Seat[]
+    row    String
+    column String
+
+    seatType   SeatType
+    seatStatus SeatStatus
+
+    ticket    Ticket[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    room      Room?    @relation(fields: [roomId], references: [id])
+    roomId    String?  @db.Uuid
+}
+
+model Ticket {
+    id           String       @id @default(uuid()) @db.Uuid
+    price        Int
+    ticketStatus TicketStatus @default(AVAILABLE)
+
+    // Back-relation to Order (FK lives on Order.ticketId, 1-1).
+    order Order?
+
+    showTimeId String   @db.Uuid
+    showTime   ShowTime @relation(fields: [showTimeId], references: [id], onDelete: Cascade)
+
+    seatId String @db.Uuid
+    seat   Seat   @relation(fields: [seatId], references: [id], onDelete: Restrict)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model ShowTime {
+    id String @id @default(uuid()) @db.Uuid
+
+    filmId String       @db.Uuid
+    film   FilmOfCinema @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+    roomId String @db.Uuid
+    room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+    startAt DateTime
+    endAt   DateTime
+
+    basedPrice Int
+    ticket     Ticket[]
+}
+
+model Room {
+    id String @id @default(uuid()) @db.Uuid
+
+    cinemaId String @db.Uuid
+    cinema   Cinema @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
+
+    seats     Seat[]
+    showTimes ShowTime[]
+}
+
+enum TicketStatus {
+    AVAILABLE
+    BOOKED
+    CANCELLED
+    PROCESSING
+}
+
+enum SeatType {
+    COUPLE
+    HEAVEN
+    NORMAL
+}
+
+enum SeatStatus {
+    AVAILABLE
+    BOOKED
+    NOT_AVAILABLE
 }
