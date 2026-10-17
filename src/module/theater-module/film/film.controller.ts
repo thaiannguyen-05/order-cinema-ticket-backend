@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -26,7 +25,6 @@ import { FindFilmsDto } from './dto/find-films.dto';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { Roles } from '../../../core/decorator/roles.decorator';
 import { USER_ROLE } from '@prisma/client';
-import { User } from '../../../core/decorator/user.decorator';
 
 @ApiTags('Film')
 @Controller({ path: 'film', version: '1' })
