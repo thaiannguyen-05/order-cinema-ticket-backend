@@ -146,4 +146,9 @@ export class SepayWebhookDto {
   @ValidateNested()
   @Type(() => SepayWebhookCustomerDto)
   customer?: SepayWebhookCustomerDto;
+
+  // Real IPN carries `agreement: null`; whitelist it so global
+  // forbidNonWhitelisted validation does not 400 genuine callbacks.
+  @IsOptional()
+  agreement?: unknown;
 }

@@ -3,12 +3,10 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
-import axios from 'axios';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../../background/prisma/prisma.service';
 import { RedisLockService } from '../../../background/redis/redis.lock.service';
@@ -335,43 +333,25 @@ export class SepayService {
             ),
           };
 
-          let checkoutUrl: string;
-          try {
-            const { data } = await axios.post<unknown>(
-              `${this.configService
-                .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
-                .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`,
-              new URLSearchParams(
-                Object.fromEntries(
-                  Object.entries(form).filter(([, v]) => v !== undefined),
-                ) as Record<string, string>,
-              ).toString(),
-              {
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                timeout: SEPAY.TIMEOUT_MS,
-              },
-            );
-            const record = data as Record<string, unknown>;
-            const url = record['checkout_url'] ?? record['checkoutUrl'];
-            if (typeof url !== 'string' || url.length === 0) {
-              throw new Error('Missing checkout_url in SePay response');
-            }
-            checkoutUrl = url;
-          } catch (error) {
-            throw new ServiceUnavailableException(
-              'SePay checkout unavailable',
-              error instanceof Error ? error.message : undefined,
-            );
-          }
+          // SePay checkout/init is a browser form POST, not a JSON API
+          // (docs: form-thanh-toan returns 302 to /v1/checkout, no checkout_url).
+          // Never axios.post from server here; return signed fields so the
+          // caller (browser/WebView/Swagger) submits the form itself.
+          const action = `${this.configService
+            .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
+            .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`;
 
           await this.prismaService.order.update({
             where: { id: order.id },
             data: { paymentMethod: 'SEPAY' },
           });
 
-          return { orderId: order.id, checkoutUrl };
+          return {
+            orderId: order.id,
+            action,
+            method: 'POST' as const,
+            fields: form,
+          };
         },
       );
 
@@ -406,14 +386,16 @@ export class SepayService {
     }
 
     // Replay guard: Sepay IPN carries Unix timestamp (seconds).
-    // Reject stale/future-skewed (>5m) payloads even if secret matches.
+    // Reject payloads older than 5m (replayed callbacks keep their original
+    // timestamp). Future-skewed timestamps are accepted: Sepay testmode clock
+    // runs ahead, and a future date cannot be a replay of an old message.
     if (dto.timestamp !== undefined && dto.timestamp !== null) {
       const tsMs =
         typeof dto.timestamp === 'number' ? dto.timestamp * 1000 : Number.NaN;
       if (!Number.isFinite(tsMs)) {
         throw new BadRequestException('Invalid timestamp');
       }
-      if (Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+      if (Date.now() - tsMs > 5 * 60 * 1000) {
         throw new BadRequestException('Stale webhook timestamp');
       }
     }

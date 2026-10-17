@@ -19,10 +19,9 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { User } from '../../../core/decorator/user.decorator';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
@@ -40,6 +39,7 @@ export class PaymentController {
     private readonly sepayService: SepayService,
   ) {}
 
+  @SkipThrottle()
   @Post()
   @ApiOperation({ summary: 'Create an order' })
   @ApiCreatedResponse({ description: 'Order created successfully' })
@@ -49,15 +49,35 @@ export class PaymentController {
     return this.paymentService.createOrder({ ...dto, userId });
   }
 
+  @SkipThrottle()
   @Post('sepay/checkout')
-  @ApiOperation({ summary: 'Init SePay checkout for an order' })
-  @ApiOkResponse({ description: 'SePay checkout URL created' })
+  @ApiOperation({
+    summary: 'Init SePay checkout for an order (returns signed browser form)',
+  })
+  @ApiOkResponse({
+    description:
+      'Signed SePay form fields; caller auto-submits POST action to pay.sepay.vn',
+  })
   @ApiBadRequestResponse({ description: 'Invalid checkout payload' })
   @ApiNotFoundResponse({ description: 'Order not found' })
   @ApiConflictResponse({ description: 'Order already paid or checkout busy' })
-  @ApiServiceUnavailableResponse({ description: 'SePay checkout unavailable' })
-  initSepayCheckout(@Body() dto: SepayCheckoutDto, @User('id') userId: string) {
-    return this.sepayService.initCheckout(dto.orderId, userId);
+  async initSepayCheckout(
+    @Body() dto: SepayCheckoutDto,
+    @User('id') userId: string,
+    @Query('format') format?: string,
+  ) {
+    const result = await this.sepayService.initCheckout(dto.orderId, userId);
+    if (format === 'html') {
+      const inputs = Object.entries(result.fields)
+        .filter(([, v]) => v !== undefined)
+        .map(
+          ([k, v]) =>
+            `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}" />`,
+        )
+        .join('');
+      return `<form action="${result.action}" method="POST">${inputs}<button type="submit">Pay now</button></form><script>document.forms[0].submit()</script>`;
+    }
+    return result;
   }
 
   // Browser redirects from Sepay (success/error/cancel_url). Public with
@@ -104,6 +124,7 @@ export class PaymentController {
     return this.sepayService.handleBrowserReturn(orderId, 'cancel', token);
   }
 
+  @SkipThrottle()
   @Post('sepay/sync/:orderId')
   @ApiOperation({ summary: 'Sync order status (ownership-checked poll)' })
   @ApiOkResponse({ description: 'DB order status, lazy-expire if past TTL' })
@@ -119,6 +140,7 @@ export class PaymentController {
   // have no user JWT. Auth is via `X-Secret-Key: <SEPAY_SECRET_KEY>` header
   // verified in SepayService (see Sepay IPN docs). Removing @Public() and
   // requiring JWT would break every real callback with 401.
+  @SkipThrottle()
   @Public()
   @Post('sepay/webhook')
   @HttpCode(HttpStatus.OK)
@@ -132,6 +154,7 @@ export class PaymentController {
     return this.sepayService.handleWebhook(dto, secretKey);
   }
 
+  @SkipThrottle()
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({

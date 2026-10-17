@@ -21,10 +21,13 @@ export class TokenService {
       email: user.email,
       role: user.role,
     };
+    // NOTE: env values are bare numbers (e.g. "3600"). jsonwebtoken/ms
+    // parses a STRING as milliseconds ("3600" -> 3.6s), so coerce to Number
+    // first: a numeric expiresIn is interpreted as SECONDS (3600 -> 1h).
     return this.jwtService.signAsync(payload, {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      expiresIn: this.configService.getOrThrow<number>(
-        `JWT_${nameToken}_EXPIRES_IN`,
+      expiresIn: Number(
+        this.configService.getOrThrow<string>(`JWT_${nameToken}_EXPIRES_IN`),
       ),
     });
   }
