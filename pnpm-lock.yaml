@@ -71,8 +71,8 @@ importers:
         specifier: ^7.4.0
         version: 7.4.0(prisma@7.4.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       '@ticket-order-system/movie-sdk':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.2
+        version: 0.1.2
       '@types/redlock':
         specifier: ^4.0.8
         version: 4.0.8
@@ -1928,10 +1928,10 @@ packages:
         integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==,
       }
 
-  '@ticket-order-system/movie-sdk@0.1.0':
+  '@ticket-order-system/movie-sdk@0.1.2':
     resolution:
       {
-        integrity: sha512-vVz5UzyNomMEbdKA4ux9pqurISWl5pk/Sv169ZkcheyhzaSPpdf0cUWGQe3JmtYYZZV33XYtDRSJ+xxUUCf7dg==,
+        integrity: sha512-E7+VbtXEVFw83hwZwgTXHzXutfS3ivgxSa2Qb104OCeq4tM1BncnPnY1QM2ccJf/CnO6tB0IEfNdcH3Y3RWovA==,
       }
     engines: { node: '>=20' }
 
@@ -9746,7 +9746,7 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@ticket-order-system/movie-sdk@0.1.0': {}
+  '@ticket-order-system/movie-sdk@0.1.2': {}
 
   '@tokenizer/inflate@0.4.1':
     dependencies:
