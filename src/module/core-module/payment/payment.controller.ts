@@ -21,7 +21,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { User } from '../../../core/decorator/user.decorator';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
@@ -39,17 +39,21 @@ export class PaymentController {
     private readonly sepayService: SepayService,
   ) {}
 
-  @SkipThrottle()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post()
   @ApiOperation({ summary: 'Create an order' })
   @ApiCreatedResponse({ description: 'Order created successfully' })
   @ApiBadRequestResponse({ description: 'Invalid order payload' })
   @ApiConflictResponse({ description: 'Ticket already ordered' })
-  createOrder(@Body() dto: CreatePaymentDto, @User('id') userId: string) {
-    return this.paymentService.createOrder({ ...dto, userId });
+  createOrder(
+    @Body() dto: CreatePaymentDto,
+    @User('id') userId: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.paymentService.createOrder({ ...dto, userId, idempotencyKey });
   }
 
-  @SkipThrottle()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('sepay/checkout')
   @ApiOperation({
     summary: 'Init SePay checkout for an order (returns signed browser form)',
@@ -84,7 +88,7 @@ export class PaymentController {
   // signed ?token= (HMAC orderId.userId.exp). Never mark PAID here; IPN
   // webhook is the source of truth for PAID.
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('sepay/success/:orderId')
   @ApiOperation({ summary: 'Sepay success return (read order status)' })
   @ApiOkResponse({ description: 'Order status for success return' })
@@ -97,7 +101,7 @@ export class PaymentController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('sepay/error/:orderId')
   @ApiOperation({
     summary: 'Sepay error return (read-only, FAILED only via IPN)',
@@ -112,7 +116,7 @@ export class PaymentController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('sepay/cancel/:orderId')
   @ApiOperation({ summary: 'Sepay cancel return (PENDING -> CANCELLED)' })
   @ApiOkResponse({ description: 'Order status for cancel return' })
@@ -124,7 +128,7 @@ export class PaymentController {
     return this.sepayService.handleBrowserReturn(orderId, 'cancel', token);
   }
 
-  @SkipThrottle()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('sepay/sync/:orderId')
   @ApiOperation({ summary: 'Sync order status (ownership-checked poll)' })
   @ApiOkResponse({ description: 'DB order status, lazy-expire if past TTL' })
@@ -140,7 +144,8 @@ export class PaymentController {
   // have no user JWT. Auth is via `X-Secret-Key: <SEPAY_SECRET_KEY>` header
   // verified in SepayService (see Sepay IPN docs). Removing @Public() and
   // requiring JWT would break every real callback with 401.
-  @SkipThrottle()
+  // Rate-limited (not skipped) so IPN retries cannot be used for L7 flood.
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Public()
   @Post('sepay/webhook')
   @HttpCode(HttpStatus.OK)
@@ -154,7 +159,7 @@ export class PaymentController {
     return this.sepayService.handleWebhook(dto, secretKey);
   }
 
-  @SkipThrottle()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({

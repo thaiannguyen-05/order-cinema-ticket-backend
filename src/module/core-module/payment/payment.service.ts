@@ -1,12 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
+import type Redis from 'ioredis';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
+import { REDIS_LOCK_CLIENT } from '../infra/redis/redis.value';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
 import type { CreatePaymentDto } from './dto/create-payment.dto';
 import type { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -18,11 +21,39 @@ export class PaymentService implements PaymentInterface {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
+    @Inject(REDIS_LOCK_CLIENT) private readonly redis: Redis,
   ) {}
 
+  private normalizeIdempotencyKey(key?: string): string | null {
+    if (!key) return null;
+    const v = key.trim();
+    if (!/^[A-Za-z0-9-_]{8,64}$/.test(v)) return null;
+    return v;
+  }
+
   async createOrder(
-    dto: CreatePaymentDto & { userId: string },
+    dto: CreatePaymentDto & { userId: string; idempotencyKey?: string },
   ): Promise<PaymentOrder> {
+    const idem = this.normalizeIdempotencyKey(dto.idempotencyKey);
+    const idemRedisKey = idem
+      ? `idemp:payment:create:${dto.userId}:${idem}`
+      : null;
+
+    // Fast path: replay of a previous request with the same key.
+    if (idemRedisKey) {
+      try {
+        const existingId = await this.redis.get(idemRedisKey);
+        if (existingId) {
+          const existing = await this.prismaService.order.findUnique({
+            where: { id: existingId },
+          });
+          if (existing && existing.userId === dto.userId) return existing;
+        }
+      } catch {
+        // ignore cache errors
+      }
+    }
+
     const order = await this.redisLockService.runExclusive<PaymentOrder>(
       PAYMENT_LOCK_KEY.CREATE_BY_TICKET(dto.ticketId),
       PAYMENT_LOCK_TTL_MS.CREATE,
@@ -82,11 +113,27 @@ export class PaymentService implements PaymentInterface {
             // Only IPN may decide PAID/FAILED. Force PENDING on create and
             // ignore gateway-controlled fields even if client sends them.
             // Explicit whitelist: never spread ...dto into order.create.
+            // expiresAt is server-controlled (now + 15m).
+            if (idemRedisKey) {
+              try {
+                const replayId = await this.redis.get(idemRedisKey);
+                if (replayId) {
+                  const replay = await tx.order.findUnique({
+                    where: { id: replayId },
+                  });
+                  if (replay && replay.userId === dto.userId) return replay;
+                }
+              } catch {
+                // ignore cache errors
+              }
+            }
             return await tx.order.create({
               data: {
-                ...dto,
+                ticketId: dto.ticketId,
+                userId: dto.userId,
                 finalPrice: ticket.price,
-                expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+                currency: dto.currency ?? 'VND',
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000),
               },
             });
           });
@@ -108,6 +155,14 @@ export class PaymentService implements PaymentInterface {
       throw new ConflictException(
         'Order creation is already in progress for this ticket',
       );
+    }
+
+    if (idemRedisKey) {
+      try {
+        await this.redis.set(idemRedisKey, order.id, 'EX', 24 * 60 * 60);
+      } catch {
+        // ignore cache errors
+      }
     }
 
     return order;

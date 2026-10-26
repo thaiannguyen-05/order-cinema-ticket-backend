@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -17,6 +17,7 @@ import { ResponseInterceptor } from './core/intercepter/response.interceptor';
 //import { SyncDataCronJobModule } from './module/core-module/infra/sync-data-cron-job/sync-data-cron-job.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { RedisThrottlerStorage } from './core/guard/redis-throttler.storage';
 import { AuthModule } from './module/core-module/auth/auth.module';
 import { FilmModule } from './module/theater-module/film/film.module';
 import { CinemaModule } from './module/theater-module/cinema/cinema.module';
@@ -33,12 +34,41 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60,
-        limit: 50,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        // NOTE: throttler v6 ttl/blockDuration are in MILLISECONDS.
+        // Previous ttl:60 meant 60ms (no throttle). Fixed to 60_000 = 60s.
+        throttlers: [
+          {
+            name: 'default',
+            ttl: 60_000,
+            limit: 50,
+            blockDuration: 60_000,
+          },
+          {
+            name: 'auth',
+            ttl: 60_000,
+            limit: 10,
+            blockDuration: 60_000,
+          },
+          {
+            name: 'payment',
+            ttl: 60_000,
+            limit: 20,
+            blockDuration: 60_000,
+          },
+          {
+            name: 'webhook',
+            ttl: 60_000,
+            limit: 60,
+            blockDuration: 60_000,
+          },
+        ],
+        storage: new RedisThrottlerStorage(configService),
+      }),
+    }),
     LoggerModule,
     AuthModule,
     PrismaModule,

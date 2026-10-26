@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Readiness Audit — order-cinema-ticket-backend</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--info:#38bdf8}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+header{padding:36px 24px;background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px solid var(--line)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+h1{margin:0 0 8px;font-size:30px}h2{margin-top:40px;border-left:4px solid var(--info);padding-left:12px;font-size:22px}h3{color:var(--info);margin-top:24px}
+.sub{color:var(--mut)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi{font-size:28px;font-weight:800}.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.p0{background:#7f1d1d;color:#fecaca}.p1{background:#78350f;color:#fde68a}.p2{background:#1e3a8a;color:#bfdbfe}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;background:var(--card);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#0b1220;color:var(--mut);text-transform:uppercase;font-size:12px;letter-spacing:.05em}
+code,tt{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#0b1220;padding:2px 6px;border-radius:6px;color:#fcd34d}
+pre{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-size:13px}
+a{color:var(--info)}.small{font-size:13px;color:var(--mut)}footer{padding:30px;text-align:center;color:var(--mut)}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--ok);border:1px solid var(--ok)}
+.badge-mid{background:rgba(245,158,11,.15);color:var(--warn);border:1px solid var(--warn)}
+.badge-no{background:rgba(239,68,68,.15);color:var(--bad);border:1px solid var(--bad)}
+.toc a{display:block;padding:4px 0}
+@media print{body{background:#fff;color:#000}header{background:#fff;color:#000}.card,table,pre{background:#fff;color:#000;border-color:#ccc}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>Production Readiness Audit</h1>
+<div class="sub"><b>Repo:</b> <tt>order-cinema-ticket-backend</tt> (NestJS 11 + Prisma 7 + PostgreSQL + Redis + RabbitMQ + SePay) &nbsp;|&nbsp; <b>Date:</b> 2026-10-26 &nbsp;|&nbsp; <b>Standard:</b> production-grade backend &nbsp;|&nbsp; <b>Language:</b> English</div>
+<div class="grid">
+<div class="card"><div class="small">Overall verdict</div><div class="kpi bad">NOT READY</div><div class="small">2 × P0 money/seat-loss bugs must be fixed before prod traffic.</div></div>
+<div class="card"><div class="small">Domain terms in CONTEXT.md</div><div class="kpi">17</div><div class="small"><span class="ok">9 full</span> · <span class="warn">5 partial</span> · <span class="bad">2 missing</span></div></div>
+<div class="card"><div class="small">Observability</div><div class="kpi warn">35%</div><div class="small">Prometheus stub only; 0 custom metrics, 0 tracing, health = string.</div></div>
+<div class="card"><div class="small">DDoS / abuse resistance</div><div class="kpi bad">WEAK</div><div class="small">In-memory throttle + 5× SkipThrottle on money path.</div></div>
+</div>
+</div></header>
+<div class="wrap">
+
+<div class="card toc"><b>Contents</b>
+<a href="#method">1. Methodology</a>
+<a href="#domain">2. Domain coverage vs CONTEXT.md (fixed to match code)</a>
+<a href="#metrics">3. Metrics / observability gap + missing libs</a>
+<a href="#ddos">4. Deep-dive example: DDoS &amp; abuse protection</a>
+<a href="#payment">5. Payment / order correctness (P0)</a>
+<a href="#security">6. Security / data / testing / DevOps gaps</a>
+<a href="#libs">7. Missing libraries matrix</a>
+<a href="#roadmap">8. Prioritized roadmap P0 → P2</a>
+<a href="#evidence">9. Evidence index (file:line)</a>
+</div>
+
+<h2 id="method">1. Methodology</h2>
+<p>Full repo scan: <tt>src/</tt>, <tt>prisma/schema/</tt> (8 files), <tt>src/main.ts</tt>, <tt>src/app.module.ts</tt>, <tt>payment/</tt>, <tt>core/guard|intercepter|exception/</tt>, <tt>docker.compose.yml</tt>, <tt>Dockerfile</tt>, <tt>.github/workflows/</tt>, <tt>k6/</tt>, <tt>docs/adr/</tt>. Compared against (a) <tt>CONTEXT.md</tt> glossary and (b) a standard production checklist (observability, DDoS/abuse, auth, data migrations, testing, CI/CD, secrets). Every claim cites <tt>file:line</tt>. <tt>CONTEXT.md</tt> was fixed per your instruction: <b>conflicts resolved by editing CONTEXT to match code</b> (Payment = view on Order, canonical statuses, Discovery marked “defined, not yet implemented”).</p>
+
+<h2 id="domain">2. Domain coverage vs CONTEXT.md</h2>
+<table><tr><th>Domain</th><th>Status</th><th>Evidence</th></tr>
+<tr><td><b>Film</b></td><td><span class="pill badge-ok">FULL</span></td><td><tt>prisma/schema/glu.prisma</tt>, <tt>film/film.module.ts</tt>, <tt>film.controller.ts</tt> (<tt>v1/film</tt>)</td></tr>
+<tr><td><b>Cinema</b></td><td><span class="pill badge-ok">FULL</span></td><td><tt>glu.prisma</tt>, <tt>cinema/cinema.controller.ts</tt> (<tt>v1/cinema</tt>)</td></tr>
+<tr><td><b>FilmOfCinema</b></td><td><span class="pill badge-mid">PARTIAL</span></td><td>Model exists; created in <tt>sync-data-cron-job.service.ts:158</tt>; read via <tt>cinema.service.ts:104-127</tt>. No module/controller.</td></tr>
+<tr><td><b>Room</b></td><td><span class="pill badge-mid">PARTIAL</span></td><td>Model <tt>cinema.prisma:51</tt>; auto-created <tt>sync-data-cron-job.service.ts:93-100</tt>; no RoomModule.</td></tr>
+<tr><td><b>ShowTime</b></td><td><span class="pill badge-mid">PARTIAL</span></td><td>Model <tt>cinema.prisma:35</tt>; deleted/recreated <tt>sync-data-cron-job.service.ts:177-210</tt>; validated <tt>payment.service.ts:52-60</tt>. No module.</td></tr>
+<tr><td><b>Seat</b></td><td><span class="pill badge-ok">FULL</span></td><td><tt>cinema.prisma:1</tt>, <tt>seat/seat.controller.ts</tt> (<tt>v1/seat</tt>)</td></tr>
+<tr><td><b>Ticket</b></td><td><span class="pill badge-ok">MINIMAL</span></td><td><tt>cinema.prisma:17</tt>, <tt>ticket.controller.ts</tt> (only <tt>POST /</tt>, <tt>GET /:id</tt>). Lifecycle driven by <tt>payment.service.ts:76-81</tt> + <tt>sepay.service.ts</tt>.</td></tr>
+<tr><td><b>Order</b></td><td><span class="pill badge-ok">FULL*</span></td><td><tt>payment.prisma:1</tt> (<tt>ticketId @unique</tt>, <tt>OrderStatus PENDING/PAID/FAILED/EXPIRED/CANCELLED</tt>). No OrderModule — lives in PaymentModule.</td></tr>
+<tr><td><b>Payment</b></td><td><span class="pill badge-ok">VIEW</span></td><td>No table. <tt>payment/type.ts:4 PaymentOrder=Order</tt>. Fixed in CONTEXT.</td></tr>
+<tr><td><b>CheckoutForm</b></td><td><span class="pill badge-ok">LOGIC ONLY</span></td><td><tt>sepay.service.ts:264 initCheckout</tt>, <tt>payment.controller.ts:53</tt>. Never stored.</td></tr>
+<tr><td><b>SepayNotification</b></td><td><span class="pill badge-ok">DTO ONLY</span></td><td><tt>dto/sepay-webhook.dto.ts:127</tt>, <tt>POST payment/sepay/webhook</tt>. Only path to PAID/FAILED.</td></tr>
+<tr><td><b>User / Session / AuthenticationFailure</b></td><td><span class="pill badge-ok">FULL</span></td><td><tt>user.prisma</tt>, <tt>session.prisma (@@unique[userId,userIp])</tt>, <tt>core/exception/auth.exception.ts:21,37</tt>, max 5 sessions LRU.</td></tr>
+<tr><td><b>EventTracking / UserRecommendation</b></td><td><span class="pill badge-no">MISSING</span></td><td>0 hits in <tt>src/</tt>+<tt>prisma/</tt> except dead <tt>enum.prisma:46 EVENT_TYPE</tt>. CONTEXT now marks “defined, not yet implemented”.</td></tr>
+</table>
+<p class="small">Stale docs fixed separately: <tt>CLAUDE.md:7,111,116</tt> still references <tt>@andev2005/momo-sdk</tt> + <tt>/momo</tt> endpoints — code is SePay-only (<tt>grep -ri momo src/ = 0</tt>). Dead enums <tt>enum.prisma:14-32 TICKET_STATUS/PAYMENT_STATUS/SEAT_STATUS</tt> conflict with canonical <tt>TicketStatus/OrderStatus/SeatStatus</tt> and must be deleted.</p>
+
+<h2 id="metrics">3. Metrics / observability gap + missing libs</h2>
+<table><tr><th>Area</th><th>Have</th><th>Missing (prod standard)</th></tr>
+<tr><td>Prometheus</td><td><tt>prom-client ^15.1.3</tt> + <tt>@willsoto/nestjs-prometheus ^6.0.2</tt>, <tt>PrometheusModule.register({global:true})</tt> in <tt>app.module.ts:58-60</tt></td><td><b>0 custom metrics.</b> <tt>grep InjectMetric|makeHistogram = 0</tt>. No HTTP latency histogram, no DB/Redis/Rabbit/payment counters. <tt>PrometheusController</tt> is non-versioned + app uses <tt>enableVersioning defaultVersion 1</tt> (<tt>main.ts:126-129</tt>) → <tt>/metrics</tt> at risk of 404/prefix <tt>/v1/metrics</tt>. No <tt>prometheus.yml</tt>, no dashboards, no alerts.</td></tr>
+<tr><td>Health</td><td><tt>GET /health → "OK"</tt> (<tt>app.controller.ts:10-18</tt>)</td><td>No <tt>@nestjs/terminus</tt>. No DB/Redis/Rabbit checks, no <tt>/health/live</tt> vs <tt>/ready</tt> split.</td></tr>
+<tr><td>Logging / tracing</td><td>Winston + DailyRotateFile (<tt>logger.service.ts</tt>), <tt>X-Request-Id</tt> hook (<tt>main.ts:195-201</tt>), redaction in <tt>logging.interceptor.ts:16-26</tt></td><td>No duration measurement (only <tt>tap</tt> success), no AsyncLocalStorage propagation to Prisma/Redis/Rabbit/mail, no OpenTelemetry (<tt>@opentelemetry/*</tt> = 0), no Loki/Tempo/Jaeger, no Sentry. Log is colorized console (not JSON stdout) + local <tt>log/</tt> files that are never shipped.</td></tr>
+<tr><td>Load testing</td><td><tt>k6/smoke.js,load.js,payment-*.js</tt> with p95 thresholds</td><td><tt>k6/seeds.json</tt> gitignored + manual <tt>prisma/seed-k6.ts</tt>; compose only runs <tt>smoke.js</tt>; no CI gate, no Grafana output.</td></tr>
+</table>
+
+<h2 id="ddos">4. Deep-dive example: DDoS &amp; abuse protection</h2>
+<p>You asked for DDoS as the worked example. Verdict: <b>weak against L7 floods and credential-stuffing; money path is explicitly unthrottled.</b></p>
+<table><tr><th>Control</th><th>Current</th><th>Gap / exploit</th></tr>
+<tr><td>Rate limit</td><td><tt>ThrottlerModule [{ttl:60, limit:50}]</tt> (<tt>app.module.ts:36-41</tt>) + <tt>ThrottlerBehindProxyGuard</tt> tracking <tt>req.ip</tt> (<tt>proxy.ratelimit.guard.ts:6-13</tt>)</td><td><b>In-memory store only</b> (no <tt>ThrottlerStorageRedis</tt>) → per-instance buckets, trivially bypassed with N replicas or restarts. <tt>trustProxy:true</tt> (<tt>main.ts:122</tt>) without trusted-proxy allowlist → <tt>X-Forwarded-For</tt> spoofing.</td></tr>
+<tr><td>Money path</td><td><tt>@SkipThrottle()</tt> ×5 in <tt>payment.controller.ts:42,52,127,143,157</tt> (<tt>POST /payment, checkout, sync, webhook, GET :id</tt>)</td><td><b>Attacker can flood order-create/checkout/webhook at line rate.</b> Only browser returns are throttled (<tt>10/60s</tt>). Webhook has no IP allowlist + static-secret auth → cheap to spam; each hit takes a Redlock + DB tx.</td></tr>
+<tr><td>Auth endpoints</td><td><tt>@Throttle 5/30s</tt> only on refresh-token</td><td><tt>login/register/forgot/verify</tt> (<tt>auth.controller.ts</tt>) have <b>no throttle</b> → brute-force, OTP-enumeration (<tt>generateCode Math.random</tt>, not <tt>crypto.randomInt</tt>), email-bomb via outbox.</td></tr>
+<tr><td>Edge / network</td><td>Fastify + <tt>fastifyHelmet</tt> with <b>no options</b> (<tt>main.ts:173</tt>); CORS without <tt>OPTIONS</tt> (<tt>main.ts:187</tt>); CSRF only in prod (<tt>main.ts:203-240</tt>)</td><td>No CDN/WAF (Cloudflare/AWS Shield), no <tt>compose app</tt> service to put behind LB, DB/Redis/Rabbit ports exposed to host (<tt>docker.compose.yml:13,39-40,58</tt>), <tt>restart:no</tt> → container dies under pressure and stays down.</td></tr>
+<tr><td>Costly work</td><td>Checkout signs HMAC + Redlock 5-10s; webhook does tx + ticket update</td><td>No proof-of-work, no captcha, no <tt>Idempotency-Key</tt> on <tt>POST /payment</tt> → double-click/retry amplifies DB + lock contention. <tt>expiresAt</tt> is client-controllable (<tt>create-payment.dto.ts:34-36</tt>) → attacker stretches holds.</td></tr>
+</table>
+<pre>DDoS hardening (ordered):
+1. ThrottlerStorageRedis (ioredis) + per-route limits: auth 5-10/min, payment-create 20/min/user, webhook 60/min/IP + global 50/60s kept.
+2. Remove SkipThrottle from money path; add @Throttle + ownership check already exists. Webhook: HMAC body + replay-id store + SePay IP allowlist.
+3. trustProxy: restrict to LB CIDRs; helmet with CSP/HSTS; fix CORS OPTIONS; exclude webhook from CSRF (currently prod CSRF would 403 SePay).
+4. Edge: Cloudflare / ALB + WAF, auto-scale app (add app service, restart:unless-stopped), close DB ports, SYN/backlog tuning.
+5. Abuse: crypto.randomInt OTP, argon2id tuning + pepper, captcha on register/forgot, Idempotency-Key 24h on POST /payment.
+6. Observe: http_server_duration histogram + 429/5xx counters + alerts; k6 stress + contention suites in CI.</pre>
+
+<h2 id="payment">5. Payment / order correctness (P0)</h2>
+<table><tr><th>Issue</th><th>Severity</th><th>Evidence &amp; fix</th></tr>
+<tr><td>Cron expire leaks seats</td><td><span class="pill p0">P0</span></td><td><tt>order-expire-cron-job.service.ts:23-29</tt> bulk <tt>updateMany → EXPIRED</tt> without <tt>Ticket PROCESSING→AVAILABLE</tt>. Fix: per-order loop under <tt>lock:payment:update:{id}</tt> + tx Order+Ticket; backfill orphan PROCESSING tickets.</td></tr>
+<tr><td>Cron vs IPN race loses money</td><td><span class="pill p0">P0</span></td><td><tt>sepay.service.ts:196-203</tt> returns <tt>{idempotent:true}</tt> when <tt>EXPIRED≠PENDING</tt> → late IPN money accepted but order stays EXPIRED. Fix: reconcile window (allow <tt>EXPIRED→PAID</tt> if amount matches + alert) or <tt>REFUND_REVIEW</tt>.</td></tr>
+<tr><td>FAILED/CANCELLED release outside tx</td><td><span class="pill p1">P1</span></td><td><tt>sepay.service.ts:248-261,439-453,487-493</tt> <tt>saveStatus + ticket.updateMany</tt> non-atomic (only PAID uses <tt>$transaction</tt>). Fix: wrap all branches in tx.</td></tr>
+<tr><td>Client-controlled <tt>expiresAt</tt></td><td><span class="pill p1">P1</span></td><td><tt>create-payment.dto.ts:34-36</tt> + <tt>payment.service.ts:89</tt> trust client TTL. Fix: server-only <tt>now()+15m</tt>.</td></tr>
+<tr><td>Weak webhook auth</td><td><span class="pill p1">P1</span></td><td><tt>sepay.service.ts:371-380</tt> static <tt>X-Secret-Key</tt> compare, 5m replay window, no HMAC body. Fix: HMAC + notif-id dedup table + IP allowlist; fail-closed when <tt>REPLACE_ME</tt>.</td></tr>
+<tr><td>No refund / voucher / reconcile</td><td><span class="pill p2">P2</span></td><td>By design <tt>docs/adr/0004-no-refund-paid-terminal.md</tt>. <tt>syncOrder</tt> only lazy-expires (<tt>sepay.service.ts:418-424 TODO pgapi</tt>). Add <tt>RefundRequest</tt>, voucher claim in create tx, SePay lookup cron if policy changes.</td></tr>
+</table>
+
+<h2 id="security">6. Security / data / testing / DevOps gaps</h2>
+<table><tr><th>Pillar</th><th>Status</th><th>Key gaps</th></tr>
+<tr><td>Auth / validation</td><td>PARTIAL</td><td>1 secret for access+refresh, no iss/aud/kid/rotation, no reuse-detection revoke-all; cookie <tt>maxAge 7d</tt> mismatched with access 15m; <tt>ValidationPipe whitelist+forbid</tt> good (<tt>main.ts:131-138</tt>) but no <tt>422/stopAtFirstError</tt>; <tt>ErrorException</tt> leaks <tt>exception.message</tt> on 500 + bad timestamp.</td></tr>
+<tr><td>Data / migrations</td><td class="bad">CRITICAL</td><td>No <tt>prisma/migrations/</tt>; <tt>generate = prisma generate &amp;&amp; db push</tt>, <tt>db:setup = db push --force-reset</tt> (<tt>package.json:24-26</tt>) → data loss, no rollback. Dockerfile has no <tt>migrate deploy</tt>.</td></tr>
+<tr><td>Testing</td><td>PARTIAL</td><td>~36 <tt>*.spec.ts</tt> but <b>0 for payment/sepay</b>; <tt>test:e2e</tt> is placeholder <tt>smoke.e2e-spec.ts expect(true)</tt>; CI runs e2e without <tt>services: postgres/redis/rabbit</tt> or env → will fail once real e2e exists; pre-commit runs full suite (slow).</td></tr>
+<tr><td>DevOps / CI</td><td>PARTIAL</td><td><tt>docker.compose.yml</tt> misnamed, no <tt>app</tt> service, <tt>restart:no</tt>, creds default; <tt>Dockerfile EXPOSE 3000</tt> vs <tt>PORT=4000</tt>, no <tt>tini</tt>; CI: lint/build/test only, no coverage gate/audit/trivy/secret-scan; <tt>docker-deploy.yml</tt> builds on push but deploys only on <tt>workflow_dispatch</tt>, SSH with password+key, no healthcheck/rollback/migrate.</td></tr>
+<tr><td>Secrets / config</td><td class="bad">LEAKED</td><td><tt>.env + .env.development</tt> tracked with real <tt>JWT_SECRET / GLU_APIKEY / SEPAY_SECRET</tt> despite <tt>.gitignore</tt>; no <tt>.env.example</tt>; <tt>ConfigModule</tt> without Joi/zod validation (<tt>app.module.ts:32-35</tt>).</td></tr>
+</table>
+
+<h2 id="libs">7. Missing libraries matrix</h2>
+<table><tr><th>Need</th><th>Recommend</th><th>Why</th></tr>
+<tr><td>Health</td><td><tt>@nestjs/terminus</tt></td><td>DB/Redis/RMQ indicators, <tt>/health/live|ready</tt>.</td></tr>
+<tr><td>Metrics</td><td>Custom histograms via <tt>prom-client</tt> + fix <tt>/metrics VERSION_NEUTRAL</tt>; <tt>prometheus.yml</tt> + Grafana + Alertmanager</td><td>RED (rate/error/duration) per route, DB/Redis/Rabbit/payment business counters.</td></tr>
+<tr><td>Tracing</td><td><tt>@opentelemetry/sdk-node + auto-instrumentations-node + OTLP exporter</tt></td><td>Propagate <tt>traceId ∼ requestId</tt> via ALS through Prisma/ioredis/amqplib.</td></tr>
+<tr><td>Logs / errors</td><td><tt>winston-loki</tt> (or OTLP), <tt>@sentry/node</tt></td><td>JSON stdout in prod, centralized search, error tracking + release health.</td></tr>
+<tr><td>DDoS / throttle</td><td>Redis storage for <tt>@nestjs/throttler</tt> (custom <tt>ThrottlerStorage</tt> over ioredis), <tt>@fastify/rate-limit</tt> alt</td><td>Distributed buckets; per-user + per-IP + per-route.</td></tr>
+<tr><td>Security headers</td><td>Configure <tt>@fastify/helmet</tt> (CSP/HSTS) — already installed</td><td>Currently <tt>await app.register(fastifyHelmet)</tt> with no options.</td></tr>
+<tr><td>Env validation</td><td><tt>joi</tt> or <tt>zod</tt> in <tt>ConfigModule.validate</tt></td><td>Fail-fast instead of <tt>getOrThrow</tt> scatter.</td></tr>
+</table>
+
+<h2 id="roadmap">8. Prioritized roadmap P0 → P2</h2>
+<p><span class="pill p0">P0 — before any prod traffic</span> Fix cron ticket-release + cron-vs-IPN reconcile; backfill orphans; require HMAC webhook (fail-closed); move <tt>.env</tt> secrets to vault + rotate; switch to <tt>prisma migrate</tt>.</p>
+<p><span class="pill p1">P1 — before scale</span> Tx for all Order+Ticket branches; server-only expiry; Redis throttle store + remove SkipThrottle on money path + throttle auth; helmet/CSP/HSTS + CSRF webhook exclude + CORS OPTIONS; terminus health; custom RED metrics + dashboards/alerts; OTel traces; JSON logs + Sentry; CI services + coverage 80% + e2e payment; fix compose + Dockerfile port/tini/restart.</p>
+<p><span class="pill p2">P2 — feature/maturity</span> Refund/voucher/reconcile (if policy changes); outbox for <tt>OrderPaid/TicketBooked</tt>; <tt>Ticket.USED</tt> after <tt>ShowTime.endAt</tt>; Room/ShowTime/FilmOfCinema read APIs or remove dead <tt>enum.prisma</tt>; EventTracking/UserRecommendation implementation; k6 in CI with seeded data.</p>
+
+<h2 id="evidence">9. Evidence index (file:line)</h2>
+<pre>app.module.ts:36-41 Throttler 50/60s in-memory · :58-60 PrometheusModule.register · :73-84 guard order
+main.ts:122 trustProxy · :126-129 versioning v1 · :131-138 ValidationPipe · :140-162 RMQ x2 · :173 helmet no opts · :187 CORS no OPTIONS · :195-201 X-Request-Id · :203-240 CSRF prod-only
+app.controller.ts:6 VERSION_NEUTRAL · :10-18 GET /health string
+payment.controller.ts:42,52,127,143,157 SkipThrottle money path · :87-125 throttled browser returns
+payment.service.ts:23-114 createOrder lock+tx · :89 expiresAt client · :116-117 PAID-only-via-IPN comment
+sepay.service.ts:137-262 applyIpn · :264-365 initCheckout HMAC · :367-416 webhook secret · :425-464 syncOrder TODO pgapi · :472-507 browser return never PAID
+order-expire-cron-job.service.ts:18-29 bulk EXPIRE no ticket release (P0)
+prisma/schema/payment.prisma:1 Order 1-1 ticketId @unique · cinema.prisma:17 Ticket · :51 Room · :35 ShowTime · :61 TicketStatus · enum.prisma:14-32 dead enums · glu.prisma Film/FilmOfCinema/Cinema
+docker.compose.yml:1-94 no app, restart:no, exposed DB, k6 smoke only · Dockerfile:34 EXPOSE 3000 vs PORT 4000 · :36-37 HEALTHCHECK /health
+package.json:24-26 db push/force-reset · :55,74-80 prometheus/winston · :82-84 express-session/csrf leftovers
+.github/workflows/ci.yml:15-75 no services/env · docs/adr/0004 no-refund</pre>
+<p class="small">Full CONTEXT fix applied: <tt>CONTEXT.md</tt> — Payment clarified as view on Order, canonical statuses aligned to <tt>cinema.prisma/payment.prisma</tt>, CheckoutForm/SepayNotification marked transient, Discovery marked “defined, not yet implemented”, Session multi-session clarified, typos fixed.</p>
+
+</div>
+<footer>Generated 2026-10-26 · order-cinema-ticket-backend audit · single-file HTML (no external deps) · Verify: open this file in a browser; cross-check any row via the Evidence index.</footer>
+</body>
+</html>
