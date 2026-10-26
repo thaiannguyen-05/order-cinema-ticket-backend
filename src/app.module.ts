@@ -14,9 +14,9 @@ import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
 import { RolesGuard } from './core/guard/roles.guard';
 import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
-//import { SyncDataCronJobModule } from './module/core-module/infra/sync-data-cron-job/sync-data-cron-job.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { PublicMetricsController } from './app-metrics.controller';
 import { RedisThrottlerStorage } from './core/guard/redis-throttler.storage';
 import { AuthModule } from './module/core-module/auth/auth.module';
 import { FilmModule } from './module/theater-module/film/film.module';
@@ -87,6 +87,8 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,
+      path: '/metrics',
+      controller: PublicMetricsController,
     }),
   ],
   controllers: [AppController],
