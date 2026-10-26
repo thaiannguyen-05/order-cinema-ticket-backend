@@ -20,6 +20,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     const contextRequest = context.switchToHttp();
     const request = contextRequest.getRequest<FastifyRequest>();
     const response = contextRequest.getResponse<FastifyReply>();
+    // Prometheus scrape is raw text exposition, not JSON: bypass envelope
+    // or Fastify fails with "invalid type 'object'" (text/plain + object).
+    if (request.url.includes('/metrics')) {
+      return next.handle() as Observable<ResponseMapping<T>>;
+    }
     return next.handle().pipe(
       map((data: T): ResponseMapping<T> => {
         return {
