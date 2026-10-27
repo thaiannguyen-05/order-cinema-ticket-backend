@@ -1,0 +1,147 @@
+groups:
+  - name: api-slo
+    interval: 30s
+    rules:
+      - alert: APIHighErrorRate
+        expr: |
+          sum(rate(app_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(app_http_requests_total[5m])), 0.0001) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API 5xx rate > 1% (5m)'
+          description: 'High error rate on backend: {{ $value | humanizePercentage }} of requests are 5xx.'
+
+      - alert: PaymentP95High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(app_http_request_duration_seconds_bucket{route=~".*payment.*"}[5m]))
+          ) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Payment p95 latency > 2s'
+          description: 'Payment endpoints p95 = {{ $value }}s over last 5m.'
+
+      - alert: FilmSearchP95High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(app_search_duration_seconds_bucket{target="film"}[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Film search p95 > 500ms'
+          description: 'POST /v1/film/find p95 = {{ $value }}s. Check contains+insensitive query / missing index.'
+
+      - alert: SepayWebhookFailing
+        expr: increase(app_sepay_webhook_total{result="error"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'SePay IPN webhook errors detected'
+          description: 'Webhook error count increased in last 10m. IPN is the only path to PAID — check secret, timestamp guard, amount mismatch.'
+
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Prometheus target down: {{ $labels.job }}'
+          description: 'Scrape target {{ $labels.job }} has been down for 2m.'
+
+  - name: queue-cron
+    interval: 30s
+    rules:
+      - alert: EmailQueueNackRate
+        expr: |
+          sum(rate(app_email_consumed_total{result="nack"}[10m]))
+          /
+          clamp_min(sum(rate(app_email_consumed_total[10m])), 0.0001) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Email consumer nack rate > 5%'
+          description: 'SMTP or template failure likely. Check mailer logs.'
+
+      - alert: OutboxBacklogHigh
+        expr: app_outbox_pending > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Outbox pending > 50'
+          description: 'Email retry backlog growing ({{ $value }} pending). Consumer or SMTP may be stuck.'
+
+      - alert: CronFailed
+        expr: increase(app_cron_job_runs_total{status="failed"}[15m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Cron {{ $labels.job }} failed'
+          description: 'Job {{ $labels.job }} reported failure in last 15m. Check logs + Redis lock.'
+
+      - alert: CronStaleExpireOrders
+        expr: time() - app_cron_job_last_success_timestamp{job="expire_pending_orders"} > 600
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'expire_pending_orders stale > 10m'
+          description: 'PENDING orders are not being expired. Risk: tickets stuck in PROCESSING.'
+
+      - alert: CronStaleOutbox
+        expr: time() - app_cron_job_last_success_timestamp{job="remove_outbox_exp"} > 600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'remove_outbox_exp stale > 10m'
+          description: 'Outbox cleanup has not succeeded for 10m.'
+
+      - alert: RabbitMQQueueDepthHigh
+        expr: rabbitmq_queue_messages{queue=~"GMAIL_SERVICE|SYNC_DATA_SERVICE"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'RabbitMQ queue {{ $labels.queue }} depth > 100'
+          description: 'Queue backlog {{ $value }} messages. Consumer may be down.'
+
+  - name: infra
+    interval: 30s
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Postgres exporter reports DB down'
+          description: 'postgres-exporter cannot reach DB. Payment/booking writes will fail.'
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Redis down'
+          description: 'redis-exporter cannot reach Redis. Locks (payment/cron) + throttler + idempotency broken.'
+
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'RabbitMQ exporter down'
+          description: 'Cannot scrape RabbitMQ. Email queue health is blind.'

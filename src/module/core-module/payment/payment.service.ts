@@ -4,10 +4,12 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
 import type Redis from 'ioredis';
 import { PrismaService } from '../infra/prisma/prisma.service';
+import { MetricsService } from '../infra/metrics/metrics.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { REDIS_LOCK_CLIENT } from '../infra/redis/redis.value';
 import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
@@ -22,6 +24,7 @@ export class PaymentService implements PaymentInterface {
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
     @Inject(REDIS_LOCK_CLIENT) private readonly redis: Redis,
+    @Optional() private readonly metrics?: MetricsService,
   ) {}
 
   private normalizeIdempotencyKey(key?: string): string | null {
@@ -32,6 +35,23 @@ export class PaymentService implements PaymentInterface {
   }
 
   async createOrder(
+    dto: CreatePaymentDto & { userId: string; idempotencyKey?: string },
+  ): Promise<PaymentOrder> {
+    try {
+      const order = await this.doCreateOrder(dto);
+      this.metrics?.incPaymentOrder('success');
+      return order;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        this.metrics?.incPaymentOrder('conflict');
+      } else {
+        this.metrics?.incPaymentOrder('error');
+      }
+      throw error;
+    }
+  }
+
+  private async doCreateOrder(
     dto: CreatePaymentDto & { userId: string; idempotencyKey?: string },
   ): Promise<PaymentOrder> {
     const idem = this.normalizeIdempotencyKey(dto.idempotencyKey);

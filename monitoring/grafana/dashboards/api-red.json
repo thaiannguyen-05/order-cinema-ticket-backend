@@ -1,0 +1,269 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "Requests per second by route. Payment + search are the critical paths.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (route) (rate(app_http_requests_total[5m]))",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RPS by route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Share of 5xx. Alert fires above 1%.",
+      "fieldConfig": {
+        "defaults": { "max": 1, "min": 0, "unit": "percentunit" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(app_http_requests_total{status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(app_http_requests_total[5m])), 0.0001)",
+          "refId": "A"
+        }
+      ],
+      "title": "Error rate (5xx %)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "SLO: payment p95 <= 2s.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum by (le, route) (rate(app_http_request_duration_seconds_bucket{route=~\".*payment.*\"}[5m])))",
+          "legendFormat": "{{route}} p95",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum by (le, route) (rate(app_http_request_duration_seconds_bucket{route=~\".*payment.*\"}[5m])))",
+          "legendFormat": "{{route}} p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Payment latency p95/p50",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "SLO: film/find p95 <= 500ms. contains+insensitive is the main risk.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum by (le, target) (rate(app_search_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{target}} p95",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum by (le, target) (rate(app_search_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{target}} p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Search latency by target",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Only path that moves Order to PAID/FAILED. error/idempotent spikes need investigation.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (result) (rate(app_sepay_webhook_total[5m]))",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "SePay webhook outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "createOrder / checkout / sync outcomes.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (result) (rate(app_payment_orders_total[5m]))",
+          "legendFormat": "createOrder {{result}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (result) (rate(app_payment_checkout_total[5m]))",
+          "legendFormat": "checkout {{result}}",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (result) (rate(app_sepay_sync_total[5m]))",
+          "legendFormat": "sync {{result}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Payment business counters",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "ack vs nack. nack > 5% pages.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (event, result) (rate(app_email_consumed_total[5m]))",
+          "legendFormat": "{{event}} {{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Email consumed",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Pending outbox rows. Alert above 50.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "app_outbox_pending",
+          "refId": "A"
+        }
+      ],
+      "title": "Outbox pending",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "success / failed / skipped per job. sync_data_glu runs daily.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (job, status) (rate(app_cron_job_runs_total[15m]))",
+          "legendFormat": "{{job}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Cron runs",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["cinema", "api", "red"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "1. API RED - Payment, Search, Queue, Cron",
+  "uid": "cinema-api-red",
+  "version": 1
+}

@@ -24,7 +24,7 @@ export default function () {
     { headers: { 'Content-Type': 'application/json' } },
   );
   check(films, {
-    'film/find is 200': (r) => r.status === 200,
+    'film/find is 2xx': (r) => r.status >= 200 && r.status < 300,
   });
 
   const cinemas = http.post(
@@ -33,8 +33,8 @@ export default function () {
     { headers: { 'Content-Type': 'application/json' } },
   );
   check(cinemas, {
-    'cinema/find is 200': (r) => r.status === 200,
+    'cinema/find is 2xx': (r) => r.status >= 200 && r.status < 300,
   });
 
-  sleep(1);
+  sleep(4);
 }

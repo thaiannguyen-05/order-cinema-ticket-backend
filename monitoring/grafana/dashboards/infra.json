@@ -1,0 +1,223 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "Targets down (0) trigger TargetDown alert.",
+      "fieldConfig": { "defaults": { "min": 0 }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "up",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Targets up",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Default Node.js metrics from prom-client.",
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "rss",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_heap_size_used_bytes",
+          "legendFormat": "heap used",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_heap_size_total_bytes",
+          "legendFormat": "heap total",
+          "refId": "C"
+        }
+      ],
+      "title": "Backend memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Event loop lag indicates blocking handlers.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_eventloop_lag_seconds",
+          "refId": "A"
+        }
+      ],
+      "title": "Event loop lag",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "pg_up == 0 pages PostgresDown.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "pg_up",
+          "legendFormat": "pg_up",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "pg_stat_database_numbackends",
+          "legendFormat": "backends {{datname}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Postgres",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "redis_up == 0 pages RedisDown. Locks + throttler depend on Redis.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "redis_up",
+          "legendFormat": "redis_up",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "redis_connected_clients",
+          "legendFormat": "clients",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "memory",
+          "refId": "C"
+        }
+      ],
+      "title": "Redis",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Alert above 100 messages.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rabbitmq_queue_messages{queue=~\"GMAIL_SERVICE|SYNC_DATA_SERVICE\"}",
+          "legendFormat": "{{queue}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RabbitMQ queue depth",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Staleness check mirrors CronStale* alerts.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "time() - app_cron_job_last_success_timestamp",
+          "legendFormat": "{{job}} stale",
+          "refId": "A"
+        }
+      ],
+      "title": "Cron staleness",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["cinema", "infra"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "2. Infra - Node, Postgres, Redis, RabbitMQ",
+  "uid": "cinema-infra",
+  "version": 1
+}

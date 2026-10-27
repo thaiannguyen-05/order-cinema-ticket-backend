@@ -1,12 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { CreateCinemaDto } from './dto/create-cinema.dto';
 import { UpdateCinemaDto } from './dto/update-cinema.dto';
 import { FindCinemaDto } from './dto/find-cinema.dto';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
+import { PrismaReplicaService } from '../../core-module/infra/prisma/prisma-replica.service';
+import { MetricsService } from '../../core-module/infra/metrics/metrics.service';
 
 @Injectable()
 export class CinemaService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly metrics?: MetricsService,
+    @Optional() private readonly replica?: PrismaReplicaService,
+  ) {}
+
+  private get read() {
+    return this.replica ?? this.prismaService;
+  }
 
   async createCinema(createCinemaDto: CreateCinemaDto) {
     const cinema = await this.prismaService.cinema.create({
@@ -31,18 +41,38 @@ export class CinemaService {
   }
 
   async getCinema(cinema_id: number) {
-    const cinema = await this.prismaService.cinema.findUnique({
+    const cinema = await this.read.cinema.findUnique({
       where: { cinema_id },
     });
     return cinema;
   }
 
   async findCinemas(dto: FindCinemaDto) {
+    const start = process.hrtime.bigint();
+    try {
+      const result = await this.doFindCinemas(dto);
+      this.metrics?.observeSearch(
+        'cinema',
+        'success',
+        Number(process.hrtime.bigint() - start) / 1e9,
+      );
+      return result;
+    } catch (error) {
+      this.metrics?.observeSearch(
+        'cinema',
+        'error',
+        Number(process.hrtime.bigint() - start) / 1e9,
+      );
+      throw error;
+    }
+  }
+
+  private async doFindCinemas(dto: FindCinemaDto) {
     if (!dto.page) dto.page = 1;
     if (!dto.limit) dto.limit = 10;
 
     if (dto.cursor) {
-      const cinemas = await this.prismaService.cinema.findMany({
+      const cinemas = await this.read.cinema.findMany({
         where: {
           cinema_name: {
             contains: dto.search,
@@ -72,7 +102,7 @@ export class CinemaService {
       };
     }
 
-    const cinemas = await this.prismaService.cinema.findMany({
+    const cinemas = await this.read.cinema.findMany({
       where: {
         cinema_name: {
           contains: dto.search,
@@ -110,7 +140,7 @@ export class CinemaService {
       return [];
     }
 
-    return await this.prismaService.cinema.findMany({
+    return await this.read.cinema.findMany({
       where: {
         cinema_id: {
           in: cinemaIds,

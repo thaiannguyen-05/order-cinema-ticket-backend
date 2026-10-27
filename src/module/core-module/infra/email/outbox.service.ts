@@ -39,4 +39,15 @@ export class OutboxService {
       where: { updatedAt: { lt: expirationTime } },
     });
   }
+
+  async countPending(): Promise<number> {
+    try {
+      return await this.prismaService.outbox.count({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        where: { status: 'PENDING' } as any,
+      });
+    } catch {
+      return -1;
+    }
+  }
 }
