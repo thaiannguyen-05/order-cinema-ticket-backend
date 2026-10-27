@@ -117,9 +117,22 @@ async function bootstrap() {
   await waitForRabbitMQConnection(rabbitUrl, bootstrapLogger);
   await waitForRedisConnection(redisUrl, bootstrapLogger);
 
+  // trustProxy: do not trust all X-Forwarded-For by default (IP spoofing).
+  // Configure via TRUST_PROXY env: "loopback,linklocal,uniquelocal" (default)
+  // plus LB CIDRs in prod, e.g. "loopback,linklocal,uniquelocal,10.0.0.0/8".
+  const trustProxyEnv =
+    process.env.TRUST_PROXY ?? 'loopback,linklocal,uniquelocal';
+  const trustProxy =
+    trustProxyEnv.trim() === 'true'
+      ? true
+      : trustProxyEnv
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: true }),
+    new FastifyAdapter({ trustProxy: trustProxy as never }),
   );
   const configService = app.get(ConfigService);
 
@@ -170,7 +183,20 @@ async function bootstrap() {
       .map((origin) => origin.trim())
       .filter(Boolean);
 
-    await app.register(fastifyHelmet);
+    await app.register(fastifyHelmet, {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+      frameguard: { action: 'deny' },
+      noSniff: true,
+      referrerPolicy: { policy: 'no-referrer' },
+    });
     await app.register(fastifyCookie);
 
     app.enableCors({
@@ -184,7 +210,18 @@ async function bootstrap() {
           callback(new Error('Not allowed by CORS'), false);
         }
       },
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-Id',
+        'X-CSRF-Token',
+        'CSRF-Token',
+        'X-XSRF-Token',
+        'Idempotency-Key',
+      ],
+      exposedHeaders: ['X-Request-Id', 'Retry-After'],
+      maxAge: 600,
       credentials: true,
     });
     const isDevelopment =
@@ -222,8 +259,16 @@ async function bootstrap() {
       });
 
       // Bỏ qua GET/HEAD/OPTIONS như ignoredMethods cũ
+      // + bỏ qua SePay IPN webhook: gateway không có CSRF token.
       fastify.addHook('onRequest', (req, reply, done) => {
         if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+          done();
+          return;
+        }
+        if (
+          req.url.startsWith('/v1/payment/sepay/webhook') ||
+          req.url.startsWith('/payment/sepay/webhook')
+        ) {
           done();
           return;
         }

@@ -64,6 +64,10 @@ export class LoggingInterceptor implements NestInterceptor {
     const contextRequest = context.switchToHttp();
     const request = contextRequest.getRequest<FastifyRequest>();
     const response = contextRequest.getResponse<FastifyReply>();
+    // Skip verbose body logging for high-frequency Prometheus scrapes.
+    if (request.url.includes('/metrics')) {
+      return next.handle();
+    }
     const requestBody: unknown = (request as { body?: unknown }).body;
 
     this.logger.debug(

@@ -124,7 +124,10 @@ describe('AuthService', () => {
   });
 
   it('registers user and creates outbox message', async () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0);
+    const crypto = require('crypto') as {
+      randomInt: (min: number, max: number) => number;
+    };
+    jest.spyOn(crypto, 'randomInt').mockReturnValue(100000);
     hash.mockResolvedValue('hashed-password');
     userService.isAvailableEmail.mockResolvedValue(false);
     outboxService.createOutboxMessage.mockResolvedValue({ id: 'o1' });

@@ -1,6 +1,5 @@
 import { Transform, Type } from 'class-transformer';
 import {
-  IsDateString,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -13,6 +12,8 @@ import {
 // Client may only name the Ticket + expected price.
 // userId comes from JWT (@User), status/sepay fields are gateway-controlled
 // and rejected by whitelist+forbidNonWhitelisted if sent.
+// expiresAt is server-controlled (now + 15m) and NOT accepted from clients
+// to prevent hold-time stretching abuse.
 export class CreatePaymentDto {
   @Type(() => Number)
   @IsInt()
@@ -30,8 +31,4 @@ export class CreatePaymentDto {
   @IsUUID()
   @IsNotEmpty()
   ticketId!: string;
-
-  @IsOptional()
-  @IsDateString()
-  expiresAt?: string;
 }
