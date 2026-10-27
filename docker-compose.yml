@@ -182,6 +182,21 @@ services:
     depends_on:
       - db
 
+  postgres-exporter-follower:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: order-cinema-postgres-exporter-follower
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      DATA_SOURCE_NAME: postgresql://${DB_USER}:${DB_PASSWORD}@db-follower:5432/${DB_NAME}?sslmode=disable
+    ports:
+      - '9188:9187'
+    networks:
+      - order-cinema-network
+    depends_on:
+      - db-follower
+
   redis-exporter:
     image: oliver006/redis_exporter:v1.96.0
     container_name: order-cinema-redis-exporter

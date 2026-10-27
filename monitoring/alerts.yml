@@ -120,13 +120,58 @@ groups:
     interval: 30s
     rules:
       - alert: PostgresDown
-        expr: pg_up == 0
+        expr: pg_up{job="postgres-exporter"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: 'Postgres exporter reports DB down'
           description: 'postgres-exporter cannot reach DB. Payment/booking writes will fail.'
+
+      - alert: PostgresFollowerDown
+        expr: pg_up{job="postgres-exporter-follower"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Postgres follower exporter reports DB down'
+          description: 'postgres-exporter-follower cannot reach db-follower. Theater reads fall back to leader; check replication slot and follower logs.'
+
+      - alert: ReplicaAppProbeDown
+        expr: app_db_replica_up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'App cannot reach DB instance {{ $labels.instance }}'
+          description: 'ReplicaMetricsService probe failed for {{ $labels.instance }} for 2m.'
+
+      - alert: PostgresReplicationLagHigh
+        expr: app_db_replica_lag_seconds > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Postgres replica lag > 10s'
+          description: 'Streaming replay lag is {{ $value }}s. Reads from follower may be stale; check leader load and network.'
+
+      - alert: PostgresReplicationLagCritical
+        expr: app_db_replica_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Postgres replica lag > 30s'
+          description: 'Streaming replay lag is {{ $value }}s. Consider failing reads over to leader until lag recovers.'
+
+      - alert: ReplicaReadErrors
+        expr: increase(app_db_replica_read_total{result="error"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Replica/leader theater reads erroring'
+          description: 'Theater read errors increased in last 10m (source={{ $labels.source }}, target={{ $labels.target }}). Check DB and replica health.'
 
       - alert: RedisDown
         expr: redis_up == 0

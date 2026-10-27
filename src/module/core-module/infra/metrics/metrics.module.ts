@@ -6,6 +6,7 @@ import {
 } from '@willsoto/nestjs-prometheus';
 import { HTTP_HISTOGRAM_BUCKETS, METRIC_NAMES } from './metrics.constants';
 import { MetricsService } from './metrics.service';
+import { ReplicaMetricsService } from './replica-metrics.service';
 
 @Global()
 @Module({
@@ -108,8 +109,24 @@ import { MetricsService } from './metrics.service';
       name: METRIC_NAMES.OUTBOX_PENDING,
       help: 'Pending outbox messages (email retry backlog). Updated by outbox cron.',
     }),
+    makeCounterProvider({
+      name: METRIC_NAMES.REPLICA_READ_TOTAL,
+      help: 'Theater reads by source (replica vs leader fallback).',
+      labelNames: ['source', 'target', 'result'],
+    }),
+    makeGaugeProvider({
+      name: METRIC_NAMES.REPLICA_LAG_SECONDS,
+      help: 'Streaming replica replay lag in seconds (now() - pg_last_xact_replay_timestamp()).',
+      labelNames: ['role'],
+    }),
+    makeGaugeProvider({
+      name: METRIC_NAMES.REPLICA_UP,
+      help: 'DB reachability probed by app (1 = up, 0 = down).',
+      labelNames: ['instance'],
+    }),
     MetricsService,
+    ReplicaMetricsService,
   ],
-  exports: [MetricsService],
+  exports: [MetricsService, ReplicaMetricsService],
 })
 export class MetricsModule {}

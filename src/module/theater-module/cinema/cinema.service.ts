@@ -18,6 +18,10 @@ export class CinemaService {
     return this.replica ?? this.prismaService;
   }
 
+  private get readSource(): 'replica' | 'leader' {
+    return this.replica ? 'replica' : 'leader';
+  }
+
   async createCinema(createCinemaDto: CreateCinemaDto) {
     const cinema = await this.prismaService.cinema.create({
       data: createCinemaDto,
@@ -41,10 +45,16 @@ export class CinemaService {
   }
 
   async getCinema(cinema_id: number) {
-    const cinema = await this.read.cinema.findUnique({
-      where: { cinema_id },
-    });
-    return cinema;
+    try {
+      const cinema = await this.read.cinema.findUnique({
+        where: { cinema_id },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
+      return cinema;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
+      throw error;
+    }
   }
 
   async findCinemas(dto: FindCinemaDto) {
@@ -56,6 +66,7 @@ export class CinemaService {
         'success',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
       return result;
     } catch (error) {
       this.metrics?.observeSearch(
@@ -63,6 +74,7 @@ export class CinemaService {
         'error',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
       throw error;
     }
   }
@@ -140,19 +152,26 @@ export class CinemaService {
       return [];
     }
 
-    return await this.read.cinema.findMany({
-      where: {
-        cinema_id: {
-          in: cinemaIds,
-        },
-      },
-      select: {
-        filmOfCinema: {
-          include: {
-            film: true,
+    try {
+      const result = await this.read.cinema.findMany({
+        where: {
+          cinema_id: {
+            in: cinemaIds,
           },
         },
-      },
-    });
+        select: {
+          filmOfCinema: {
+            include: {
+              film: true,
+            },
+          },
+        },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
+      return result;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
+      throw error;
+    }
   }
 }

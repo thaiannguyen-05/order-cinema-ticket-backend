@@ -208,6 +208,74 @@
       ],
       "title": "Cron staleness",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Follower replay lag (app probe) + exporter up for leader/follower. Lag > 10s warns, > 30s critical.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "app_db_replica_lag_seconds",
+          "legendFormat": "replay lag",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "app_db_replica_up",
+          "legendFormat": "{{instance}} app probe up",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "pg_up{job=~\"postgres-exporter.*\"}",
+          "legendFormat": "{{job}} pg_up",
+          "refId": "C"
+        }
+      ],
+      "title": "Postgres replication",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Theater reads split by source (replica vs leader fallback). Leader share rising means follower is down or lagging.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (source, target) (rate(app_db_replica_read_total[5m]))",
+          "legendFormat": "{{source}} {{target}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (source, target) (rate(app_db_replica_read_total{result=\"error\"}[5m]))",
+          "legendFormat": "error {{source}} {{target}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Replica reads by source",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

@@ -17,6 +17,10 @@ export class FilmService {
     return this.replica ?? this.prismaService;
   }
 
+  private get readSource(): 'replica' | 'leader' {
+    return this.replica ? 'replica' : 'leader';
+  }
+
   async createFilm(dto: CreateFilmDto) {
     return await this.prismaService.film.create({
       data: dto,
@@ -31,9 +35,16 @@ export class FilmService {
   }
 
   async getAllFilms() {
-    return await this.read.film.findMany({
-      orderBy: { id: 'asc' },
-    });
+    try {
+      const films = await this.read.film.findMany({
+        orderBy: { id: 'asc' },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'success');
+      return films;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'error');
+      throw error;
+    }
   }
 
   async deleteFilm(id: string) {
@@ -43,9 +54,16 @@ export class FilmService {
   }
 
   async getFilm(id: string) {
-    return await this.read.film.findUnique({
-      where: { id },
-    });
+    try {
+      const film = await this.read.film.findUnique({
+        where: { id },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'success');
+      return film;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'error');
+      throw error;
+    }
   }
 
   async findFilms(dto: FindFilmsDto) {
@@ -75,6 +93,7 @@ export class FilmService {
         'success',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'success');
 
       return {
         films,
@@ -89,6 +108,7 @@ export class FilmService {
         'error',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'film', 'error');
       throw error;
     }
   }

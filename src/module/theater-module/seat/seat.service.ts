@@ -18,6 +18,10 @@ export class SeatService {
     return this.replica ?? this.prismaService;
   }
 
+  private get readSource(): 'replica' | 'leader' {
+    return this.replica ? 'replica' : 'leader';
+  }
+
   async createSeat(dto: CreateSeatDto) {
     const { roomId, ...rest } = dto;
     return this.prismaService.seat.create({
@@ -29,11 +33,18 @@ export class SeatService {
   }
 
   async getSeat(seatId: string) {
-    return this.read.seat.findUnique({
-      where: {
-        id: seatId,
-      },
-    });
+    try {
+      const seat = await this.read.seat.findUnique({
+        where: {
+          id: seatId,
+        },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
+      return seat;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
+      throw error;
+    }
   }
 
   async updateSeat(seatId: string, dto: UpdateSeatDto) {
@@ -81,6 +92,7 @@ export class SeatService {
         'success',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
 
       return {
         seats,
@@ -95,16 +107,24 @@ export class SeatService {
         'error',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
       throw error;
     }
   }
 
   async getSeatsByRoomId(roomId: string) {
-    return this.read.seat.findMany({
-      where: {
-        roomId,
-      },
-      orderBy: { id: 'asc' },
-    });
+    try {
+      const seats = await this.read.seat.findMany({
+        where: {
+          roomId,
+        },
+        orderBy: { id: 'asc' },
+      });
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
+      return seats;
+    } catch (error) {
+      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
+      throw error;
+    }
   }
 }

@@ -19,6 +19,9 @@ export const METRIC_NAMES = {
   EMAIL_CONSUMED_TOTAL: 'app_email_consumed_total',
   EMAIL_DURATION: 'app_email_duration_seconds',
   OUTBOX_PENDING: 'app_outbox_pending',
+  REPLICA_READ_TOTAL: 'app_db_replica_read_total',
+  REPLICA_LAG_SECONDS: 'app_db_replica_lag_seconds',
+  REPLICA_UP: 'app_db_replica_up',
 } as const;
 
 export const HTTP_HISTOGRAM_BUCKETS = [0.05, 0.1, 0.3, 0.5, 1, 2, 5];
@@ -29,3 +32,9 @@ export type CronJobName =
   | 'sync_data_glu';
 
 export type SearchTarget = 'film' | 'cinema' | 'seat';
+
+export type ReplicaReadSource = 'replica' | 'leader';
+
+export type ReplicaTarget = 'film' | 'cinema' | 'seat' | 'probe';
+
+export type ReplicaInstance = 'leader' | 'follower';

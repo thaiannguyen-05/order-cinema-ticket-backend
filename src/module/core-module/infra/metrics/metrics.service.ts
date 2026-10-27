@@ -4,6 +4,9 @@ import type { Counter, Gauge, Histogram } from 'prom-client';
 import {
   METRIC_NAMES,
   type CronJobName,
+  type ReplicaInstance,
+  type ReplicaReadSource,
+  type ReplicaTarget,
   type SearchTarget,
 } from './metrics.constants';
 
@@ -50,6 +53,12 @@ export class MetricsService {
     public readonly emailDuration: Histogram<string>,
     @InjectMetric(METRIC_NAMES.OUTBOX_PENDING)
     public readonly outboxPending: Gauge<string>,
+    @InjectMetric(METRIC_NAMES.REPLICA_READ_TOTAL)
+    public readonly replicaReadTotal: Counter<string>,
+    @InjectMetric(METRIC_NAMES.REPLICA_LAG_SECONDS)
+    public readonly replicaLag: Gauge<string>,
+    @InjectMetric(METRIC_NAMES.REPLICA_UP)
+    public readonly replicaUp: Gauge<string>,
   ) {}
 
   observeHttp(
@@ -146,5 +155,21 @@ export class MetricsService {
 
   setOutboxPending(count: number): void {
     this.outboxPending.set(count);
+  }
+
+  incReplicaRead(
+    source: ReplicaReadSource,
+    target: ReplicaTarget,
+    result: 'success' | 'error',
+  ): void {
+    this.replicaReadTotal.inc({ source, target, result });
+  }
+
+  setReplicaLag(seconds: number): void {
+    this.replicaLag.set({ role: 'follower' }, Math.max(0, seconds));
+  }
+
+  setReplicaUp(instance: ReplicaInstance, up: 0 | 1): void {
+    this.replicaUp.set({ instance }, up);
   }
 }
