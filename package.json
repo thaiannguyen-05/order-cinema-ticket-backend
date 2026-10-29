@@ -26,6 +26,7 @@
     "infra:up": "docker compose up -d",
     "infra:clean": "docker compose down -v",
     "infra:fresh": "docker compose down -v && docker compose up -d",
+    "infra:sync": "sh scripts/enable-sync.sh",
     "prepare": "husky"
   },
   "prisma": {

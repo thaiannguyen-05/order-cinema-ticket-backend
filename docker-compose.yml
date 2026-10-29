@@ -14,14 +14,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./replication/postgres/leader-init.sh:/docker-entrypoint-initdb.d/01-replication.sh:ro
-    # Sync replication: leader chờ follower replay (remote_apply) mới ack COMMIT.
-    # statement_timeout để COMMIT chờ sync fail-fast sau 10s thay vì treo vô hạn.
+    # NOTE: synchronous_standby_names KHÔNG được set ở đây. Entrypoint truyền
+    # "$@" cho cả temp server lúc init (docker_temp_server_start "$@"):
+    # CREATE DATABASE sẽ kẹt chờ sync standby trong commit (interrupts bị
+    # hold nên statement_timeout cũng không cứu được), trong khi follower
+    # lại chờ leader mở TCP mới basebackup được => deadlock init.
+    # Bật sync SAU khi init xong bằng: pnpm infra:sync (ALTER SYSTEM +
+    # reload, persist trong PGDATA). synchronous_commit/statement_timeout
+    # ở dưới vô hại khi chưa có sync standby nên giữ lại.
     command:
       - postgres
       - '-c'
       - synchronous_commit=${SYNC_COMMIT:-remote_apply}
-      - '-c'
-      - synchronous_standby_names=${SYNC_STANDBY_NAMES:-FIRST 1 (follower)}
       - '-c'
       - statement_timeout=${STATEMENT_TIMEOUT:-10s}
     networks:
