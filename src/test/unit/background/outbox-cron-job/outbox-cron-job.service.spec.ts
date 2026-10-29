@@ -23,7 +23,10 @@ const { EXP_TIME_OUTBOX } =
 describe('OutboxCronJobService', () => {
   let redisLockService: { runExclusive: jest.Mock };
   let logger: { debug: jest.Mock };
-  let outboxService: { deleteOutboxMessageExp: jest.Mock };
+  let outboxService: {
+    deleteOutboxMessageExp: jest.Mock;
+    countPending: jest.Mock;
+  };
   let service: InstanceType<typeof OutboxCronJobService>;
 
   beforeEach(() => {
@@ -33,7 +36,10 @@ describe('OutboxCronJobService', () => {
       ),
     };
     logger = { debug: jest.fn() };
-    outboxService = { deleteOutboxMessageExp: jest.fn().mockResolvedValue({}) };
+    outboxService = {
+      deleteOutboxMessageExp: jest.fn().mockResolvedValue({}),
+      countPending: jest.fn().mockResolvedValue(0),
+    };
 
     service = new OutboxCronJobService(
       redisLockService as never,

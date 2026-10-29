@@ -1,11 +1,12 @@
 import { createKeyv } from '@keyv/redis';
-import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { RedisLockProvider } from './redis-lock.provider';
 import { RedisLockService } from './redis.lock.service';
+import { AppCacheInterceptor } from './app-cache.interceptor';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { RedisLockService } from './redis.lock.service';
     RedisLockService,
     {
       provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
+      useClass: AppCacheInterceptor,
     },
   ],
   exports: [RedisService, RedisLockProvider, RedisLockService],

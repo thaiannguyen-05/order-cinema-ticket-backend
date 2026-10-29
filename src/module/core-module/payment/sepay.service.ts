@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
+import { MetricsService } from '../infra/metrics/metrics.service';
 import {
   PAYMENT_LOCK_KEY,
   PAYMENT_LOCK_TTL_MS,
@@ -38,6 +40,7 @@ export class SepayService {
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
     private readonly configService: ConfigService,
+    @Optional() private readonly metrics?: MetricsService,
   ) {}
 
   private signCheckout(
@@ -265,6 +268,22 @@ export class SepayService {
     orderId: string,
     userId: string,
   ): Promise<SepayCheckoutResult> {
+    try {
+      const result = await this.doInitCheckout(orderId, userId);
+      this.metrics?.incCheckout('success');
+      return result;
+    } catch (error) {
+      this.metrics?.incCheckout(
+        error instanceof ConflictException ? 'conflict' : 'error',
+      );
+      throw error;
+    }
+  }
+
+  private async doInitCheckout(
+    orderId: string,
+    userId: string,
+  ): Promise<SepayCheckoutResult> {
     const result =
       await this.redisLockService.runExclusive<SepayCheckoutResult>(
         PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
@@ -368,6 +387,30 @@ export class SepayService {
     dto: SepayWebhookDto,
     secretKeyHeader: string | undefined,
   ): Promise<SepayWebhookResult> {
+    try {
+      const result = await this.doHandleWebhook(dto, secretKeyHeader);
+      if (result.idempotent) {
+        this.metrics?.incWebhook('idempotent');
+      } else if (result.status === OrderStatus.PAID) {
+        this.metrics?.incWebhook('paid');
+      } else if (result.status === OrderStatus.FAILED) {
+        this.metrics?.incWebhook('failed');
+      } else if (result.status === OrderStatus.CANCELLED) {
+        this.metrics?.incWebhook('cancelled');
+      } else {
+        this.metrics?.incWebhook('idempotent');
+      }
+      return result;
+    } catch (error) {
+      this.metrics?.incWebhook('error');
+      throw error;
+    }
+  }
+
+  private async doHandleWebhook(
+    dto: SepayWebhookDto,
+    secretKeyHeader: string | undefined,
+  ): Promise<SepayWebhookResult> {
     const secret = this.configService.get<string>('SEPAY_SECRET_KEY');
     if (secret && secret !== 'REPLACE_ME') {
       if (!secretKeyHeader) {
@@ -423,6 +466,22 @@ export class SepayService {
    * until then IPN remains the only path to PAID.
    */
   async syncOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<SepayWebhookResult> {
+    try {
+      const result = await this.doSyncOrder(orderId, userId);
+      this.metrics?.incSync(
+        result.status === OrderStatus.EXPIRED ? 'expired' : 'ok',
+      );
+      return result;
+    } catch (error) {
+      this.metrics?.incSync('error');
+      throw error;
+    }
+  }
+
+  private async doSyncOrder(
     orderId: string,
     userId: string,
   ): Promise<SepayWebhookResult> {

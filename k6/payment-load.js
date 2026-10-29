@@ -20,6 +20,11 @@ const PRICE = Number(seeds.price || 100000);
 
 const VUS = Number(__ENV.K6_VUS || 50);
 const ITERATIONS = Number(__ENV.K6_ITERATIONS || TICKETS.length);
+const BYPASS_KEY = __ENV.K6_BYPASS_KEY || '';
+
+function withBypass(headers) {
+  return BYPASS_KEY ? { ...headers, 'x-loadtest-key': BYPASS_KEY } : headers;
+}
 
 export const options = {
   scenarios: {
@@ -48,7 +53,7 @@ export function setup() {
   const res = http.post(
     `${BASE_URL}/v1/auth/login`,
     JSON.stringify({ email: EMAIL, password: PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } },
+    { headers: withBypass({ 'Content-Type': 'application/json' }) },
   );
   if (res.status !== 200) {
     throw new Error(`setup login failed: ${res.status} ${res.body}`);
@@ -67,10 +72,10 @@ function dataOf(res) {
 }
 
 export default function (ctx) {
-  const auth = {
+  const auth = withBypass({
     'Content-Type': 'application/json',
     ...(ctx && ctx.token ? { Authorization: `Bearer ${ctx.token}` } : {}),
-  };
+  });
   // Globally unique ticket per iteration => measures real max RPS, not 409s.
   const idx = exec.scenario.iterationInTest % TICKETS.length;
   const ticketId = TICKETS[idx];
@@ -135,10 +140,10 @@ export default function (ctx) {
       `${BASE_URL}/v1/payment/sepay/webhook`,
       JSON.stringify(ipn),
       {
-        headers: {
+        headers: withBypass({
           'Content-Type': 'application/json',
           'x-secret-key': SEPAY_SECRET,
-        },
+        }),
         tags: { step: 'webhook' },
       },
     );

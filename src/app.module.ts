@@ -14,6 +14,7 @@ import { ThrottlerBehindProxyGuard } from './core/guard/proxy.ratelimit.guard';
 import { RolesGuard } from './core/guard/roles.guard';
 import { LoggingInterceptor } from './core/intercepter/logging.interceptor';
 import { ResponseInterceptor } from './core/intercepter/response.interceptor';
+import { MetricsInterceptor } from './module/core-module/infra/metrics/metrics.interceptor';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PublicMetricsController } from './app-metrics.controller';
@@ -28,6 +29,7 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './module/core-module/infra/outbox-cron-job/outbox-cron-job.module';
 import { OrderExpireCronJobModule } from './module/core-module/infra/order-expire-cron-job/order-expire-cron-job.module';
 import { PaymentModule } from './module/core-module/payment/payment.module';
+import { MetricsModule } from './module/core-module/infra/metrics/metrics.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -84,11 +86,15 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
     OutboxCronJobModule,
     OrderExpireCronJobModule,
     PaymentModule,
+    MetricsModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({
       global: true,
       path: '/metrics',
       controller: PublicMetricsController,
+      defaultLabels: {
+        app: 'order-cinema-ticket-backend',
+      },
     }),
   ],
   controllers: [AppController],
@@ -117,6 +123,10 @@ import { PaymentModule } from './module/core-module/payment/payment.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
     },
   ],
 })

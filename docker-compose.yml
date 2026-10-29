@@ -1,0 +1,256 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: order-cinema-db
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./replication/postgres/leader-init.sh:/docker-entrypoint-initdb.d/01-replication.sh:ro
+    # NOTE: synchronous_standby_names KHÔNG được set ở đây. Entrypoint truyền
+    # "$@" cho cả temp server lúc init (docker_temp_server_start "$@"):
+    # CREATE DATABASE sẽ kẹt chờ sync standby trong commit (interrupts bị
+    # hold nên statement_timeout cũng không cứu được), trong khi follower
+    # lại chờ leader mở TCP mới basebackup được => deadlock init.
+    # Bật sync SAU khi init xong bằng: pnpm infra:sync (ALTER SYSTEM +
+    # reload, persist trong PGDATA). synchronous_commit/statement_timeout
+    # ở dưới vô hại khi chưa có sync standby nên giữ lại.
+    command:
+      - postgres
+      - '-c'
+      - synchronous_commit=${SYNC_COMMIT:-remote_apply}
+      - '-c'
+      - statement_timeout=${STATEMENT_TIMEOUT:-10s}
+    networks:
+      - order-cinema-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  db-follower:
+    image: postgres:16-alpine
+    container_name: order-cinema-db-follower
+    restart: 'no'
+    user: postgres
+    env_file:
+      - .env.development
+    entrypoint: ['sh', '/entrypoint.sh']
+    ports:
+      - '${DB_FOLLOWER_PORT:-5433}:5432'
+    volumes:
+      - postgres_follower_data:/var/lib/postgresql/data
+      - ./replication/postgres/follower-entrypoint.sh:/entrypoint.sh:ro
+    networks:
+      - order-cinema-network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbit:
+    image: rabbitmq:3-management-alpine
+    container_name: order-cinema-rabbitmq
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - order-cinema-network
+    ports:
+      - '${RABBITMQ_PORT}:5672'
+      - '${RABBITMQ_MANAGEMENT_PORT}:15672'
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z 127.0.0.1 5672 && nc -z 127.0.0.1 15672']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 60s
+
+  redis:
+    image: redis:7-alpine
+    container_name: order-cinema-redis
+    restart: 'no'
+    env_file:
+      - .env.development
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    ports:
+      - '${REDIS_PORT}:6379'
+    networks:
+      - order-cinema-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  k6:
+    image: grafana/k6:latest
+    container_name: order-cinema-k6
+    restart: 'no'
+    depends_on:
+      - db
+      - redis
+      - rabbit
+    networks:
+      - order-cinema-network
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      K6_BASE_URL: http://host.docker.internal:4000
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    command: ['run', '/scripts/smoke.js']
+    profiles:
+      - k6
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: order-cinema-prometheus
+    restart: 'no'
+    env_file:
+      - .env.development
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - order-cinema-network
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: order-cinema-alertmanager
+    restart: 'no'
+    env_file:
+      - .env.development
+    ports:
+      - '9093:9093'
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      - order-cinema-network
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: order-cinema-grafana
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - '3001:3000'
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - order-cinema-network
+    depends_on:
+      - prometheus
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: order-cinema-postgres-exporter
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      DATA_SOURCE_NAME: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+    ports:
+      - '9187:9187'
+    networks:
+      - order-cinema-network
+    depends_on:
+      - db
+
+  postgres-exporter-follower:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: order-cinema-postgres-exporter-follower
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      DATA_SOURCE_NAME: postgresql://${DB_USER}:${DB_PASSWORD}@db-follower:5432/${DB_NAME}?sslmode=disable
+    ports:
+      - '9188:9187'
+    networks:
+      - order-cinema-network
+    depends_on:
+      - db-follower
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.96.0
+    container_name: order-cinema-redis-exporter
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - '9121:9121'
+    networks:
+      - order-cinema-network
+    depends_on:
+      - redis
+
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:1.0.0
+    container_name: order-cinema-rabbitmq-exporter
+    restart: 'no'
+    env_file:
+      - .env.development
+    environment:
+      RABBIT_URL: http://rabbit:15672
+      RABBIT_USER: ${RABBITMQ_USER}
+      RABBIT_PASSWORD: ${RABBITMQ_PASS}
+    ports:
+      - '9419:9419'
+    networks:
+      - order-cinema-network
+    depends_on:
+      - rabbit
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+  postgres_follower_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  order-cinema-network:
+    driver: bridge
