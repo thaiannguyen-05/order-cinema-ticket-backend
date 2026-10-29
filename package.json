@@ -23,6 +23,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "generate": "prisma generate && prisma db push",
     "db:setup": "prisma generate && prisma db push --force-reset && pnpm run prisma:seed",
+    "infra:up": "docker compose up -d",
+    "infra:clean": "docker compose down -v",
+    "infra:fresh": "docker compose down -v && docker compose up -d",
     "prepare": "husky"
   },
   "prisma": {
