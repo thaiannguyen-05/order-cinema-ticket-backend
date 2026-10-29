@@ -12,19 +12,20 @@ if [ -z "$(ls -A "$PGDATA" 2>/dev/null)" ]; then
     -h db -p 5432 -U replicator \
     -D "$PGDATA" -R -X stream -S follower_slot -P
 
-  # Sync replication: leader chờ application_name='follower' (xem
-  # synchronous_standby_names ở docker-compose.yml db command).
-  # pg_basebackup -R không ghi application_name nên patch vào đây.
-  AUTO_CONF="$PGDATA/postgresql.auto.conf"
-  if grep -q "^primary_conninfo" "$AUTO_CONF"; then
-    if grep -q "application_name" "$AUTO_CONF"; then
-      sed -i "s/application_name=[^ ']*/application_name=follower/g" "$AUTO_CONF"
-    else
-      sed -i "s/^primary_conninfo = '\(.*\)'$/primary_conninfo = '\1 application_name=follower'/" "$AUTO_CONF"
-    fi
-  fi
-
   chmod 700 "$PGDATA"
+fi
+
+# Sync replication: leader chờ application_name='follower' (xem
+# synchronous_standby_names ở docker-compose.yml db command).
+# pg_basebackup -R không ghi application_name, và volume cũ từ thời async
+# cũng thiếu nó — nên patch mỗi lần start, không chỉ lúc basebackup.
+AUTO_CONF="$PGDATA/postgresql.auto.conf"
+if [ -f "$AUTO_CONF" ] && grep -q "^primary_conninfo" "$AUTO_CONF"; then
+  if grep -q "application_name" "$AUTO_CONF"; then
+    sed -i "s/application_name=[^ ']*/application_name=follower/g" "$AUTO_CONF"
+  else
+    sed -i "s/^primary_conninfo = '\(.*\)'$/primary_conninfo = '\1 application_name=follower'/" "$AUTO_CONF"
+  fi
 fi
 
 exec docker-entrypoint.sh postgres -c hot_standby=on
