@@ -1,6 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { PrismaReplicaService } from '../../core-module/infra/prisma/prisma-replica.service';
+import { ReplicaFailoverService } from '../../core-module/infra/prisma/replica-failover.service';
 import { MetricsService } from '../../core-module/infra/metrics/metrics.service';
 import { CreateSeatDto } from './dto/create-seat.dto';
 import { UpdateSeatDto } from './dto/update-seat.dto';
@@ -12,14 +13,37 @@ export class SeatService {
     private readonly prismaService: PrismaService,
     @Optional() private readonly metrics?: MetricsService,
     @Optional() private readonly replica?: PrismaReplicaService,
+    @Optional() private readonly failover?: ReplicaFailoverService,
   ) {}
 
-  private get read() {
-    return this.replica ?? this.prismaService;
-  }
-
-  private get readSource(): 'replica' | 'leader' {
-    return this.replica ? 'replica' : 'leader';
+  /**
+   * Leader-first with follower fallback: try leader, on error retry once on
+   * follower. When the circuit is open, skip the follower fallback entirely.
+   */
+  private async runRead<T>(
+    target: 'seat',
+    op: (db: PrismaService | PrismaReplicaService) => Promise<T>,
+  ): Promise<T> {
+    try {
+      const result = await op(this.prismaService);
+      this.metrics?.incReplicaRead('leader', target, 'success');
+      return result;
+    } catch (leaderError) {
+      this.metrics?.incReplicaRead('leader', target, 'error');
+      if (this.replica && (!this.failover || this.failover.useReplica())) {
+        try {
+          const result = await op(this.replica);
+          this.failover?.onSuccess();
+          this.metrics?.incReplicaRead('replica', target, 'success');
+          return result;
+        } catch (replicaError) {
+          this.failover?.onFailure();
+          this.metrics?.incReplicaRead('replica', target, 'error');
+          throw replicaError;
+        }
+      }
+      throw leaderError;
+    }
   }
 
   async createSeat(dto: CreateSeatDto) {
@@ -33,18 +57,13 @@ export class SeatService {
   }
 
   async getSeat(seatId: string) {
-    try {
-      const seat = await this.read.seat.findUnique({
+    return this.runRead('seat', (db) =>
+      db.seat.findUnique({
         where: {
           id: seatId,
         },
-      });
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
-      return seat;
-    } catch (error) {
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
-      throw error;
-    }
+      }),
+    );
   }
 
   async updateSeat(seatId: string, dto: UpdateSeatDto) {
@@ -77,22 +96,23 @@ export class SeatService {
     };
 
     try {
-      const [total, seats] = await Promise.all([
-        this.read.seat.count({ where }),
-        this.read.seat.findMany({
-          where,
-          take: limit,
-          skip: (page - 1) * limit,
-          orderBy: { id: 'asc' },
-        }),
-      ]);
+      const [total, seats] = await this.runRead('seat', (db) =>
+        Promise.all([
+          db.seat.count({ where }),
+          db.seat.findMany({
+            where,
+            take: limit,
+            skip: (page - 1) * limit,
+            orderBy: { id: 'asc' },
+          }),
+        ]),
+      );
 
       this.metrics?.observeSearch(
         'seat',
         'success',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
 
       return {
         seats,
@@ -107,24 +127,18 @@ export class SeatService {
         'error',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
       throw error;
     }
   }
 
   async getSeatsByRoomId(roomId: string) {
-    try {
-      const seats = await this.read.seat.findMany({
+    return this.runRead('seat', (db) =>
+      db.seat.findMany({
         where: {
           roomId,
         },
         orderBy: { id: 'asc' },
-      });
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'success');
-      return seats;
-    } catch (error) {
-      this.metrics?.incReplicaRead(this.readSource, 'seat', 'error');
-      throw error;
-    }
+      }),
+    );
   }
 }

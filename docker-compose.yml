@@ -14,6 +14,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./replication/postgres/leader-init.sh:/docker-entrypoint-initdb.d/01-replication.sh:ro
+    # Sync replication: leader chờ follower replay (remote_apply) mới ack COMMIT.
+    # statement_timeout để COMMIT chờ sync fail-fast sau 10s thay vì treo vô hạn.
+    command:
+      - postgres
+      - '-c'
+      - synchronous_commit=${SYNC_COMMIT:-remote_apply}
+      - '-c'
+      - synchronous_standby_names=${SYNC_STANDBY_NAMES:-FIRST 1 (follower)}
+      - '-c'
+      - statement_timeout=${STATEMENT_TIMEOUT:-10s}
     networks:
       - order-cinema-network
     healthcheck:

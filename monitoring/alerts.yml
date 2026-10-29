@@ -135,7 +135,7 @@ groups:
           severity: critical
         annotations:
           summary: 'Postgres follower exporter reports DB down'
-          description: 'postgres-exporter-follower cannot reach db-follower. Theater reads fall back to leader; check replication slot and follower logs.'
+          description: "postgres-exporter-follower cannot reach db-follower. Sync replication (FIRST 1 (follower), remote_apply): leader COMMITs block then fail-fast via statement_timeout=10s — writes AND fallback reads are impacted. Check slot follower_slot + follower logs; to restore writes without follower: ALTER SYSTEM SET synchronous_standby_names TO ''; SELECT pg_reload_conf();"
 
       - alert: ReplicaAppProbeDown
         expr: app_db_replica_up == 0

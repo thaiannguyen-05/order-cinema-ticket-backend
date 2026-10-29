@@ -4,6 +4,7 @@ import { UpdateCinemaDto } from './dto/update-cinema.dto';
 import { FindCinemaDto } from './dto/find-cinema.dto';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { PrismaReplicaService } from '../../core-module/infra/prisma/prisma-replica.service';
+import { ReplicaFailoverService } from '../../core-module/infra/prisma/replica-failover.service';
 import { MetricsService } from '../../core-module/infra/metrics/metrics.service';
 
 @Injectable()
@@ -12,14 +13,38 @@ export class CinemaService {
     private readonly prismaService: PrismaService,
     @Optional() private readonly metrics?: MetricsService,
     @Optional() private readonly replica?: PrismaReplicaService,
+    @Optional() private readonly failover?: ReplicaFailoverService,
   ) {}
 
-  private get read() {
-    return this.replica ?? this.prismaService;
-  }
-
-  private get readSource(): 'replica' | 'leader' {
-    return this.replica ? 'replica' : 'leader';
+  /**
+   * Leader-first with follower fallback: try leader, on error retry once on
+   * follower. When the circuit is open (follower repeatedly failing),
+   * skip the follower and rethrow the leader error.
+   */
+  private async runRead<T>(
+    target: 'cinema',
+    op: (db: PrismaService | PrismaReplicaService) => Promise<T>,
+  ): Promise<T> {
+    try {
+      const result = await op(this.prismaService);
+      this.metrics?.incReplicaRead('leader', target, 'success');
+      return result;
+    } catch (leaderError) {
+      this.metrics?.incReplicaRead('leader', target, 'error');
+      if (this.replica && (!this.failover || this.failover.useReplica())) {
+        try {
+          const result = await op(this.replica);
+          this.failover?.onSuccess();
+          this.metrics?.incReplicaRead('replica', target, 'success');
+          return result;
+        } catch (replicaError) {
+          this.failover?.onFailure();
+          this.metrics?.incReplicaRead('replica', target, 'error');
+          throw replicaError;
+        }
+      }
+      throw leaderError;
+    }
   }
 
   async createCinema(createCinemaDto: CreateCinemaDto) {
@@ -45,28 +70,24 @@ export class CinemaService {
   }
 
   async getCinema(cinema_id: number) {
-    try {
-      const cinema = await this.read.cinema.findUnique({
+    return this.runRead('cinema', (db) =>
+      db.cinema.findUnique({
         where: { cinema_id },
-      });
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
-      return cinema;
-    } catch (error) {
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
-      throw error;
-    }
+      }),
+    );
   }
 
   async findCinemas(dto: FindCinemaDto) {
     const start = process.hrtime.bigint();
     try {
-      const result = await this.doFindCinemas(dto);
+      const result = await this.runRead('cinema', (db) =>
+        this.doFindCinemas(db, dto),
+      );
       this.metrics?.observeSearch(
         'cinema',
         'success',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
       return result;
     } catch (error) {
       this.metrics?.observeSearch(
@@ -74,17 +95,19 @@ export class CinemaService {
         'error',
         Number(process.hrtime.bigint() - start) / 1e9,
       );
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
       throw error;
     }
   }
 
-  private async doFindCinemas(dto: FindCinemaDto) {
+  private async doFindCinemas(
+    db: PrismaService | PrismaReplicaService,
+    dto: FindCinemaDto,
+  ) {
     if (!dto.page) dto.page = 1;
     if (!dto.limit) dto.limit = 10;
 
     if (dto.cursor) {
-      const cinemas = await this.read.cinema.findMany({
+      const cinemas = await db.cinema.findMany({
         where: {
           cinema_name: {
             contains: dto.search,
@@ -114,7 +137,7 @@ export class CinemaService {
       };
     }
 
-    const cinemas = await this.read.cinema.findMany({
+    const cinemas = await db.cinema.findMany({
       where: {
         cinema_name: {
           contains: dto.search,
@@ -152,8 +175,8 @@ export class CinemaService {
       return [];
     }
 
-    try {
-      const result = await this.read.cinema.findMany({
+    return this.runRead('cinema', (db) =>
+      db.cinema.findMany({
         where: {
           cinema_id: {
             in: cinemaIds,
@@ -166,12 +189,7 @@ export class CinemaService {
             },
           },
         },
-      });
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'success');
-      return result;
-    } catch (error) {
-      this.metrics?.incReplicaRead(this.readSource, 'cinema', 'error');
-      throw error;
-    }
+      }),
+    );
   }
 }

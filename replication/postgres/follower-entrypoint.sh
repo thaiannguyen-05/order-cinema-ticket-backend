@@ -12,6 +12,18 @@ if [ -z "$(ls -A "$PGDATA" 2>/dev/null)" ]; then
     -h db -p 5432 -U replicator \
     -D "$PGDATA" -R -X stream -S follower_slot -P
 
+  # Sync replication: leader chờ application_name='follower' (xem
+  # synchronous_standby_names ở docker-compose.yml db command).
+  # pg_basebackup -R không ghi application_name nên patch vào đây.
+  AUTO_CONF="$PGDATA/postgresql.auto.conf"
+  if grep -q "^primary_conninfo" "$AUTO_CONF"; then
+    if grep -q "application_name" "$AUTO_CONF"; then
+      sed -i "s/application_name=[^ ']*/application_name=follower/g" "$AUTO_CONF"
+    else
+      sed -i "s/^primary_conninfo = '\(.*\)'$/primary_conninfo = '\1 application_name=follower'/" "$AUTO_CONF"
+    fi
+  fi
+
   chmod 700 "$PGDATA"
 fi
 

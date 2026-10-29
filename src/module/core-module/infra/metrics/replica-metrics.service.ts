@@ -2,16 +2,17 @@ import { Injectable, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaReplicaService } from '../prisma/prisma-replica.service';
+import { ReplicaFailoverService } from '../prisma/replica-failover.service';
 import { MetricsService } from './metrics.service';
 
 /**
- * Probes leader + streaming follower every 15s (matches Prometheus
- * scrape_interval) and exposes:
+ * Probes leader + streaming follower every 10s and exposes:
  * - app_db_replica_up{instance="leader"|"follower"}
  * - app_db_replica_lag_seconds{role="follower"}
  *
  * Lag source: follower's pg_last_xact_replay_timestamp().
- * Both probes must never throw — metrics must not break the app.
+ * Probe results also feed ReplicaFailoverService so the fallback circuit
+ * opens even without user traffic. Both probes must never throw.
  */
 @Injectable()
 export class ReplicaMetricsService {
@@ -19,6 +20,7 @@ export class ReplicaMetricsService {
     private readonly prismaService: PrismaService,
     private readonly replica: PrismaReplicaService,
     @Optional() private readonly metrics?: MetricsService,
+    @Optional() private readonly failover?: ReplicaFailoverService,
   ) {}
 
   @Cron(CronExpression.EVERY_10_SECONDS)
@@ -43,12 +45,14 @@ export class ReplicaMetricsService {
       `;
       const lag = Number(rows?.[0]?.lag_seconds);
       this.metrics?.setReplicaUp('follower', 1);
+      this.failover?.onSuccess();
       if (Number.isFinite(lag)) {
         this.metrics?.setReplicaLag(lag);
         this.metrics?.incReplicaRead('replica', 'probe', 'success');
       }
     } catch {
       this.metrics?.setReplicaUp('follower', 0);
+      this.failover?.onFailure();
       this.metrics?.incReplicaRead('replica', 'probe', 'error');
     }
   }
