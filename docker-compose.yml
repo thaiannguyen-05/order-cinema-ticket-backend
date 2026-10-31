@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: order-cinema-db
     restart: 'no'
     env_file:
@@ -36,7 +36,7 @@ services:
       timeout: 3s
       retries: 20
   db-follower:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: order-cinema-db-follower
     restart: 'no'
     user: postgres

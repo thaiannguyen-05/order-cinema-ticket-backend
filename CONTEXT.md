@@ -75,3 +75,21 @@ _Avoid_: Log, Event, Analytics
 **UserRecommendation**:
 A ranked Film suggestion for one User.
 _Avoid_: Suggestion, Favorite
+
+### AiSupport (implemented)
+
+**SupportConversation**:
+One support chat thread of one User with the AI. Distinct from `Session` (auth login).
+_Avoid_: Session, ChatSession
+
+**SupportMessage**:
+One message inside a SupportConversation with role `user` / `assistant`, plus sources, toolCalls and injectionVerdict.
+_Avoid_: Chat, Log
+
+**SupportDocument**:
+One RAG chunk (Film/Cinema/policy markdown) with content, metadata and pgvector embedding.
+_Avoid_: Chunk, Vector, Embedding
+
+**RetrievalTrace**:
+Which tools and sources produced one answer (`analyze_query`, `select_source`, `search_docs`, structured APIs, `response`).
+_Avoid_: Log, Trace

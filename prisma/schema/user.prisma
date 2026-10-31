@@ -13,5 +13,6 @@ model User {
   deletedAt   DateTime?
   orders      Order[]
   sessions    Session[]
+  supportConversations SupportConversation[]
   @@index([email])
 }
