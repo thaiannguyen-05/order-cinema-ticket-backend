@@ -61,6 +61,11 @@ export class AuthenticationGuard implements CanActivate {
         secret: this.configService.getOrThrow('JWT_SECRET'),
       });
 
+      // Bind access guard to access-typed tokens only: refresh JWTs (typ=refresh
+      // or legacy tokens without typ) must not authenticate guarded routes.
+      if (payload.typ !== 'access') {
+        throw new UnauthorizedException();
+      }
       request.payload = payload;
     } catch {
       throw new UnauthorizedException();

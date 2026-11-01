@@ -63,10 +63,12 @@ export class AiSupportController {
   @ApiOperation({ summary: 'Chat stream via SSE (no websocket)' })
   stream(
     @Query(queryValidation) query: StreamQueryDto,
+    @User('id') userId?: string,
   ): Observable<MessageEvent> {
-    // SSE/EventSource không gửi được Authorization header nên userId
-    // luôn undefined ở đây -> order riêng tư bị từ chối, hội thoại ephemeral.
-    const gen = this.ai.streamChat(query);
+    // Propagate JWT identity (cookie-based EventSource included). When userId is
+    // absent the service creates an ephemeral thread and never reads/appends a
+    // supplied conversationId, so no cross-principal history leak is possible.
+    const gen = this.ai.streamChat(query, userId);
     const pull = async function* () {
       for await (const e of gen) {
         yield { data: e.data } as MessageEvent;
@@ -82,8 +84,10 @@ export class AiSupportController {
     @Query(queryValidation) pagination: HistoryQueryDto,
     @User('id') userId?: string,
   ) {
+    // Strict owner scoping: anonymous callers never read arbitrary threads.
+    if (!userId) return null;
     const conv = await this.prisma.supportConversation.findFirst({
-      where: { id, ...(userId ? { userId } : {}) },
+      where: { id, userId },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },

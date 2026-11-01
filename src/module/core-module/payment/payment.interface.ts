@@ -5,5 +5,5 @@ import type { PaymentOrder } from './type';
 export interface PaymentInterface {
   createOrder(dto: CreatePaymentDto): Promise<PaymentOrder>;
   updateOrder(id: string, dto: UpdatePaymentDto): Promise<PaymentOrder>;
-  getOrder(id: string): Promise<PaymentOrder | null>;
+  getOrder(id: string, userId: string): Promise<PaymentOrder | null>;
 }

@@ -2,7 +2,6 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -10,7 +9,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ACCOUNT_STATUS } from '@prisma/client';
 
 export class UpdateUser {
   @Transform(({ value }) =>
@@ -30,13 +28,6 @@ export class UpdateUser {
   fullname?: string;
 
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(255)
-  hashedPassword?: string;
-
-  @IsOptional()
   @Type(() => Date)
   @IsDate()
   @MaxDate(new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000), {
@@ -50,8 +41,4 @@ export class UpdateUser {
   @IsNotEmpty()
   @MaxLength(255)
   address?: string;
-
-  @IsOptional()
-  @IsEnum(ACCOUNT_STATUS)
-  status?: ACCOUNT_STATUS;
 }

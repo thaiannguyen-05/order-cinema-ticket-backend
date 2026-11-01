@@ -1,6 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, TicketStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MyLogger } from '../logger/logger.service';
 import { RedisLockService } from '../redis/redis.lock.service';
@@ -24,12 +24,32 @@ export class OrderExpireCronJobService {
         REDIS_LOCK_KEY.EXPIRE_PENDING_ORDERS,
         REDIS_TTL.LOCK_SERVICE,
         async () => {
-          const result = await this.prismaService.order.updateMany({
+          // Collect due orders first so the coupled Ticket hold can be released
+          // atomically in the same lock scope (PENDING->EXPIRED must free
+          // PROCESSING->AVAILABLE like sync/webhook/cancel paths do).
+          const due = await this.prismaService.order.findMany({
             where: {
               status: OrderStatus.PENDING,
               expiresAt: { lte: new Date() },
             },
+            select: { id: true, ticketId: true },
+          });
+          if (due.length === 0) {
+            return;
+          }
+          const result = await this.prismaService.order.updateMany({
+            where: {
+              id: { in: due.map((o) => o.id) },
+              status: OrderStatus.PENDING,
+            },
             data: { status: OrderStatus.EXPIRED },
+          });
+          await this.prismaService.ticket.updateMany({
+            where: {
+              id: { in: due.map((o) => o.ticketId) },
+              ticketStatus: TicketStatus.PROCESSING,
+            },
+            data: { ticketStatus: TicketStatus.AVAILABLE },
           });
           this.metrics?.addExpiredOrders(result.count);
           if (result.count > 0) {

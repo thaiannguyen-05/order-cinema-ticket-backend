@@ -72,14 +72,21 @@ export class PaymentController {
   ) {
     const result = await this.sepayService.initCheckout(dto.orderId, userId);
     if (format === 'html') {
+      const escapeHtml = (v: string): string =>
+        v
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
       const inputs = Object.entries(result.fields)
         .filter(([, v]) => v !== undefined)
         .map(
           ([k, v]) =>
-            `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}" />`,
+            `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(String(v))}" />`,
         )
         .join('');
-      return `<form action="${result.action}" method="POST">${inputs}<button type="submit">Pay now</button></form><script>document.forms[0].submit()</script>`;
+      return `<form action="${escapeHtml(result.action)}" method="POST">${inputs}<button type="submit">Pay now</button></form><script>document.forms[0].submit()</script>`;
     }
     return result;
   }
@@ -173,8 +180,11 @@ export class PaymentController {
   })
   @ApiOkResponse({ description: 'Order retrieved successfully' })
   @ApiNotFoundResponse({ description: 'Order not found' })
-  async getOrder(@Param('id', ParseUUIDPipe) id: string) {
-    const order = await this.paymentService.getOrder(id);
+  async getOrder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User('id') userId: string,
+  ) {
+    const order = await this.paymentService.getOrder(id, userId);
     if (!order) {
       throw new NotFoundException('Order not found');
     }

@@ -193,14 +193,14 @@ export class AiSupportService {
     limit = 6,
   ): Promise<string> {
     if (!conversationId) return '';
+    // Anonymous callers never read existing threads: ephemeral only.
+    if (!userId) return '';
     try {
-      if (userId) {
-        const owned = await this.prisma.supportConversation.findFirst({
-          where: { id: conversationId, userId },
-          select: { id: true },
-        });
-        if (!owned) return '';
-      }
+      const owned = await this.prisma.supportConversation.findFirst({
+        where: { id: conversationId, userId },
+        select: { id: true },
+      });
+      if (!owned) return '';
       const msgs = await this.prisma.supportMessage.findMany({
         where: { conversationId },
         orderBy: { createdAt: 'desc' },
@@ -336,13 +336,18 @@ export class AiSupportService {
   ): Promise<string> {
     try {
       let convId = opts.conversationId;
-      if (convId && opts.userId) {
-        // Không tin conversationId client gửi: chỉ append khi thread thuộc về đúng user.
-        const owned = await this.prisma.supportConversation.findFirst({
-          where: { id: convId, userId: opts.userId },
-          select: { id: true },
-        });
-        if (!owned) convId = undefined;
+      if (convId) {
+        if (!opts.userId) {
+          // Anonymous: never append to a supplied thread (IDOR). Fork ephemeral.
+          convId = undefined;
+        } else {
+          // Không tin conversationId client gửi: chỉ append khi thread thuộc về đúng user.
+          const owned = await this.prisma.supportConversation.findFirst({
+            where: { id: convId, userId: opts.userId },
+            select: { id: true },
+          });
+          if (!owned) convId = undefined;
+        }
       }
       if (!convId) {
         const conv = await this.prisma.supportConversation.create({

@@ -48,6 +48,8 @@ describe('AuthenticationGuard', () => {
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
     });
 
     const request: Record<string, unknown> = {
@@ -60,7 +62,12 @@ describe('AuthenticationGuard', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-1', {
       secret: 'secret',
     });
-    expect(request.payload).toEqual({ id: 'u1', email: 'a@example.com' });
+    expect(request.payload).toEqual({
+      id: 'u1',
+      email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
+    });
   });
 
   it('falls back to legacy access-token header', async () => {
@@ -68,6 +75,8 @@ describe('AuthenticationGuard', () => {
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
     });
 
     const request: Record<string, unknown> = {
@@ -87,6 +96,8 @@ describe('AuthenticationGuard', () => {
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
     });
 
     const request: Record<string, unknown> = {
@@ -107,6 +118,8 @@ describe('AuthenticationGuard', () => {
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
     });
 
     const request: Record<string, unknown> = {
@@ -120,5 +133,23 @@ describe('AuthenticationGuard', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('token-header', {
       secret: 'secret',
     });
+  });
+
+  it('rejects refresh token as access credential', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+      role: 'USER',
+      typ: 'refresh',
+    });
+
+    const request: Record<string, unknown> = {
+      headers: { authorization: 'Bearer refresh-token' },
+    };
+
+    await expect(
+      guard.canActivate(makeContext(request) as never),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

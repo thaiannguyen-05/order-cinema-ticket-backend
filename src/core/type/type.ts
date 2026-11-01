@@ -25,6 +25,7 @@ export type JwtPayload = {
   id: string;
   email: string;
   role: USER_ROLE;
+  typ: 'access' | 'refresh';
 };
 
 export type RmqAckChannel = {

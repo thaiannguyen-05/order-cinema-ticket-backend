@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { EVENT_NAME } from '../../infra/email/constant/event.constant';
 import { EmailWorker } from '../../infra/email/email.worker';
@@ -120,10 +121,7 @@ export class AuthService {
     }
 
     await Promise.all([
-      this.userService.updateUserByEmail({
-        email: dto.email,
-        status: 'ACTIVE',
-      }),
+      this.userService.activateUser(dto.email),
       this.outboxService.updateOutboxMessage(outBox.id, 'PROCESSED'),
     ]);
 
@@ -133,7 +131,10 @@ export class AuthService {
   async forgotPassword(email: string) {
     const availableUser = await this.userService.isAvailableEmail(email);
     if (!availableUser) {
-      throw new NotFoundException('User not found');
+      // Generic response: never reveal whether the email exists (anti-enumeration).
+      // Return a well-formed dummy outBoxId so 200 shape is identical.
+      // resetPassword treats unknown outBoxId as generic failure, same as bad code.
+      return { outBoxId: randomUUID() };
     }
 
     const pending = await this.outboxService.findPendingByEmail(
@@ -144,9 +145,9 @@ export class AuthService {
       pending?.createdAt &&
       Date.now() - new Date(pending.createdAt).getTime() < CODE_EXPIRY_MS
     ) {
-      throw new BadRequestException(
-        'A reset password request has already been sent. Please check your email.',
-      );
+      // Resend-safe: return the existing outBoxId instead of 400 so an
+      // attacker cannot distinguish pending-known from unknown via status.
+      return { outBoxId: pending.id };
     }
 
     // Single-code discipline: the SAME code is stored and emailed. The emailed
@@ -203,10 +204,7 @@ export class AuthService {
     const hashedPassword = await hashTextByArgon2(dto.newPassword);
 
     await Promise.all([
-      this.userService.updateUserByEmail({
-        email: dto.email,
-        hashedPassword: hashedPassword,
-      }),
+      this.userService.updatePasswordHash(dto.email, hashedPassword),
       this.outboxService.updateOutboxMessage(dto.outBoxId, 'PROCESSED'),
     ]);
 
@@ -283,8 +281,10 @@ export class AuthService {
       throw new InvalidRefreshTokenException('INVALID_TOKEN');
     }
 
-    const payload: JwtPayload =
-      await this.tokenService.verifyToken(refreshToken);
+    const payload: JwtPayload = await this.tokenService.verifyToken(
+      refreshToken,
+      'refresh',
+    );
     if (payload.id !== session.userId) {
       throw new InvalidRefreshTokenException('USER_MISMATCH');
     }

@@ -73,23 +73,20 @@ describe('UserService', () => {
     });
   });
 
-  it('updates user with only provided fields', async () => {
+  it('updates user with only allowed profile fields', async () => {
     prismaService.user.update.mockResolvedValue({ id: 'u1' });
 
     await service.updateUserByEmail({
       email: 'a@example.com',
       fullname: 'User B',
       address: 'Da Nang',
-      status: 'ACTIVE',
     });
 
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
-        email: 'a@example.com',
         fullname: 'User B',
         address: 'Da Nang',
-        status: 'ACTIVE',
       },
     });
   });
@@ -106,26 +103,30 @@ describe('UserService', () => {
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
       data: {
-        email: 'a@example.com',
         dateOfBirth: dob,
       },
     });
   });
 
-  it('persists hashPassword when password is provided', async () => {
+  it('activates user via dedicated method (server-side only)', async () => {
     prismaService.user.update.mockResolvedValue({ id: 'u1' });
 
-    await service.updateUserByEmail({
-      email: 'a@example.com',
-      hashedPassword: 'new-hash',
-    });
+    await service.activateUser('a@example.com');
 
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { email: 'a@example.com' },
-      data: {
-        email: 'a@example.com',
-        hashedPassword: 'new-hash',
-      },
+      data: { status: 'ACTIVE' },
+    });
+  });
+
+  it('updates password hash via dedicated method (server-side only)', async () => {
+    prismaService.user.update.mockResolvedValue({ id: 'u1' });
+
+    await service.updatePasswordHash('a@example.com', 'new-hash');
+
+    expect(prismaService.user.update).toHaveBeenCalledWith({
+      where: { email: 'a@example.com' },
+      data: { hashPassword: 'new-hash' },
     });
   });
 });

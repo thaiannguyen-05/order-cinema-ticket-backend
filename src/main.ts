@@ -319,21 +319,25 @@ async function bootstrap() {
       )
       .build();
 
-    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
-      deepScanRoutes: true,
-    });
+    // Swagger exposes the full schema: development only (or admin-gated).
+    // Never mount /docs in production to shrink recon surface.
+    if (isDevelopment) {
+      const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
+        deepScanRoutes: true,
+      });
 
-    SwaggerModule.setup('docs', app, swaggerDocument, {
-      jsonDocumentUrl: 'docs/json',
-      yamlDocumentUrl: 'docs/yaml',
-      swaggerOptions: {
-        persistAuthorization: true,
-        displayRequestDuration: true,
-        filter: true,
-        tagsSorter: 'alpha',
-        operationsSorter: 'alpha',
-      },
-    });
+      SwaggerModule.setup('docs', app, swaggerDocument, {
+        jsonDocumentUrl: 'docs/json',
+        yamlDocumentUrl: 'docs/yaml',
+        swaggerOptions: {
+          persistAuthorization: true,
+          displayRequestDuration: true,
+          filter: true,
+          tagsSorter: 'alpha',
+          operationsSorter: 'alpha',
+        },
+      });
+    }
 
     await app.startAllMicroservices();
     await app.listen(Number(port), '0.0.0.0');
