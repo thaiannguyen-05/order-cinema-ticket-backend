@@ -3,7 +3,7 @@ import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { ToolsService, type SourceKind } from './tools.service';
 import { LlmService } from './llm.service';
 import { getInjectionSdk } from '../guards/injection.guard';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 import type { ChatRequestDto } from '../dto/chat-request.dto';
 
 export type ChatResult = {
@@ -22,10 +22,11 @@ export class AiSupportService {
     private readonly prisma: PrismaService,
     private readonly tools: ToolsService,
     private readonly llm: LlmService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   async chat(dto: ChatRequestDto, userId?: string): Promise<ChatResult> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const { cleaned } = this.tools.analyzeQuery(dto.query);
     const sourceKind = await this.tools.selectSource(cleaned);
     const topK = Math.min(dto.top_k ?? cfg.defaultTopK, cfg.maxTopK);

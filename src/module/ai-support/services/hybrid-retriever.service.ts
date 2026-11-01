@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Document } from '@langchain/core/documents';
 import { BM25Retriever } from '@langchain/community/retrievers/bm25';
 import { VectorStoreService, type ScoredDoc } from './vector-store.service';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 
 function docKey(d: {
   content: string;
@@ -35,7 +35,10 @@ export class HybridRetrieverService {
   private readonly logger = new Logger(HybridRetrieverService.name);
   private bm25: BM25Retriever | null = null;
 
-  constructor(private readonly vectors: VectorStoreService) {}
+  constructor(
+    private readonly vectors: VectorStoreService,
+    private readonly aiConfig: AiConfigService,
+  ) {}
 
   /** Rebuild in-memory BM25 from pgvector corpus (call after ingest / on boot). */
   async refreshBm25(): Promise<void> {
@@ -65,7 +68,7 @@ export class HybridRetrieverService {
    * Mirrors diagram steps 5-8 (VectorDB branch).
    */
   async invoke(query: string, topK?: number): Promise<ScoredDoc[]> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const k = Math.min(topK ?? cfg.defaultTopK, cfg.maxTopK);
     const candidateK = cfg.hybridCandidateK;
 

@@ -5,7 +5,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { VectorStoreService } from './vector-store.service';
 import { HybridRetrieverService } from './hybrid-retriever.service';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 
 /**
  * Ingest pipeline: Film/Cinema (existing APIs via Prisma read) + docs/support/*.md
@@ -20,10 +20,11 @@ export class IngestService {
     private readonly prisma: PrismaService,
     private readonly vectors: VectorStoreService,
     private readonly hybrid: HybridRetrieverService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   async ingestAll(): Promise<{ films: number; cinemas: number; docs: number }> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: cfg.chunkSize,
       chunkOverlap: cfg.chunkOverlap,

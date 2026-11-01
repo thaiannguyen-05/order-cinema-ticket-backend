@@ -9,7 +9,7 @@ import { TicketService } from '../../theater-module/ticket/ticket.service';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { HybridRetrieverService } from './hybrid-retriever.service';
 import { LlmService } from './llm.service';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 import type { ScoredDoc } from './vector-store.service';
 
 export type SourceKind = 'structured' | 'vector' | 'both';
@@ -66,11 +66,12 @@ export class ToolsService {
     private readonly prisma: PrismaService,
     private readonly retriever: HybridRetrieverService,
     private readonly llm: LlmService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   /** Tool 1: phân tích query (normalize + guard đã làm ở InjectionGuard). */
   analyzeQuery(query: string): { cleaned: string; truncated: boolean } {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const cleaned = query.trim().replace(/\s+/g, ' ');
     if (cleaned.length > cfg.maxQueryChars) {
       return { cleaned: cleaned.slice(0, cfg.maxQueryChars), truncated: true };
@@ -174,7 +175,7 @@ Trả lời:`,
 
   /** Vector branch: search_docs — factory style như simple_agent/tool.py make_search_tool. */
   async searchDocs(query: string, k = 3): Promise<ScoredDoc[]> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const topK = Math.min(k || cfg.defaultTopK, cfg.maxTopK);
     const docs = await this.retriever.invoke(query, topK);
     return docs;
@@ -186,7 +187,7 @@ Trả lời:`,
    * Dùng LCEL prompt.pipe(llm).pipe(parser) khi có key, fallback extractive khi offline.
    */
   async response(chunks: string[], promptText: string): Promise<string> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const capped = chunks.slice(0, cfg.maxTopK);
     if (capped.length === 0) {
       return 'Không tìm thấy chunk nào liên quan, không đủ thông tin để trả lời.';

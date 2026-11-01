@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectionSDK } from '@thaiandev/injection-req-res-sdk';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 
 let sharedSdk: InjectionSDK | null = null;
 
@@ -43,10 +43,12 @@ function getQueryText(body: unknown): string | null {
 export class InjectionGuard implements CanActivate {
   private readonly logger = new Logger(InjectionGuard.name);
 
+  constructor(private readonly aiConfig: AiConfigService) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     const body = req.body ?? {};
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
 
     const query =
       getQueryText(body) ??

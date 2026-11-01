@@ -1,27 +1,30 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGroq } from '@langchain/groq';
-import { getGroqApiKey, hasGroqKey } from './app-secrets.service';
+import { AppSecretsService } from './app-secrets.service';
 
 let cached: ChatGroq | null = null;
 
 @Injectable()
 export class LlmService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly secrets: AppSecretsService,
+  ) {}
 
   hasKey(): boolean {
-    return hasGroqKey();
+    return this.secrets.hasGroqKey();
   }
 
   getModel(params?: { maxTokens?: number; temperature?: number }): ChatGroq {
     if (cached) return cached;
-    const apiKey = getGroqApiKey();
-    const model = this.config.get<string>('AI_LLM_MODEL', 'qwen/qwen3.8-27b');
+    const apiKey = this.secrets.getGroqApiKey();
+    const model = this.config.getOrThrow<string>('AI_LLM_MODEL');
     const maxTokens = Number(
-      this.config.get<string>('AI_LLM_MAX_TOKENS', '256'),
+      this.config.getOrThrow<string>('AI_LLM_MAX_TOKENS'),
     );
     const temperature = Number(
-      this.config.get<string>('AI_LLM_TEMPERATURE', '0.5'),
+      this.config.getOrThrow<string>('AI_LLM_TEMPERATURE'),
     );
     cached = new ChatGroq({
       model,
@@ -33,7 +36,7 @@ export class LlmService {
   }
 
   ensureAvailable(): void {
-    if (!hasGroqKey()) {
+    if (!this.secrets.hasGroqKey()) {
       throw new ServiceUnavailableException(
         'AI chat is disabled: missing GROQ_API_KEY',
       );

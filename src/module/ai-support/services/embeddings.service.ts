@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Embeddings } from '@langchain/core/embeddings';
 
 type FastEmbedInstance = {
@@ -34,7 +35,7 @@ export class EmbeddingsService extends Embeddings {
   private readonly dims = 1024;
   private useFallback = false;
 
-  constructor() {
+  constructor(private readonly config: ConfigService) {
     super({});
   }
 
@@ -50,7 +51,10 @@ export class EmbeddingsService extends Embeddings {
           const model = await FlagEmbedding.init({
             // multilingual-e5-large: Vietnamese-capable, 1024 dims
             model: EmbeddingModel.MLE5Large,
-            cacheDir: process.env.FASTEMBED_CACHE_PATH || './.fastembed_cache',
+            cacheDir: this.config.get<string>(
+              'FASTEMBED_CACHE_PATH',
+              './.fastembed_cache',
+            ),
           });
           this.instance = model as unknown as FastEmbedInstance;
           this.logger.log('FastEmbed multilingual-e5-large ready');

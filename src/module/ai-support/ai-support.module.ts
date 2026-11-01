@@ -8,6 +8,7 @@ import { VectorStoreService } from './services/vector-store.service';
 import { HybridRetrieverService } from './services/hybrid-retriever.service';
 import { IngestService } from './services/ingest.service';
 import { AppSecretsService } from './services/app-secrets.service';
+import { AiConfigService } from './constants';
 import { FilmModule } from '../theater-module/film/film.module';
 import { CinemaModule } from '../theater-module/cinema/cinema.module';
 import { TicketModule } from '../theater-module/ticket/ticket.module';
@@ -16,6 +17,7 @@ import { TicketModule } from '../theater-module/ticket/ticket.module';
   imports: [FilmModule, CinemaModule, TicketModule],
   controllers: [AiSupportController],
   providers: [
+    AiConfigService,
     AppSecretsService,
     LlmService,
     EmbeddingsService,

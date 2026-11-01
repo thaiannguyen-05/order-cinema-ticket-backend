@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { EmbeddingsService } from './embeddings.service';
-import { resolveAiConfig } from '../constants';
+import { AiConfigService } from '../constants';
 
 export type ScoredDoc = {
   id: string;
@@ -22,11 +22,12 @@ export class VectorStoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly embeddings: EmbeddingsService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   /** Dense cosine search on pgvector (step 6 Dense + step 7-8 in diagram). */
   async searchDense(query: string, k: number): Promise<ScoredDoc[]> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const topK = Math.min(k, cfg.maxTopK);
     const vec = await this.embeddings.embedQuery(query);
     const lit = toVectorLiteral(vec);
@@ -47,7 +48,7 @@ export class VectorStoreService {
 
   /** Sparse lexical search via tsvector (phase-2 counterpart of BM25). */
   async searchSparse(query: string, k: number): Promise<ScoredDoc[]> {
-    const cfg = resolveAiConfig();
+    const cfg = this.aiConfig.resolve();
     const topK = Math.min(k, cfg.maxTopK);
     try {
       const rows = await this.prisma.$queryRaw<RawRow[]>`
