@@ -4,6 +4,7 @@ import { ToolsService, type SourceKind } from './tools.service';
 import { LlmService } from './llm.service';
 import { getInjectionSdk } from '../guards/injection.guard';
 import { resolveAiConfig } from '../constants';
+import type { ChatRequestDto } from '../dto/chat-request.dto';
 
 export type ChatResult = {
   answer: string;
@@ -23,14 +24,11 @@ export class AiSupportService {
     private readonly llm: LlmService,
   ) {}
 
-  async chat(
-    query: string,
-    opts: { topK?: number; userId?: string; conversationId?: string },
-  ): Promise<ChatResult> {
+  async chat(dto: ChatRequestDto, userId?: string): Promise<ChatResult> {
     const cfg = resolveAiConfig();
-    const { cleaned } = this.tools.analyzeQuery(query);
+    const { cleaned } = this.tools.analyzeQuery(dto.query);
     const sourceKind = await this.tools.selectSource(cleaned);
-    const topK = Math.min(opts.topK ?? cfg.defaultTopK, cfg.maxTopK);
+    const topK = Math.min(dto.top_k ?? cfg.defaultTopK, cfg.maxTopK);
 
     const toolCalls: string[] = [
       `analyze_query`,
@@ -43,7 +41,7 @@ export class AiSupportService {
     const [structuredCtx, vectorDocs] = await Promise.all([
       sourceKind === 'vector'
         ? Promise.resolve('')
-        : this.collectStructured(cleaned, opts.userId, toolCalls),
+        : this.collectStructured(cleaned, userId, toolCalls),
       sourceKind === 'structured'
         ? Promise.resolve([])
         : this.tools.searchDocs(cleaned, topK).then((docs) => {
@@ -96,20 +94,23 @@ export class AiSupportService {
       answer,
       sources,
       toolCalls,
-      opts,
+      {
+        userId,
+        conversationId: dto.conversationId,
+      },
     );
     return { answer, sources, toolCalls, conversationId, sourceKind };
   }
 
   /** SSE: emit tool events then answer split into sentence chunks. */
   async *streamChat(
-    query: string,
-    opts: { topK?: number; userId?: string; conversationId?: string },
+    dto: ChatRequestDto,
+    userId?: string,
   ): AsyncGenerator<{ data: string }> {
     yield { data: JSON.stringify({ type: 'tool', name: 'analyze_query' }) };
     let result: ChatResult;
     try {
-      result = await this.chat(query, opts);
+      result = await this.chat(dto, userId);
     } catch (e) {
       yield {
         data: JSON.stringify({

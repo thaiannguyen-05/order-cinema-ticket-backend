@@ -1,27 +1,7 @@
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { ChatRequestDto } from './chat-request.dto';
 
-export class ChatDto {
-  @IsString()
-  @MaxLength(1000)
-  query!: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  top_k?: number;
-
-  @IsOptional()
-  @IsUUID()
-  conversationId?: string;
-}
+/**
+ * @deprecated Dùng ChatRequestDto (service + controller dùng chung, có default).
+ * Giữ alias để không vỡ import cũ.
+ */
+export class ChatDto extends ChatRequestDto {}

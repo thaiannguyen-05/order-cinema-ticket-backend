@@ -10,10 +10,13 @@ import {
   Sse,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Observable, from } from 'rxjs';
-import { ChatDto } from './dto/chat.dto';
+import { ChatRequestDto } from './dto/chat-request.dto';
+import { StreamQueryDto } from './dto/stream-query.dto';
+import { HistoryQueryDto } from './dto/history-query.dto';
 import { AiSupportService } from './services/ai-support.service';
 import { IngestService } from './services/ingest.service';
 import { InjectionGuard } from './guards/injection.guard';
@@ -22,6 +25,12 @@ import { Roles } from '../../core/decorator/roles.decorator';
 import { USER_ROLE } from '@prisma/client';
 import { User } from '../../core/decorator/user.decorator';
 import { PrismaService } from '../core-module/infra/prisma/prisma.service';
+
+const queryValidation = new ValidationPipe({
+  transform: true,
+  whitelist: true,
+  forbidNonWhitelisted: true,
+});
 
 @ApiTags('AiSupport')
 @ApiBearerAuth('bearerAuth')
@@ -38,26 +47,19 @@ export class AiSupportController {
   @HttpCode(200)
   @UseGuards(InjectionGuard)
   @ApiOperation({ summary: 'Chat with cinema support AI (read-only RAG)' })
-  async chat(@Body() dto: ChatDto, @User('id') userId?: string) {
-    return this.ai.chat(dto.query, {
-      topK: dto.top_k,
-      userId,
-      conversationId: dto.conversationId,
-    });
+  async chat(@Body() dto: ChatRequestDto, @User('id') userId?: string) {
+    return this.ai.chat(dto, userId);
   }
 
   @Sse('chat/stream')
   @UseGuards(InjectionGuard)
   @ApiOperation({ summary: 'Chat stream via SSE (no websocket)' })
   stream(
-    @Query('query') query: string,
-    @Query('top_k') topK?: string,
+    @Query(queryValidation) query: StreamQueryDto,
   ): Observable<MessageEvent> {
-    const top_k = topK ? parseInt(topK, 10) : undefined;
-    // userId unavailable in SSE EventSource (no headers); conversation is ephemeral unless chat POST used.
-    const gen = this.ai.streamChat(query ?? '', {
-      topK: Number.isFinite(top_k as number) ? (top_k as number) : undefined,
-    });
+    // SSE/EventSource không gửi được Authorization header nên userId
+    // luôn undefined ở đây -> order riêng tư bị từ chối, hội thoại ephemeral.
+    const gen = this.ai.streamChat(query);
     const pull = async function* () {
       for await (const e of gen) {
         yield { data: e.data } as MessageEvent;
@@ -70,11 +72,18 @@ export class AiSupportController {
   @ApiOperation({ summary: 'Get conversation history' })
   async history(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query(queryValidation) pagination: HistoryQueryDto,
     @User('id') userId?: string,
   ) {
     const conv = await this.prisma.supportConversation.findFirst({
       where: { id, ...(userId ? { userId } : {}) },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          take: pagination.limit,
+          skip: pagination.offset,
+        },
+      },
     });
     return conv;
   }
