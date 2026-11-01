@@ -61,6 +61,7 @@ describe('AuthService', () => {
   let outboxService: {
     createOutboxMessage: jest.Mock;
     getOutBox: jest.Mock;
+    findPendingByEmail: jest.Mock;
     updateOutboxMessage: jest.Mock;
   };
 
@@ -100,6 +101,7 @@ describe('AuthService', () => {
     outboxService = {
       createOutboxMessage: jest.fn(),
       getOutBox: jest.fn(),
+      findPendingByEmail: jest.fn().mockResolvedValue(null),
       updateOutboxMessage: jest.fn(),
     };
 
@@ -154,7 +156,7 @@ describe('AuthService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        outbox: { id: 'o1' },
+        outBoxId: 'o1',
         result: expect.objectContaining({
           id: 'u1',
           email: 'a@example.com',
@@ -223,7 +225,7 @@ describe('AuthService', () => {
     outboxService.createOutboxMessage.mockResolvedValue({ id: 'o-reset-1' });
 
     await expect(service.forgotPassword('a@example.com')).resolves.toEqual({
-      id: 'o-reset-1',
+      outBoxId: 'o-reset-1',
     });
 
     expect(outboxService.createOutboxMessage).toHaveBeenCalledWith(
@@ -694,7 +696,7 @@ describe('AuthService', () => {
     emailWorker.sendResetPasswordEmail.mockReturnValue(undefined);
 
     const result = await service.forgotPassword('a@example.com');
-    expect(result).toEqual({ id: 'o-reset-1' });
+    expect(result).toEqual({ outBoxId: 'o-reset-1' });
   });
 
   it('throws unauthorized when logout has no session id', async () => {
@@ -706,6 +708,72 @@ describe('AuthService', () => {
   it.todo(
     '[DEFECT-AUTH-ASYNC-001] forgotPassword should catch async queue dispatch rejection (Promise reject), not only sync throw',
   );
+
+  it('forgotPassword returns only outBoxId, never the code (no ATO leak)', async () => {
+    userService.isAvailableEmail.mockResolvedValue(true);
+    outboxService.createOutboxMessage.mockImplementation(
+      async (_event: string, payload: { email: string; code: string }) => ({
+        id: 'o-reset-1',
+        code: payload.code,
+      }),
+    );
+
+    const result = await service.forgotPassword('a@example.com');
+
+    expect(result).toEqual({ outBoxId: 'o-reset-1' });
+    // Single-code discipline: the emailed code must equal the stored code.
+    const storedCode = outboxService.createOutboxMessage.mock.calls[0][1].code;
+    expect(emailWorker.sendResetPasswordEmail).toHaveBeenCalledWith(
+      'a@example.com',
+      storedCode,
+    );
+  });
+
+  it('forgotPassword throttles resend while a reset is pending', async () => {
+    userService.isAvailableEmail.mockResolvedValue(true);
+    outboxService.findPendingByEmail.mockResolvedValue({
+      id: 'o-pending',
+      createdAt: new Date(),
+    });
+
+    await expect(
+      service.forgotPassword('a@example.com'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(outboxService.createOutboxMessage).not.toHaveBeenCalled();
+  });
+
+  it('register returns only outBoxId, never the code', async () => {
+    const crypto = require('crypto') as {
+      randomInt: (min: number, max: number) => number;
+    };
+    jest.spyOn(crypto, 'randomInt').mockReturnValue(100000);
+    hash.mockResolvedValue('hashed-password');
+    userService.isAvailableEmail.mockResolvedValue(false);
+    outboxService.createOutboxMessage.mockResolvedValue({
+      id: 'o1',
+      code: '100000',
+    });
+    userService.createUser.mockResolvedValue({
+      id: 'u1',
+      fullname: 'User A',
+      email: 'a@example.com',
+      address: 'HCM',
+      dateOfBirth: new Date('2000-01-01T00:00:00.000Z'),
+    });
+
+    const result = await service.register({
+      fullname: 'User A',
+      email: 'a@example.com',
+      password: 'raw-password',
+      address: 'HCM',
+      dateOfBirth: new Date('2000-01-01T00:00:00.000Z'),
+    } as never);
+
+    expect(result).toEqual(expect.objectContaining({ outBoxId: 'o1' }));
+    expect(JSON.stringify(result)).not.toContain('100000');
+
+    jest.restoreAllMocks();
+  });
 
   it.todo(
     '[DEFECT-AUTH-REFRESH-001] refreshToken should map jwt verify failure to UnauthorizedException instead of leaking non-HTTP errors',

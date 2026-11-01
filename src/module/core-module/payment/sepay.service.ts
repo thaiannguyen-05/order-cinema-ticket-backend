@@ -34,6 +34,27 @@ export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 // Signed browser-return token TTL: 30 minutes (covers 15m order TTL + buffer).
 const SEPAY_RETURN_TOKEN_TTL_S = 30 * 60;
 
+/**
+ * Fail-closed webhook authentication: a missing or placeholder secret must
+ * never silently disable verification (forged PAID otherwise).
+ */
+export function assertSepayWebhookSecret(
+  secret: string | undefined,
+  secretKeyHeader: string | undefined,
+): void {
+  if (!secret || secret === 'REPLACE_ME') {
+    throw new UnauthorizedException('Webhook secret not configured');
+  }
+  if (!secretKeyHeader) {
+    throw new UnauthorizedException('Missing webhook secret');
+  }
+  const a = Buffer.from(secretKeyHeader, 'utf8');
+  const b = Buffer.from(secret, 'utf8');
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    throw new UnauthorizedException('Invalid webhook secret');
+  }
+}
+
 @Injectable()
 export class SepayService {
   constructor(
@@ -412,16 +433,7 @@ export class SepayService {
     secretKeyHeader: string | undefined,
   ): Promise<SepayWebhookResult> {
     const secret = this.configService.get<string>('SEPAY_SECRET_KEY');
-    if (secret && secret !== 'REPLACE_ME') {
-      if (!secretKeyHeader) {
-        throw new UnauthorizedException('Missing webhook secret');
-      }
-      const a = Buffer.from(secretKeyHeader, 'utf8');
-      const b = Buffer.from(secret, 'utf8');
-      if (a.length !== b.length || !timingSafeEqual(a, b)) {
-        throw new UnauthorizedException('Invalid webhook secret');
-      }
-    }
+    assertSepayWebhookSecret(secret, secretKeyHeader);
 
     const invoiceNumber = dto.order?.order_invoice_number;
     if (!invoiceNumber) {

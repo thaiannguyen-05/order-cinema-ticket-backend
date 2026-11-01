@@ -11,6 +11,13 @@ export class OutboxService {
     return await this.prismaService.outbox.findUnique({ where: { id } });
   }
 
+  async findPendingByEmail(email: string, eventType: string) {
+    return await this.prismaService.outbox.findFirst({
+      where: { email, eventType, status: OUTBOX_STATUS.PENDING },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async createOutboxMessage(
     eventType: string,
     payload: EmailPayload,
@@ -43,7 +50,6 @@ export class OutboxService {
   async countPending(): Promise<number> {
     try {
       return await this.prismaService.outbox.count({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         where: { status: 'PENDING' } as any,
       });
     } catch {

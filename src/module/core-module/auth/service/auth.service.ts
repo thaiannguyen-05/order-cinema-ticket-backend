@@ -74,8 +74,9 @@ export class AuthService {
     );
     this.emailWorker.sendVerifyCode(dto.email, verificationCode);
 
+    // Never return the code: the mailbox is the only channel that may carry it.
     return {
-      outbox,
+      outBoxId: outbox.id,
       result,
     };
   }
@@ -135,34 +136,34 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    const outBox = await this.outboxService.getOutBox(email);
+    const pending = await this.outboxService.findPendingByEmail(
+      email,
+      EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
+    );
     if (
-      outBox?.createdAt &&
-      Date.now() - new Date(outBox.createdAt).getTime() < CODE_EXPIRY_MS
+      pending?.createdAt &&
+      Date.now() - new Date(pending.createdAt).getTime() < CODE_EXPIRY_MS
     ) {
       throw new BadRequestException(
         'A reset password request has already been sent. Please check your email.',
       );
     }
 
-    if (outBox && outBox.status === 'PENDING') {
-      throw new BadRequestException(
-        'A reset password request is already pending. Please check your email.',
-      );
-    }
-
+    // Single-code discipline: the SAME code is stored and emailed. The emailed
+    // value is the only one resetPassword compares against, and the API never
+    // returns it (mailbox-only channel).
+    const code = generateCode();
     const payload: EmailPayload = {
       email: email,
-      code: generateCode(),
+      code,
     };
-    const resetToken = generateCode();
     const outbox = await this.outboxService.createOutboxMessage(
       EVENT_NAME.SEND_FORGOT_PASSWORD_EMAIL,
       payload,
     );
 
-    this.emailWorker.sendResetPasswordEmail(email, resetToken);
-    return outbox;
+    this.emailWorker.sendResetPasswordEmail(email, code);
+    return { outBoxId: outbox.id };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<boolean> {

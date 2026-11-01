@@ -1,0 +1,38 @@
+model SupportConversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  SupportMessage[]
+
+  @@index([userId])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id             String              @id @default(uuid()) @db.Uuid
+  conversationId String              @db.Uuid
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // user | assistant | tool
+  content        String
+  sources        Json?
+  toolCalls      Json?
+  injectionVerdict Json?
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+  @@map("support_messages")
+}
+
+model SupportDocument {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String
+  metadata  Json?
+  // pgvector column managed by raw SQL (vector-ext.sql). Prisma keeps metadata only.
+  // embedding Unsupported("vector(384)") — handled via $queryRaw/$executeRaw.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("support_documents")
+}
