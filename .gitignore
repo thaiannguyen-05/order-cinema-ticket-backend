@@ -46,6 +46,9 @@ log/
 .temp
 .tmp
 
+# AI embedding cache (large local model binaries, never commit)
+.fastembed_cache/
+
 # Runtime data
 pids
 *.pid

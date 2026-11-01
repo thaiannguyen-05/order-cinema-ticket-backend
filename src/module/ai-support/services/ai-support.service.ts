@@ -269,11 +269,11 @@ export class AiSupportService {
         }
       }
       if (/(rạp|rap|cinema|suất|suat|show)/.test(q)) {
-        let r = (await this.tools.searchCinemasShowtimes(
+        const r = (await this.tools.searchCinemasShowtimes(
           query.slice(0, 100),
           5,
-        )) as { cinemas?: unknown[]; total?: number } | unknown;
-        const list = (r as { cinemas?: unknown[] })?.cinemas;
+        )) as { cinemas?: unknown[]; total?: number };
+        const list = r?.cinemas;
         toolCalls.push('search_cinemas_showtimes');
         if (list && list.length > 0) {
           out.push(`Cinemas: ${JSON.stringify(r).slice(0, 1500)}`);
