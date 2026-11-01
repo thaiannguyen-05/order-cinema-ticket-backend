@@ -23,12 +23,14 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "generate": "prisma generate && prisma db push",
     "db:setup": "prisma generate && prisma db push --force-reset && pnpm run prisma:seed",
+    "prisma:seed": "ts-node prisma/seed.ts",
     "infra:up": "docker compose up -d",
     "infra:clean": "docker compose down -v",
     "infra:fresh": "docker compose down -v && docker compose up -d",
     "infra:sync": "sh scripts/enable-sync.sh",
     "ai:ingest": "ts-node scripts/ai-ingest.ts",
     "ai:vector:ensure": "psql $DATABASE_URL -f prisma/vector-ext.sql",
+    "postinstall": "node scripts/fix-sdk-exports.cjs",
     "prepare": "husky"
   },
   "prisma": {
