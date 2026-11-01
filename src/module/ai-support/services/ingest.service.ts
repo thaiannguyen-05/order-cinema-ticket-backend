@@ -23,7 +23,6 @@ export class IngestService {
   ) {}
 
   async ingestAll(): Promise<{ films: number; cinemas: number; docs: number }> {
-    await this.vectors.ensureReady();
     const cfg = resolveAiConfig();
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: cfg.chunkSize,

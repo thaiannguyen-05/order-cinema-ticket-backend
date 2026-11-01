@@ -1,7 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { EmbeddingsService } from './embeddings.service';
 import { resolveAiConfig } from '../constants';
@@ -20,43 +18,11 @@ function toVectorLiteral(vec: number[]): string {
 }
 
 @Injectable()
-export class VectorStoreService implements OnModuleInit {
-  private readonly logger = new Logger(VectorStoreService.name);
-  private ready = false;
-
+export class VectorStoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly embeddings: EmbeddingsService,
   ) {}
-
-  async onModuleInit(): Promise<void> {
-    // Best-effort: DB may not have pgvector yet (docker image upgrade pending).
-    try {
-      await this.ensureReady();
-    } catch (e) {
-      this.logger.warn(`vector store not ready: ${String(e)}`);
-    }
-  }
-
-  async ensureReady(): Promise<void> {
-    if (this.ready) return;
-    // 1. extension + columns + indexes (idempotent)
-    try {
-      const sqlPath = join(process.cwd(), 'prisma', 'vector-ext.sql');
-      const sql = readFileSync(sqlPath, 'utf8');
-      const statements = sql
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
-      for (const stmt of statements) {
-        await this.prisma.$executeRawUnsafe(stmt);
-      }
-    } catch (e) {
-      this.logger.warn(`vector-ext.sql apply failed: ${String(e)}`);
-      throw e;
-    }
-    this.ready = true;
-  }
 
   /** Dense cosine search on pgvector (step 6 Dense + step 7-8 in diagram). */
   async searchDense(query: string, k: number): Promise<ScoredDoc[]> {
@@ -129,7 +95,6 @@ export class VectorStoreService implements OnModuleInit {
   async upsertDocuments(
     docs: Array<{ content: string; metadata: Record<string, unknown> }>,
   ): Promise<number> {
-    await this.ensureReady();
     const vecs = await this.embeddings.embedDocuments(
       docs.map((d) => d.content),
     );

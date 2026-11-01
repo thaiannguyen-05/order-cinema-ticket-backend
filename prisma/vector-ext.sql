@@ -1,6 +1,7 @@
 -- pgvector + hybrid sparse for AI support RAG.
 -- Run after `prisma db push` (db push does not manage extensions/indexes).
--- Idempotent: safe to re-run (used by ai:ingest ensure + infra setup).
+-- Idempotent: safe to re-run. Apply via `pnpm ai:vector:ensure` at deploy
+-- (runtime never applies DDL — app fails visibly if schema is missing).
 -- Embedding dim = 1024 (fastembed fast-multilingual-e5-large, multilingual incl. Vietnamese).
 -- Ref python simple_agent dùng paraphrase-multilingual-MiniLM-L12-v2 (384 dim, torch ~800MB);
 -- JS port dùng fastembed e5-large (onnx nhẹ, đa ngữ tốt hơn cho vi).
