@@ -13,6 +13,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Observable, from } from 'rxjs';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { StreamQueryDto } from './dto/stream-query.dto';
@@ -46,6 +47,7 @@ export class AiSupportController {
   @Post('chat')
   @HttpCode(200)
   @UseGuards(InjectionGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Chat with cinema support AI (read-only RAG)' })
   async chat(@Body() dto: ChatRequestDto, @User('id') userId?: string) {
     return this.ai.chat(dto, userId);
@@ -53,6 +55,7 @@ export class AiSupportController {
 
   @Sse('chat/stream')
   @UseGuards(InjectionGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Chat stream via SSE (no websocket)' })
   stream(
     @Query(queryValidation) query: StreamQueryDto,

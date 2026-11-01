@@ -188,6 +188,14 @@ export class AiSupportService {
   ): Promise<string> {
     try {
       let convId = opts.conversationId;
+      if (convId && opts.userId) {
+        // Không tin conversationId client gửi: chỉ append khi thread thuộc về đúng user.
+        const owned = await this.prisma.supportConversation.findFirst({
+          where: { id: convId, userId: opts.userId },
+          select: { id: true },
+        });
+        if (!owned) convId = undefined;
+      }
       if (!convId) {
         const conv = await this.prisma.supportConversation.create({
           data: { userId: opts.userId ?? null },
