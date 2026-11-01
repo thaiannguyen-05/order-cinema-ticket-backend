@@ -45,9 +45,7 @@ export class EmbeddingsService extends Embeddings {
     if (!this.initPromise) {
       this.initPromise = (async () => {
         try {
-          const { FlagEmbedding, EmbeddingModel } =
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            require('fastembed') as typeof import('fastembed');
+          const { FlagEmbedding, EmbeddingModel } = await import('fastembed');
           const model = await FlagEmbedding.init({
             // multilingual-e5-large: Vietnamese-capable, 1024 dims
             model: EmbeddingModel.MLE5Large,

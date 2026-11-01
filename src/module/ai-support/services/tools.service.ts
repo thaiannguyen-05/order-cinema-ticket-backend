@@ -5,7 +5,6 @@ import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { FilmService } from '../../theater-module/film/film.service';
 import { CinemaService } from '../../theater-module/cinema/cinema.service';
-import { TicketService } from '../../theater-module/ticket/ticket.service';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
 import { HybridRetrieverService } from './hybrid-retriever.service';
 import { LlmService } from './llm.service';
@@ -62,7 +61,6 @@ export class ToolsService {
   constructor(
     private readonly films: FilmService,
     private readonly cinemas: CinemaService,
-    private readonly tickets: TicketService,
     private readonly prisma: PrismaService,
     private readonly retriever: HybridRetrieverService,
     private readonly llm: LlmService,

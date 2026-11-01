@@ -11,10 +11,9 @@ import { AppSecretsService } from './services/app-secrets.service';
 import { AiConfigService } from './constants';
 import { FilmModule } from '../theater-module/film/film.module';
 import { CinemaModule } from '../theater-module/cinema/cinema.module';
-import { TicketModule } from '../theater-module/ticket/ticket.module';
 
 @Module({
-  imports: [FilmModule, CinemaModule, TicketModule],
+  imports: [FilmModule, CinemaModule],
   controllers: [AiSupportController],
   providers: [
     AiConfigService,

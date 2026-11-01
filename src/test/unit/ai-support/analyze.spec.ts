@@ -29,7 +29,6 @@ describe('analyze_query (tool 1)', () => {
     null as never,
     null as never,
     null as never,
-    null as never,
     aiConfig,
   );
 
