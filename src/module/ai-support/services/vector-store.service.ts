@@ -30,16 +30,13 @@ export class VectorStoreService {
     const topK = Math.min(k, cfg.maxTopK);
     const vec = await this.embeddings.embedQuery(query);
     const lit = toVectorLiteral(vec);
-    const rows = await this.prisma.$queryRawUnsafe<RawRow[]>(
-      `SELECT id::text AS id, content, COALESCE(metadata, '{}'::jsonb)::text AS metadata,
-              1 - (embedding <=> $1::vector) AS score
+    const rows = await this.prisma.$queryRaw<RawRow[]>`
+      SELECT id::text AS id, content, COALESCE(metadata, '{}'::jsonb)::text AS metadata,
+              1 - (embedding <=> ${lit}::vector) AS score
          FROM support_documents
         WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> $1::vector
-        LIMIT $2`,
-      lit,
-      topK,
-    );
+        ORDER BY embedding <=> ${lit}::vector
+        LIMIT ${topK}`;
     return rows.map((r) => ({
       id: r.id,
       content: r.content,
@@ -53,16 +50,13 @@ export class VectorStoreService {
     const cfg = resolveAiConfig();
     const topK = Math.min(k, cfg.maxTopK);
     try {
-      const rows = await this.prisma.$queryRawUnsafe<RawRow[]>(
-        `SELECT id::text AS id, content, COALESCE(metadata, '{}'::jsonb)::text AS metadata,
-                ts_rank(search_tsv, plainto_tsquery('simple', $1)) AS score
+      const rows = await this.prisma.$queryRaw<RawRow[]>`
+        SELECT id::text AS id, content, COALESCE(metadata, '{}'::jsonb)::text AS metadata,
+                ts_rank(search_tsv, plainto_tsquery('simple', ${query})) AS score
            FROM support_documents
-          WHERE search_tsv @@ plainto_tsquery('simple', $1)
+          WHERE search_tsv @@ plainto_tsquery('simple', ${query})
           ORDER BY score DESC
-          LIMIT $2`,
-        query,
-        topK,
-      );
+          LIMIT ${topK}`;
       return rows.map((r) => ({
         id: r.id,
         content: r.content,
@@ -102,14 +96,9 @@ export class VectorStoreService {
     for (let i = 0; i < docs.length; i++) {
       const lit = toVectorLiteral(vecs[i] ?? []);
       const id = randomUUID();
-      await this.prisma.$queryRawUnsafe(
-        `INSERT INTO support_documents (id, content, metadata, embedding, "createdAt", "updatedAt")
-         VALUES ($1::uuid, $2, $3::jsonb, $4::vector, now(), now())`,
-        id,
-        docs[i].content,
-        JSON.stringify(docs[i].metadata ?? {}),
-        lit,
-      );
+      await this.prisma.$queryRaw`
+        INSERT INTO support_documents (id, content, metadata, embedding, "createdAt", "updatedAt")
+         VALUES (${id}::uuid, ${docs[i].content}, ${JSON.stringify(docs[i].metadata ?? {})}::jsonb, ${lit}::vector, now(), now())`;
       count++;
     }
     return count;
