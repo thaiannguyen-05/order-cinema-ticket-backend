@@ -40,7 +40,7 @@ export class HybridRetrieverService {
     private readonly aiConfig: AiConfigService,
   ) {}
 
-  /** Rebuild in-memory BM25 from pgvector corpus (call after ingest / on boot). */
+  /** Rebuild in-memory BM25 from pgvector corpus (called after ingest). */
   async refreshBm25(): Promise<void> {
     try {
       const all = await this.vectors.listAllForBm25();
@@ -84,9 +84,9 @@ export class HybridRetrieverService {
     this.logger.debug(
       `hybrid dense=${dense.length} tsv=${sparseTsv.length} bm25=${sparseBm25.length}`,
     );
-    // Fuse dense + strongest sparse signal (merge tsv + bm25 by content key first)
-    const sparseMerged = this.mergeSparse(sparseTsv, sparseBm25);
-    const fused = rrfFuse([dense, sparseMerged], cfg.hybridRrfK);
+    // Fuse cả 3 ranker độc lập (dense, tsv, bm25) — doc trùng ở nhiều
+    // nhánh được cộng dồn điểm RRF thay vì gộp dedupe trước.
+    const fused = rrfFuse([dense, sparseTsv, sparseBm25], cfg.hybridRrfK);
     return fused.slice(0, k);
   }
 
@@ -103,14 +103,5 @@ export class HybridRetrieverService {
     } catch {
       return [];
     }
-  }
-
-  private mergeSparse(a: ScoredDoc[], b: ScoredDoc[]): ScoredDoc[] {
-    const seen = new Map<string, ScoredDoc>();
-    for (const d of [...a, ...b]) {
-      const key = docKey(d);
-      if (!seen.has(key)) seen.set(key, d);
-    }
-    return [...seen.values()];
   }
 }

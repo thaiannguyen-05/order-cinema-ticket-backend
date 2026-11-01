@@ -24,4 +24,14 @@ describe('rrfFuse (port of simple_agent/hybrid.py)', () => {
     // same content+source counted once; different source kept
     expect(fused.length).toBe(2);
   });
+
+  it('rewards docs ranked by all three rankers (dense/tsv/bm25)', () => {
+    const dense = [doc('A', 's'), doc('B', 's')];
+    const tsv = [doc('B', 's'), doc('C', 's')];
+    const bm25 = [doc('B', 's'), doc('D', 's')];
+    const fused = rrfFuse([dense, tsv, bm25], 60);
+    // B voted by all 3 rankers -> first; each doc appears once
+    expect(fused[0].content).toBe('B');
+    expect(fused.map((d) => d.content).sort()).toEqual(['A', 'B', 'C', 'D']);
+  });
 });
