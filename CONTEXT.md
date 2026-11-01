@@ -91,5 +91,25 @@ One RAG chunk (Film/Cinema/policy markdown) with content, metadata and pgvector 
 _Avoid_: Chunk, Vector, Embedding
 
 **RetrievalTrace**:
-Which tools and sources produced one answer (`analyze_query`, `select_source`, `search_docs`, structured APIs, `response`).
+Which tools and sources produced one answer (`analyze_query`, `classify`, `select_source`, `search_docs`, structured APIs, `response`).
 _Avoid_: Log, Trace
+
+**SupportIntent**:
+What kind of user message this is: `SmallTalk` (greeting/thanks), `IdentityCapability` (who are you/what can you do), `SupportInquiry` (film/cinema/showtime/price/order/policy), `OutOfScope` (outside cinema ticketing).
+_Avoid_: SourceKind, Label
+
+**SmallTalk**:
+Short social message (hello, thanks, bye) answered directly without retrieval and without citation.
+_Avoid_: Chitchat, Greeting
+
+**IdentityCapability**:
+Question about who the assistant is and what cinema tasks it can do, answered directly with a capability list.
+_Avoid_: About, Help
+
+**CatalogFact**:
+General film knowledge (synopsis, genre, cast) allowed from LLM with a disclaimer when no chunk exists.
+_Avoid_: General knowledge
+
+**TransactionalFact**:
+Live cinema data (ShowTime, price, seat, Order, refund policy) that must come from DB or SupportDocument with citation, never guessed.
+_Avoid_: Live data

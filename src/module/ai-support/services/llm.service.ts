@@ -17,6 +17,24 @@ export class LlmService {
   }
 
   getModel(params?: { maxTokens?: number; temperature?: number }): ChatGroq {
+    // Không cache model có params riêng (classifier maxTokens 8/12) đè lên
+    // model generative mặc định — đây từng làm answer cụt ~12 tokens.
+    if (params?.maxTokens !== undefined || params?.temperature !== undefined) {
+      const apiKey = this.secrets.getGroqApiKey();
+      const model = this.config.getOrThrow<string>('AI_LLM_MODEL');
+      const maxTokens = Number(
+        this.config.getOrThrow<string>('AI_LLM_MAX_TOKENS'),
+      );
+      const temperature = Number(
+        this.config.getOrThrow<string>('AI_LLM_TEMPERATURE'),
+      );
+      return new ChatGroq({
+        model,
+        apiKey,
+        maxTokens: params?.maxTokens ?? maxTokens,
+        temperature: params?.temperature ?? temperature,
+      });
+    }
     if (cached) return cached;
     const apiKey = this.secrets.getGroqApiKey();
     const model = this.config.getOrThrow<string>('AI_LLM_MODEL');

@@ -50,7 +50,11 @@ export class AiSupportController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Chat with cinema support AI (read-only RAG)' })
   async chat(@Body() dto: ChatRequestDto, @User('id') userId?: string) {
-    return this.ai.chat(dto, userId);
+    const r = await this.ai.chat(dto, userId);
+    // Mặc định sạch như chat thật: chỉ answer + conversationId.
+    // verbose=true mới kèm trace debug (sources/toolCalls/sourceKind/intent).
+    if (dto.verbose) return r;
+    return { answer: r.answer, conversationId: r.conversationId };
   }
 
   @Sse('chat/stream')

@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -39,4 +40,15 @@ export class ChatRequestDto {
   @IsOptional()
   @IsUUID()
   conversationId?: string;
+
+  /**
+   * verbose=true trả full trace debug (sources/toolCalls/sourceKind/intent).
+   * Mặc định false: chỉ {answer, conversationId} để UI chat thật, không log.
+   */
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) =>
+    value === true || value === 'true' || value === '1' ? true : false,
+  )
+  verbose?: boolean = false;
 }
