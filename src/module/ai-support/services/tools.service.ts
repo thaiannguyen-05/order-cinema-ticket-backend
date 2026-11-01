@@ -88,7 +88,29 @@ export class ToolsService {
 - structured: hỏi phim, rạp, suất chiếu, giá vé, ghế, order/ticket cụ thể.
 - vector: hỏi chính sách, hướng dẫn, FAQ, quy định.
 - both: không rõ hoặc cần cả hai.
-Chỉ trả về đúng 1 từ. Câu hỏi: {q}`,
+Chỉ trả về đúng 1 từ.
+
+Ví dụ:
+Câu hỏi: Phim Dune còn suất chiếu nào tối nay?
+Trả lời: structured
+
+Câu hỏi: Giá vé ghế COUPLE bao nhiêu?
+Trả lời: structured
+
+Câu hỏi: Order của tôi trạng thái gì?
+Trả lời: structured
+
+Câu hỏi: Chính sách hoàn vé thế nào?
+Trả lời: vector
+
+Câu hỏi: Hướng dẫn đặt vé cho người mới?
+Trả lời: vector
+
+Câu hỏi: Rạp có chính sách gì cho phim Dune?
+Trả lời: both
+
+Câu hỏi: {q}
+Trả lời:`,
       );
       const chain = prompt
         .pipe(this.llm.getModel({ maxTokens: 8, temperature: 0 }))
