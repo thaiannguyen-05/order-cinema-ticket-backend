@@ -3,6 +3,7 @@ import { AiSupportController } from './ai-support.controller';
 import { AiSupportService } from './services/ai-support.service';
 import { ToolsService } from './services/tools.service';
 import { LlmService } from './services/llm.service';
+import { RagEvalService } from './services/rag-eval.service';
 import { EmbeddingsService } from './services/embeddings.service';
 import { VectorStoreService } from './services/vector-store.service';
 import { HybridRetrieverService } from './services/hybrid-retriever.service';
@@ -25,6 +26,7 @@ import { CinemaModule } from '../theater-module/cinema/cinema.module';
     ToolsService,
     AiSupportService,
     IngestService,
+    RagEvalService,
   ],
   exports: [AiSupportService, HybridRetrieverService],
 })

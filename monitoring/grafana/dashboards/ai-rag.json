@@ -1,0 +1,171 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "Mean online context precision/recall (LLM-judge proxy). Only vector/both support path is evaluated. Instant avg since boot (dev-friendly: works with 1 sample).",
+      "fieldConfig": { "defaults": { "max": 1, "min": 0 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(app_ai_rag_context_precision_sum) / clamp_min(sum(app_ai_rag_context_precision_count), 1)",
+          "legendFormat": "precision avg",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(app_ai_rag_context_recall_sum) / clamp_min(sum(app_ai_rag_context_recall_count), 1)",
+          "legendFormat": "recall avg",
+          "refId": "B"
+        }
+      ],
+      "title": "RAG precision/recall avg",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "p50/p95 precision from histogram buckets (instant quantile, works with sparse dev traffic).",
+      "fieldConfig": {
+        "defaults": { "max": 1, "min": 0, "unit": "none" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum by (le) (app_ai_rag_context_precision_bucket))",
+          "legendFormat": "precision p95",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum by (le) (app_ai_rag_context_precision_bucket))",
+          "legendFormat": "precision p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Precision p50/p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "p50/p95 recall proxy (claims covered by chunks). Instant quantile.",
+      "fieldConfig": { "defaults": { "max": 1, "min": 0 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum by (le) (app_ai_rag_context_recall_bucket))",
+          "legendFormat": "recall p95",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, sum by (le) (app_ai_rag_context_recall_bucket))",
+          "legendFormat": "recall p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Recall p50/p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Eval outcomes total since boot: evaluated = observed both histograms; skipped = non-RAG path or sampled out.",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (result) (app_ai_rag_eval_total)",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Eval outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Avg precision/recall by source (vector vs both) and top_k (instant, since boot).",
+      "fieldConfig": { "defaults": { "max": 1, "min": 0 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (source, top_k) (app_ai_rag_context_precision_sum) / clamp_min(sum by (source, top_k) (app_ai_rag_context_precision_count), 1)",
+          "legendFormat": "precision {{source}} k={{top_k}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "sum by (source, top_k) (app_ai_rag_context_recall_sum) / clamp_min(sum by (source, top_k) (app_ai_rag_context_recall_count), 1)",
+          "legendFormat": "recall {{source}} k={{top_k}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Scores by source/top_k",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["cinema", "ai", "rag"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "3. AI RAG - Context Precision & Recall",
+  "uid": "cinema-ai-rag",
+  "version": 2
+}

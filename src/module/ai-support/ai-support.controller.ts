@@ -50,7 +50,11 @@ export class AiSupportController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Chat with cinema support AI (read-only RAG)' })
   async chat(@Body() dto: ChatRequestDto, @User('id') userId?: string) {
-    return this.ai.chat(dto, userId);
+    const r = await this.ai.chat(dto, userId);
+    // Mặc định sạch như chat thật: chỉ answer + conversationId.
+    // verbose=true mới kèm trace debug (sources/toolCalls/sourceKind/intent).
+    if (dto.verbose) return r;
+    return { answer: r.answer, conversationId: r.conversationId };
   }
 
   @Sse('chat/stream')
@@ -59,10 +63,12 @@ export class AiSupportController {
   @ApiOperation({ summary: 'Chat stream via SSE (no websocket)' })
   stream(
     @Query(queryValidation) query: StreamQueryDto,
+    @User('id') userId?: string,
   ): Observable<MessageEvent> {
-    // SSE/EventSource không gửi được Authorization header nên userId
-    // luôn undefined ở đây -> order riêng tư bị từ chối, hội thoại ephemeral.
-    const gen = this.ai.streamChat(query);
+    // Propagate JWT identity (cookie-based EventSource included). When userId is
+    // absent the service creates an ephemeral thread and never reads/appends a
+    // supplied conversationId, so no cross-principal history leak is possible.
+    const gen = this.ai.streamChat(query, userId);
     const pull = async function* () {
       for await (const e of gen) {
         yield { data: e.data } as MessageEvent;
@@ -78,8 +84,10 @@ export class AiSupportController {
     @Query(queryValidation) pagination: HistoryQueryDto,
     @User('id') userId?: string,
   ) {
+    // Strict owner scoping: anonymous callers never read arbitrary threads.
+    if (!userId) return null;
     const conv = await this.prisma.supportConversation.findFirst({
-      where: { id, ...(userId ? { userId } : {}) },
+      where: { id, userId },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },

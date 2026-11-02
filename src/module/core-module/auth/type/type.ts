@@ -8,7 +8,7 @@ export type UserWithoutPassword = {
   dateOfBirth: Date;
 };
 
-export type UserGenerateTokens = Required<JwtPayload>;
+export type UserGenerateTokens = Omit<Required<JwtPayload>, 'typ'>;
 
 export type AuthCookiePayload = {
   accessToken?: string;

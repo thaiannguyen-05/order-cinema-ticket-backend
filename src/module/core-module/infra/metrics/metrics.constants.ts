@@ -22,7 +22,12 @@ export const METRIC_NAMES = {
   REPLICA_READ_TOTAL: 'app_db_replica_read_total',
   REPLICA_LAG_SECONDS: 'app_db_replica_lag_seconds',
   REPLICA_UP: 'app_db_replica_up',
+  AI_RAG_CONTEXT_PRECISION: 'app_ai_rag_context_precision',
+  AI_RAG_CONTEXT_RECALL: 'app_ai_rag_context_recall',
+  AI_RAG_EVAL_TOTAL: 'app_ai_rag_eval_total',
 } as const;
+
+export const AI_RAG_SCORE_BUCKETS = [0.1, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 1];
 
 export const HTTP_HISTOGRAM_BUCKETS = [0.05, 0.1, 0.3, 0.5, 1, 2, 5];
 

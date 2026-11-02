@@ -18,12 +18,32 @@ export class LoggingInterceptor implements NestInterceptor {
     'cookie',
     'set-cookie',
     'access-token',
-    'accessToken',
-    'refreshToken',
+    'accesstoken',
+    'refreshtoken',
+    'refresh-token',
+    'sessionid',
+    'session-id',
     'password',
+    'newpassword',
+    'new-password',
+    'confirmpassword',
+    'confirm-password',
     'token',
+    'accesstoken',
+    'refreshtoken',
     'signature',
+    'email',
+    'code',
+    'otp',
+    'x-csrf-token',
+    'csrf-token',
+    'x-xsrf-token',
+    'x-loadtest-key',
   ]);
+
+  private isSensitiveKey(key: string): boolean {
+    return this.sensitiveKeys.has(key.toLowerCase());
+  }
 
   private redactSensitive(value: unknown): unknown {
     if (Array.isArray(value)) {
@@ -33,7 +53,7 @@ export class LoggingInterceptor implements NestInterceptor {
     if (value && typeof value === 'object') {
       const entries = Object.entries(value as Record<string, unknown>).map(
         ([key, val]) => {
-          if (this.sensitiveKeys.has(key)) {
+          if (this.isSensitiveKey(key)) {
             return [key, '[REDACTED]'];
           }
           return [key, this.redactSensitive(val)];
@@ -67,6 +87,33 @@ export class LoggingInterceptor implements NestInterceptor {
     // Skip verbose body logging for high-frequency Prometheus scrapes.
     if (request.url.includes('/metrics')) {
       return next.handle();
+    }
+    // Production: metadata only (no headers/body) to avoid PII retention.
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction) {
+      this.logger.debug(
+        [
+          'HTTP Request',
+          `requestId: ${request.requestId}`,
+          `method: ${request.method}`,
+          `path: ${request.url}`,
+        ].join('\n'),
+      );
+
+      return next.handle().pipe(
+        tap((responseBody: unknown) => {
+          this.logger.debug(
+            [
+              'HTTP Response',
+              `requestId: ${request.requestId}`,
+              `method: ${request.method}`,
+              `path: ${request.url}`,
+              `statusCode: ${response.statusCode}`,
+            ].join('\n'),
+          );
+          void responseBody;
+        }),
+      );
     }
     const requestBody: unknown = (request as { body?: unknown }).body;
 

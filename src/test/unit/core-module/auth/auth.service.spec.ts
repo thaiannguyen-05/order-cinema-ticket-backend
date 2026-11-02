@@ -39,6 +39,8 @@ describe('AuthService', () => {
     isAvailableEmail: jest.Mock;
     createUser: jest.Mock;
     updateUserByEmail: jest.Mock;
+    activateUser: jest.Mock;
+    updatePasswordHash: jest.Mock;
     getUserByEmail: jest.Mock;
     getUserById: jest.Mock;
   };
@@ -70,6 +72,8 @@ describe('AuthService', () => {
       isAvailableEmail: jest.fn(),
       createUser: jest.fn(),
       updateUserByEmail: jest.fn(),
+      activateUser: jest.fn(),
+      updatePasswordHash: jest.fn(),
       getUserByEmail: jest.fn(),
       getUserById: jest.fn(),
     };
@@ -184,10 +188,7 @@ describe('AuthService', () => {
       } as never),
     ).resolves.toBe(true);
 
-    expect(userService.updateUserByEmail).toHaveBeenCalledWith({
-      email: 'a@example.com',
-      status: 'ACTIVE',
-    });
+    expect(userService.activateUser).toHaveBeenCalledWith('a@example.com');
     expect(outboxService.updateOutboxMessage).toHaveBeenCalledWith(
       'o1',
       'PROCESSED',
@@ -212,12 +213,16 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('throws when forgot password email does not exist', async () => {
+  it('returns generic outBoxId for unknown email (no enumeration)', async () => {
     userService.isAvailableEmail.mockResolvedValue(false);
 
-    await expect(
-      service.forgotPassword('a@example.com'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    const result = (await service.forgotPassword('a@example.com')) as {
+      outBoxId: string;
+    };
+    expect(result.outBoxId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(outboxService.createOutboxMessage).not.toHaveBeenCalled();
   });
 
   it('creates outbox and dispatches reset email on forgot password success', async () => {
@@ -323,7 +328,7 @@ describe('AuthService', () => {
       } as never),
     ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(userService.updateUserByEmail).not.toHaveBeenCalled();
+    expect(userService.activateUser).not.toHaveBeenCalled();
     expect(outboxService.updateOutboxMessage).not.toHaveBeenCalled();
   });
 
@@ -340,7 +345,7 @@ describe('AuthService', () => {
     ).resolves.toBe(true);
 
     expect(outboxService.getOutBox).not.toHaveBeenCalled();
-    expect(userService.updateUserByEmail).not.toHaveBeenCalled();
+    expect(userService.updatePasswordHash).not.toHaveBeenCalled();
   });
 
   it('throws not found when reset outbox is missing', async () => {
@@ -412,7 +417,7 @@ describe('AuthService', () => {
       } as never),
     ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(userService.updateUserByEmail).not.toHaveBeenCalled();
+    expect(userService.updatePasswordHash).not.toHaveBeenCalled();
     expect(outboxService.updateOutboxMessage).not.toHaveBeenCalled();
   });
 
@@ -435,10 +440,10 @@ describe('AuthService', () => {
       } as never),
     ).resolves.toBe(true);
 
-    expect(userService.updateUserByEmail).toHaveBeenCalledWith({
-      email: 'a@example.com',
-      hashedPassword: 'new-hashed-password',
-    });
+    expect(userService.updatePasswordHash).toHaveBeenCalledWith(
+      'a@example.com',
+      'new-hashed-password',
+    );
     expect(outboxService.updateOutboxMessage).toHaveBeenCalledWith(
       'o1',
       'PROCESSED',
@@ -729,16 +734,16 @@ describe('AuthService', () => {
     );
   });
 
-  it('forgotPassword throttles resend while a reset is pending', async () => {
+  it('forgotPassword reuses pending outBoxId instead of 400 (no enumeration)', async () => {
     userService.isAvailableEmail.mockResolvedValue(true);
     outboxService.findPendingByEmail.mockResolvedValue({
       id: 'o-pending',
       createdAt: new Date(),
     });
 
-    await expect(
-      service.forgotPassword('a@example.com'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.forgotPassword('a@example.com')).resolves.toEqual({
+      outBoxId: 'o-pending',
+    });
     expect(outboxService.createOutboxMessage).not.toHaveBeenCalled();
   });
 

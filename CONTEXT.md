@@ -91,5 +91,33 @@ One RAG chunk (Film/Cinema/policy markdown) with content, metadata and pgvector 
 _Avoid_: Chunk, Vector, Embedding
 
 **RetrievalTrace**:
-Which tools and sources produced one answer (`analyze_query`, `select_source`, `search_docs`, structured APIs, `response`).
+Which tools and sources produced one answer (`analyze_query`, `classify`, `select_source`, `search_docs`, structured APIs, `response`).
 _Avoid_: Log, Trace
+
+**ContextPrecision**:
+Online proxy 0..1: share of retrieved `SupportDocument` chunks relevant to the query, rank-weighted (RAGAS formula). Only computed for `SupportInquiry` with `vector|both` source; otherwise skipped.
+_Avoid_: Accuracy, Precision@K
+
+**ContextRecall**:
+Online proxy 0..1: share of factual claims in the answer covered by retrieved chunks (answer used as temporary ground-truth). 1 means no hallucinated claim; refusal with no factual claims scores 1.
+_Avoid_: Recall@K, Completeness
+
+**SupportIntent**:
+What kind of user message this is: `SmallTalk` (greeting/thanks), `IdentityCapability` (who are you/what can you do), `SupportInquiry` (film/cinema/showtime/price/order/policy), `OutOfScope` (outside cinema ticketing).
+_Avoid_: SourceKind, Label
+
+**SmallTalk**:
+Short social message (hello, thanks, bye) answered directly without retrieval and without citation.
+_Avoid_: Chitchat, Greeting
+
+**IdentityCapability**:
+Question about who the assistant is and what cinema tasks it can do, answered directly with a capability list.
+_Avoid_: About, Help
+
+**CatalogFact**:
+General film knowledge (synopsis, genre, cast) allowed from LLM with a disclaimer when no chunk exists.
+_Avoid_: General knowledge
+
+**TransactionalFact**:
+Live cinema data (ShowTime, price, seat, Order, refund policy) that must come from DB or SupportDocument with citation, never guessed.
+_Avoid_: Live data

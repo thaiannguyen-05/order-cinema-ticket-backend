@@ -123,13 +123,27 @@ export class PaymentService implements PaymentInterface {
             }
             // AVAILABLE -> PROCESSING: hold the ticket while Order is PENDING.
             // PAID path (Sepay IPN) flips it to BOOKED; FAILED/CANCELLED/EXPIRED
-            // flips it back to AVAILABLE for retry.
+            // flips it back to AVAILABLE for retry. Terminal rows for the same
+            // ticket are cleaned here so Order.ticketId @unique never bricks a
+            // legitimate retry after expiry/cancel/failure.
             if (ticket.ticketStatus === TicketStatus.AVAILABLE) {
               await tx.ticket.update({
                 where: { id: ticket.id },
                 data: { ticketStatus: TicketStatus.PROCESSING },
               });
             }
+            await tx.order.deleteMany({
+              where: {
+                ticketId: dto.ticketId,
+                status: {
+                  in: [
+                    OrderStatus.EXPIRED,
+                    OrderStatus.FAILED,
+                    OrderStatus.CANCELLED,
+                  ],
+                },
+              },
+            });
             // Only IPN may decide PAID/FAILED. Force PENDING on create and
             // ignore gateway-controlled fields even if client sends them.
             // Explicit whitelist: never spread ...dto into order.create.
@@ -237,7 +251,12 @@ export class PaymentService implements PaymentInterface {
     return result;
   }
 
-  async getOrder(id: string): Promise<PaymentOrder | null> {
-    return await this.prismaService.order.findUnique({ where: { id } });
+  async getOrder(id: string, userId: string): Promise<PaymentOrder | null> {
+    // Owner-scoped: any authenticated user may only read their own orders.
+    // findFirst returns null for foreign ids (controller maps to 404) instead
+    // of leaking cross-tenant order data like the old findUnique-by-id did.
+    return await this.prismaService.order.findFirst({
+      where: { id, userId },
+    });
   }
 }

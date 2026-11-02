@@ -55,13 +55,13 @@ describe('TokenService', () => {
   it('generates one token with proper payload and config', async () => {
     jwtService.signAsync.mockResolvedValue('token-1');
 
-    const user = { id: 'u1', email: 'a@example.com' };
+    const user = { id: 'u1', email: 'a@example.com', role: 'USER' };
     await expect(service.generateToken(user as never, 'ACCESS')).resolves.toBe(
       'token-1',
     );
 
     expect(jwtService.signAsync).toHaveBeenCalledWith(
-      { id: 'u1', email: 'a@example.com' },
+      { id: 'u1', email: 'a@example.com', role: 'USER', typ: 'access' },
       { secret: 'secret', expiresIn: 3600 },
     );
   });
@@ -129,14 +129,29 @@ describe('TokenService', () => {
     jwtService.verifyAsync.mockResolvedValue({
       id: 'u1',
       email: 'a@example.com',
+      typ: 'access',
     });
 
     await expect(service.verifyToken('refresh-token')).resolves.toEqual({
       id: 'u1',
       email: 'a@example.com',
+      typ: 'access',
     });
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('refresh-token', {
       secret: 'secret',
     });
+  });
+
+  it('rejects wrong token type when expected is enforced', async () => {
+    jwtService.verifyAsync.mockResolvedValue({
+      id: 'u1',
+      email: 'a@example.com',
+      role: 'USER',
+      typ: 'access',
+    });
+
+    await expect(
+      service.verifyToken('access-token', 'refresh'),
+    ).rejects.toThrow('Invalid token type');
   });
 });

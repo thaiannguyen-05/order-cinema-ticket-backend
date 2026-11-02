@@ -15,11 +15,15 @@ export class TokenService {
     private readonly prismaService: PrismaService,
   ) {}
 
-  async generateToken(user: UserGenerateTokens, nameToken: string) {
+  async generateToken(
+    user: UserGenerateTokens,
+    nameToken: 'ACCESS' | 'REFRESH',
+  ) {
     const payload: JwtPayload = {
       id: user.id,
       email: user.email,
       role: user.role,
+      typ: nameToken === 'ACCESS' ? 'access' : 'refresh',
     };
     // NOTE: env values are bare numbers (e.g. "3600"). jsonwebtoken/ms
     // parses a STRING as milliseconds ("3600" -> 3.6s), so coerce to Number
@@ -99,10 +103,13 @@ export class TokenService {
     });
   }
 
-  async verifyToken(token: string) {
+  async verifyToken(token: string, expected?: 'access' | 'refresh') {
     const payload: JwtPayload = await this.jwtService.verifyAsync(token, {
       secret: this.configService.getOrThrow('JWT_SECRET'),
     });
+    if (expected && payload.typ !== expected) {
+      throw new Error(`Invalid token type: expected ${expected}`);
+    }
 
     return payload;
   }

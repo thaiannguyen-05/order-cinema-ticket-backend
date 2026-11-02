@@ -59,6 +59,12 @@ export class MetricsService {
     public readonly replicaLag: Gauge<string>,
     @InjectMetric(METRIC_NAMES.REPLICA_UP)
     public readonly replicaUp: Gauge<string>,
+    @InjectMetric(METRIC_NAMES.AI_RAG_CONTEXT_PRECISION)
+    public readonly aiRagPrecision: Histogram<string>,
+    @InjectMetric(METRIC_NAMES.AI_RAG_CONTEXT_RECALL)
+    public readonly aiRagRecall: Histogram<string>,
+    @InjectMetric(METRIC_NAMES.AI_RAG_EVAL_TOTAL)
+    public readonly aiRagEvalTotal: Counter<string>,
   ) {}
 
   observeHttp(
@@ -163,6 +169,27 @@ export class MetricsService {
     result: 'success' | 'error',
   ): void {
     this.replicaReadTotal.inc({ source, target, result });
+  }
+
+  incAiRagEval(result: 'evaluated' | 'skipped' | 'failed'): void {
+    this.aiRagEvalTotal.inc({ result });
+  }
+
+  observeAiRag(
+    precision: number,
+    recall: number,
+    labels: { intent: string; source: string; top_k: string | number },
+  ): void {
+    const base = {
+      intent: labels.intent,
+      source: labels.source,
+      top_k: String(labels.top_k),
+    };
+    const p = Math.min(1, Math.max(0, precision));
+    const r = Math.min(1, Math.max(0, recall));
+    this.aiRagPrecision.observe(base, p);
+    this.aiRagRecall.observe(base, r);
+    this.incAiRagEval('evaluated');
   }
 
   setReplicaLag(seconds: number): void {

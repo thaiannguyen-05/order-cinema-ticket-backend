@@ -46,11 +46,37 @@ export class UserService {
   }
 
   async updateUserByEmail(dto: UpdateUser) {
+    // Allowlist: only self-editable profile fields. Never spread client DTO:
+    // status/role/hashPassword are server-side only (verifyEmail/password flows).
+    const data: {
+      fullname?: string;
+      dateOfBirth?: Date;
+      address?: string;
+    } = {};
+    if (dto.fullname !== undefined) data.fullname = dto.fullname;
+    if (dto.dateOfBirth !== undefined) data.dateOfBirth = dto.dateOfBirth;
+    if (dto.address !== undefined) data.address = dto.address;
     return this.prismaService.user.update({
       where: {
         email: dto.email,
       },
-      data: dto,
+      data,
+    });
+  }
+
+  /** Server-side only: verifyEmail PENDING -> ACTIVE. Never exposed to PATCH. */
+  async activateUser(email: string) {
+    return this.prismaService.user.update({
+      where: { email },
+      data: { status: 'ACTIVE' },
+    });
+  }
+
+  /** Server-side only: password reset/change with pre-hashed argon2 value. */
+  async updatePasswordHash(email: string, hashedPassword: string) {
+    return this.prismaService.user.update({
+      where: { email },
+      data: { hashPassword: hashedPassword },
     });
   }
 }

@@ -23,10 +23,14 @@ export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
 
   /**
    * Internal load-test bypass. Active only when LOADTEST_BYPASS_KEY is set
-   * (leave it empty in prod). k6 sends the same value as `x-loadtest-key`.
-   * Reads process.env directly to avoid touching the guard's DI constructor.
+   * AND not in production (leave it empty in prod). k6 sends the same value
+   * as `x-loadtest-key`. Reads process.env directly to avoid touching the
+   * guard's DI constructor.
    */
   private isLoadTestBypass(context: ExecutionContext): boolean {
+    if (process.env.NODE_ENV === 'production') {
+      return false;
+    }
     const key = process.env.LOADTEST_BYPASS_KEY;
     if (!key) {
       return false;
