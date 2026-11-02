@@ -5,6 +5,7 @@ import {
   makeHistogramProvider,
 } from '@willsoto/nestjs-prometheus';
 import { HTTP_HISTOGRAM_BUCKETS, METRIC_NAMES } from './metrics.constants';
+import { AI_RAG_SCORE_BUCKETS } from './metrics.constants';
 import { MetricsService } from './metrics.service';
 import { ReplicaMetricsService } from './replica-metrics.service';
 
@@ -123,6 +124,23 @@ import { ReplicaMetricsService } from './replica-metrics.service';
       name: METRIC_NAMES.REPLICA_UP,
       help: 'DB reachability probed by app (1 = up, 0 = down).',
       labelNames: ['instance'],
+    }),
+    makeHistogramProvider({
+      name: METRIC_NAMES.AI_RAG_CONTEXT_PRECISION,
+      help: 'RAG context precision 0..1 (rank-weighted share of relevant chunks, LLM-judge online proxy).',
+      labelNames: ['intent', 'source', 'top_k'],
+      buckets: AI_RAG_SCORE_BUCKETS,
+    }),
+    makeHistogramProvider({
+      name: METRIC_NAMES.AI_RAG_CONTEXT_RECALL,
+      help: 'RAG context recall proxy 0..1 (share of answer claims covered by chunks, LLM-judge).',
+      labelNames: ['intent', 'source', 'top_k'],
+      buckets: AI_RAG_SCORE_BUCKETS,
+    }),
+    makeCounterProvider({
+      name: METRIC_NAMES.AI_RAG_EVAL_TOTAL,
+      help: 'RAG eval outcomes (evaluated = observed both histograms).',
+      labelNames: ['result'],
     }),
     MetricsService,
     ReplicaMetricsService,

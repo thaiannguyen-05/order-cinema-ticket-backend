@@ -94,6 +94,14 @@ _Avoid_: Chunk, Vector, Embedding
 Which tools and sources produced one answer (`analyze_query`, `classify`, `select_source`, `search_docs`, structured APIs, `response`).
 _Avoid_: Log, Trace
 
+**ContextPrecision**:
+Online proxy 0..1: share of retrieved `SupportDocument` chunks relevant to the query, rank-weighted (RAGAS formula). Only computed for `SupportInquiry` with `vector|both` source; otherwise skipped.
+_Avoid_: Accuracy, Precision@K
+
+**ContextRecall**:
+Online proxy 0..1: share of factual claims in the answer covered by retrieved chunks (answer used as temporary ground-truth). 1 means no hallucinated claim; refusal with no factual claims scores 1.
+_Avoid_: Recall@K, Completeness
+
 **SupportIntent**:
 What kind of user message this is: `SmallTalk` (greeting/thanks), `IdentityCapability` (who are you/what can you do), `SupportInquiry` (film/cinema/showtime/price/order/policy), `OutOfScope` (outside cinema ticketing).
 _Avoid_: SourceKind, Label

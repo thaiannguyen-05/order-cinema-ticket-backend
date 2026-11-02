@@ -1,11 +1,10 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../core-module/infra/prisma/prisma.service';
-import {
-  ToolsService,
-  type IntentKind,
-  type SourceKind,
-} from './tools.service';
+import { ToolsService } from './tools.service';
+import type { IntentKind, SourceKind } from './tools.service';
 import { LlmService } from './llm.service';
+import { RagEvalService, type RagEvalResult } from './rag-eval.service';
+import { MetricsService } from '../../core-module/infra/metrics/metrics.service';
 import { getInjectionSdk } from '../guards/injection.guard';
 import { AiConfigService } from '../constants';
 import type { ChatRequestDto } from '../dto/chat-request.dto';
@@ -18,6 +17,7 @@ export type ChatResult = {
   conversationId: string;
   sourceKind: SourceKind;
   intent: IntentKind;
+  eval?: RagEvalResult;
 };
 
 @Injectable()
@@ -29,6 +29,8 @@ export class AiSupportService {
     private readonly tools: ToolsService,
     private readonly llm: LlmService,
     private readonly aiConfig: AiConfigService,
+    private readonly ragEval: RagEvalService,
+    private readonly metrics: MetricsService,
   ) {}
 
   async chat(dto: ChatRequestDto, userId?: string): Promise<ChatResult> {
@@ -46,6 +48,8 @@ export class AiSupportService {
     let answer: string;
     let sources: Array<{ chunk: number; source: string }> = [];
     let responseMode = '';
+    // Chunks vector thuần (không gồm [Structured]) để judge precision/recall.
+    let ragChunks: string[] = [];
 
     if (intent === 'smalltalk' || intent === 'identity') {
       // Bypass retrieval (Q7/Q11): trả lời trực tiếp, không cite.
@@ -71,7 +75,9 @@ export class AiSupportService {
       ]);
       const structuredCtx = structured.text;
 
-      const vectorChunks = vectorDocs.map((d) => d.content);
+      const rawVectorChunks = vectorDocs.map((d) => d.content);
+      ragChunks = [...rawVectorChunks];
+      const vectorChunks = [...rawVectorChunks];
       const vectorSources = vectorDocs.map((d, i) => ({
         chunk: i + 1,
         source: String(
@@ -134,7 +140,75 @@ export class AiSupportService {
         conversationId: dto.conversationId,
       },
     );
+
+    // Online RAG eval (Q4-Q6): realtime ở dev, không block chat thường.
+    // verbose=true -> await để dev thấy điểm ngay; ngược lại fire-and-forget.
+    const evalInput = {
+      query: cleaned,
+      chunks: ragChunks,
+      answer,
+      intent,
+      sourceKind,
+      topK,
+    };
+    if (dto.verbose) {
+      const evalRes = await this.evalAndObserve(evalInput);
+      return {
+        answer,
+        sources,
+        toolCalls,
+        conversationId,
+        sourceKind,
+        intent,
+        eval: evalRes,
+      };
+    }
+    void this.evalAndObserve(evalInput).catch((e) =>
+      this.logger.warn(`rag eval background failed: ${String(e)}`),
+    );
     return { answer, sources, toolCalls, conversationId, sourceKind, intent };
+  }
+
+  /** Chấm precision/recall rồi observe Prometheus. Không throw. */
+  private async evalAndObserve(input: {
+    query: string;
+    chunks: string[];
+    answer: string;
+    intent: IntentKind;
+    sourceKind: SourceKind;
+    topK: number;
+  }): Promise<RagEvalResult> {
+    try {
+      const res = await this.ragEval.evaluate(input);
+      if (
+        res.status === 'evaluated' &&
+        res.precision !== null &&
+        res.recall !== null
+      ) {
+        this.metrics.observeAiRag(res.precision, res.recall, {
+          intent: input.intent,
+          source: input.sourceKind,
+          top_k: input.topK,
+        });
+      } else {
+        this.metrics.incAiRagEval(res.status);
+      }
+      return res;
+    } catch (e) {
+      this.logger.warn(`rag eval observe failed: ${String(e)}`);
+      try {
+        this.metrics.incAiRagEval('failed');
+      } catch {
+        // metrics chưa sẵn (unit test) -> bỏ qua
+      }
+      return {
+        status: 'failed',
+        method: 'none',
+        precision: null,
+        recall: null,
+        topK: input.topK,
+      };
+    }
   }
 
   /** SSE: emit tool events then answer split into sentence chunks. */
@@ -164,6 +238,17 @@ export class AiSupportService {
       yield {
         data: JSON.stringify({ type: 'sources', sources: result.sources }),
       };
+      if (result.eval) {
+        yield {
+          data: JSON.stringify({
+            type: 'eval',
+            precision: result.eval.precision,
+            recall: result.eval.recall,
+            status: result.eval.status,
+            method: result.eval.method,
+          }),
+        };
+      }
     }
     // Stream answer by sentences to mimic token streaming (no websocket per spec)
     const parts = result.answer.match(/[^.!?\n]+[.!?\n]+|[^.!?\n]+$/g) ?? [
@@ -180,6 +265,7 @@ export class AiSupportService {
               conversationId: result.conversationId,
               sourceKind: result.sourceKind,
               intent: result.intent,
+              eval: result.eval ?? null,
             }
           : { type: 'done', conversationId: result.conversationId },
       ),
