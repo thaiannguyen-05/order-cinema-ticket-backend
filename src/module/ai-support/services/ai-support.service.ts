@@ -142,7 +142,8 @@ export class AiSupportService {
     );
 
     // Online RAG eval (Q4-Q6): realtime ở dev, không block chat thường.
-    // verbose=true -> await để dev thấy điểm ngay; ngược lại fire-and-forget.
+    // verbose=true (non-production) -> await để dev thấy điểm ngay;
+    // ngược lại fire-and-forget.
     const evalInput = {
       query: cleaned,
       chunks: ragChunks,
@@ -151,7 +152,10 @@ export class AiSupportService {
       sourceKind,
       topK,
     };
-    if (dto.verbose) {
+    const verboseEffective =
+      dto.verbose === true &&
+      (process.env.NODE_ENV ?? 'development') !== 'production';
+    if (verboseEffective) {
       const evalRes = await this.evalAndObserve(evalInput);
       return {
         answer,
@@ -216,19 +220,36 @@ export class AiSupportService {
     dto: ChatRequestDto,
     userId?: string,
   ): AsyncGenerator<{ data: string }> {
-    const verbose = dto.verbose ?? false;
+    // verbose trace chỉ ở non-production (đồng bộ với controller).
+    const verbose =
+      (dto.verbose ?? false) &&
+      (process.env.NODE_ENV ?? 'development') !== 'production';
     if (verbose)
       yield { data: JSON.stringify({ type: 'tool', name: 'analyze_query' }) };
     let result: ChatResult;
     try {
       result = await this.chat(dto, userId);
     } catch (e) {
-      yield {
-        data: JSON.stringify({
-          type: 'error',
-          message: e instanceof Error ? e.message : 'chat failed',
-        }),
-      };
+      // Không lộ e.message nội bộ (Groq/Prisma). HttpException giữ
+      // errorCode an toàn, lỗi khác map về generic.
+      if (e instanceof HttpException) {
+        const res = e.getResponse() as Record<string, unknown>;
+        yield {
+          data: JSON.stringify({
+            type: 'error',
+            message: 'chat failed',
+            errorCode: res?.['errorCode'] ?? 'AI_CHAT_FAILED',
+          }),
+        };
+      } else {
+        yield {
+          data: JSON.stringify({
+            type: 'error',
+            message: 'chat failed',
+            errorCode: 'AI_CHAT_FAILED',
+          }),
+        };
+      }
       return;
     }
     if (verbose) {
@@ -343,10 +364,14 @@ export class AiSupportService {
             };
         }
         if (!r?.films || r.films.length === 0) {
-          r = (await this.tools.searchFilms('', 5)) as {
-            films?: unknown[];
-            total?: number;
-          };
+          // Chỉ list-all khi user hỏi liệt kê; query cụ thể không match
+          // thì để trống để response() từ chối mềm thay vì bịa phim.
+          if (isListAll) {
+            r = (await this.tools.searchFilms('', 5)) as {
+              films?: unknown[];
+              total?: number;
+            };
+          }
         }
         toolCalls.push('search_films');
         if (r?.films && r.films.length > 0) {
@@ -462,7 +487,9 @@ export class AiSupportService {
       return convId;
     } catch (e) {
       this.logger.warn(`persist chat failed: ${String(e)}`);
-      return opts.conversationId ?? 'ephemeral';
+      // Không echo conversationId client gửi khi DB lỗi (chưa verify
+      // ownership): trả ephemeral để client không tưởng ID forged hợp lệ.
+      return 'ephemeral';
     }
   }
 }

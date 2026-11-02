@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   Sse,
+  UnauthorizedException,
   UseGuards,
   UseInterceptors,
   ValidationPipe,
@@ -33,6 +34,16 @@ const queryValidation = new ValidationPipe({
   forbidNonWhitelisted: true,
 });
 
+/**
+ * verbose trace (sources/toolCalls/intent/eval) chỉ mở ở non-production.
+ * Production luôn trả gọn {answer, conversationId} để không lộ internals.
+ */
+function isVerboseAllowed(verbose?: boolean): boolean {
+  return (
+    verbose === true && (process.env.NODE_ENV ?? 'development') !== 'production'
+  );
+}
+
 @ApiTags('AiSupport')
 @ApiBearerAuth('bearerAuth')
 @Controller({ path: 'ai-support', version: '1' })
@@ -52,8 +63,9 @@ export class AiSupportController {
   async chat(@Body() dto: ChatRequestDto, @User('id') userId?: string) {
     const r = await this.ai.chat(dto, userId);
     // Mặc định sạch như chat thật: chỉ answer + conversationId.
-    // verbose=true mới kèm trace debug (sources/toolCalls/sourceKind/intent).
-    if (dto.verbose) return r;
+    // verbose=true mới kèm trace debug (sources/toolCalls/sourceKind/intent),
+    // và chỉ có hiệu lực ở non-production.
+    if (isVerboseAllowed(dto.verbose)) return r;
     return { answer: r.answer, conversationId: r.conversationId };
   }
 
@@ -78,6 +90,7 @@ export class AiSupportController {
   }
 
   @Get('conversations/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Get conversation history' })
   async history(
     @Param('id', ParseUUIDPipe) id: string,
@@ -85,14 +98,20 @@ export class AiSupportController {
     @User('id') userId?: string,
   ) {
     // Strict owner scoping: anonymous callers never read arbitrary threads.
-    if (!userId) return null;
+    if (!userId) throw new UnauthorizedException('Login required');
     const conv = await this.prisma.supportConversation.findFirst({
       where: { id, userId },
-      include: {
+      // Chỉ lộ role/content/createdAt: giữ sources/toolCalls/injectionVerdict
+      // nội bộ, tránh lộ trace scan cho client.
+      select: {
+        id: true,
+        userId: true,
+        createdAt: true,
         messages: {
           orderBy: { createdAt: 'asc' },
           take: pagination.limit,
           skip: pagination.offset,
+          select: { role: true, content: true, createdAt: true },
         },
       },
     });
