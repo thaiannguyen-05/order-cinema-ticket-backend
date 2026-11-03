@@ -596,10 +596,11 @@ Trả lời:`;
         docs.length === 0
           ? '0 docs'
           : docs
-              .map(
-                (d, i) =>
-                  `[Chunk ${i + 1}] ${String(d.metadata?.['source'] ?? 'support_documents')}: ${d.content.slice(0, 300)}`,
-              )
+              .map((d, i) => {
+                const raw = d.metadata?.['source'];
+                const src = typeof raw === 'string' ? raw : 'support_documents';
+                return `[Chunk ${i + 1}] ${src}: ${d.content.slice(0, 300)}`;
+              })
               .join('\n---\n'),
       ),
       chunkCount: docs.length,

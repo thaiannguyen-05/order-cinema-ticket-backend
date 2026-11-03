@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGroq } from '@langchain/groq';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import type { RunnableConfig } from '@langchain/core/runnables';
 import { AppSecretsService } from './app-secrets.service';
 import { extractTokenUsage, type AiTokenUsage } from './ai-trace.service';
 
@@ -94,7 +95,7 @@ export class LlmService {
     template: string,
     vars: Record<string, string>,
     params?: { maxTokens?: number; temperature?: number },
-    callbacks?: never,
+    callbacks?: RunnableConfig['callbacks'],
   ): Promise<LlmInvokeResult> {
     const info = this.getModelInfo(params);
     const model = this.getModel(params);
@@ -102,8 +103,7 @@ export class LlmService {
     const msg = await prompt
       .pipe(model)
       // LangSmith/Langfuse: pass callbacks via Runnable config when wired, no hard dep.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .invoke(vars, (callbacks ? { callbacks } : undefined) as any);
+      .invoke(vars, callbacks ? { callbacks } : undefined);
     const raw = msg.content;
     const text = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '');
     const usage = extractTokenUsage(
