@@ -1,9 +1,19 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGroq } from '@langchain/groq';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { AppSecretsService } from './app-secrets.service';
+import { extractTokenUsage, type AiTokenUsage } from './ai-trace.service';
 
 let cached: ChatGroq | null = null;
+
+export type LlmInvokeResult = {
+  text: string;
+  usage: AiTokenUsage | null;
+  model: string;
+  maxTokens: number;
+  temperature: number;
+};
 
 @Injectable()
 export class LlmService {
@@ -59,5 +69,59 @@ export class LlmService {
         'AI chat is disabled: missing GROQ_API_KEY',
       );
     }
+  }
+
+  getModelInfo(params?: { maxTokens?: number; temperature?: number }): {
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  } {
+    const model = this.config.getOrThrow<string>('AI_LLM_MODEL');
+    const maxTokens = Number(
+      this.config.getOrThrow<string>('AI_LLM_MAX_TOKENS'),
+    );
+    const temperature = Number(
+      this.config.getOrThrow<string>('AI_LLM_TEMPERATURE'),
+    );
+    return {
+      model,
+      maxTokens: params?.maxTokens ?? maxTokens,
+      temperature: params?.temperature ?? temperature,
+    };
+  }
+
+  async invokeTemplate(
+    template: string,
+    vars: Record<string, string>,
+    params?: { maxTokens?: number; temperature?: number },
+    callbacks?: never,
+  ): Promise<LlmInvokeResult> {
+    const info = this.getModelInfo(params);
+    const model = this.getModel(params);
+    const prompt = ChatPromptTemplate.fromTemplate(template);
+    const msg = await prompt
+      .pipe(model)
+      // LangSmith/Langfuse: pass callbacks via Runnable config when wired, no hard dep.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .invoke(vars, (callbacks ? { callbacks } : undefined) as any);
+    const raw = msg.content;
+    const text = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '');
+    const usage = extractTokenUsage(
+      msg as {
+        usage_metadata?: {
+          input_tokens?: number;
+          output_tokens?: number;
+          total_tokens?: number;
+        };
+        response_metadata?: {
+          tokenUsage?: {
+            promptTokens?: number;
+            completionTokens?: number;
+            totalTokens?: number;
+          };
+        };
+      },
+    );
+    return { text, usage, ...info };
   }
 }
