@@ -9,6 +9,8 @@ import { getInjectionSdk } from '../guards/injection.guard';
 import { AiConfigService } from '../constants';
 import type { ChatRequestDto } from '../dto/chat-request.dto';
 import { buildOutOfScopeRefusal, isCatalogQuery } from './tools.service';
+import type { AiStepTrace } from './ai-trace.service';
+import { truncatePreview } from './ai-trace.service';
 
 export type ChatResult = {
   answer: string;
@@ -18,6 +20,7 @@ export type ChatResult = {
   sourceKind: SourceKind;
   intent: IntentKind;
   eval?: RagEvalResult;
+  trace?: AiStepTrace[];
 };
 
 @Injectable()
@@ -35,8 +38,19 @@ export class AiSupportService {
 
   async chat(dto: ChatRequestDto, userId?: string): Promise<ChatResult> {
     const cfg = this.aiConfig.resolve();
+    const trace: AiStepTrace[] = [];
+    const t0Analyze = Date.now();
     const { cleaned } = this.tools.analyzeQuery(dto.query);
-    const { intent, sourceKind } = await this.tools.classifyIntent(cleaned);
+    trace.push({
+      name: 'analyze_query',
+      durationMs: Date.now() - t0Analyze,
+      inputPreview: truncatePreview(dto.query ?? ''),
+      outputPreview: truncatePreview(cleaned),
+    });
+    const { intent, sourceKind } = await this.tools.classifyIntent(
+      cleaned,
+      trace,
+    );
     const topK = Math.min(dto.top_k ?? cfg.defaultTopK, cfg.maxTopK);
 
     const toolCalls: string[] = [`analyze_query`, `classify:${intent}`];
@@ -53,7 +67,12 @@ export class AiSupportService {
 
     if (intent === 'smalltalk' || intent === 'identity') {
       // Bypass retrieval (Q7/Q11): trả lời trực tiếp, không cite.
-      answer = await this.tools.responseDirect(cleaned, intent, historyText);
+      answer = await this.tools.responseDirect(
+        cleaned,
+        intent,
+        historyText,
+        trace,
+      );
       responseMode = 'response:direct';
       toolCalls.push(responseMode);
     } else if (intent === 'outofscope') {
@@ -65,10 +84,10 @@ export class AiSupportService {
       const [structured, vectorDocs] = await Promise.all([
         sourceKind === 'vector'
           ? Promise.resolve({ text: '', sourceTags: [] as string[] })
-          : this.collectStructured(cleaned, userId, toolCalls),
+          : this.collectStructured(cleaned, userId, toolCalls, trace),
         sourceKind === 'structured'
           ? Promise.resolve([])
-          : this.tools.searchDocs(cleaned, topK).then((docs) => {
+          : this.tools.searchDocs(cleaned, topK, trace).then((docs) => {
               toolCalls.push('search_docs');
               return docs;
             }),
@@ -99,10 +118,15 @@ export class AiSupportService {
       }
 
       const allowGeneral = vectorChunks.length === 0 && isCatalogQuery(cleaned);
-      const res = await this.tools.response(vectorChunks, cleaned, {
-        historyText,
-        allowGeneral,
-      });
+      const res = await this.tools.response(
+        vectorChunks,
+        cleaned,
+        {
+          historyText,
+          allowGeneral,
+        },
+        trace,
+      );
       answer = res.text;
       responseMode = `response:${res.mode}`;
       toolCalls.push(responseMode);
@@ -142,7 +166,8 @@ export class AiSupportService {
     );
 
     // Online RAG eval (Q4-Q6): realtime ở dev, không block chat thường.
-    // verbose=true -> await để dev thấy điểm ngay; ngược lại fire-and-forget.
+    // verbose=true (non-production) -> await để dev thấy điểm ngay;
+    // ngược lại fire-and-forget.
     const evalInput = {
       query: cleaned,
       chunks: ragChunks,
@@ -151,7 +176,11 @@ export class AiSupportService {
       sourceKind,
       topK,
     };
-    if (dto.verbose) {
+    const verboseEffective =
+      dto.verbose === true &&
+      (process.env.NODE_ENV ?? 'development') !== 'production';
+    this.observeLlmTrace(trace);
+    if (verboseEffective) {
       const evalRes = await this.evalAndObserve(evalInput);
       return {
         answer,
@@ -161,12 +190,38 @@ export class AiSupportService {
         sourceKind,
         intent,
         eval: evalRes,
+        trace,
       };
     }
     void this.evalAndObserve(evalInput).catch((e) =>
       this.logger.warn(`rag eval background failed: ${String(e)}`),
     );
+    // Non-verbose (prod): strip trace/prompts, keep only chat fields.
+    // Metrics already observed above via histograms (no prompt leakage).
     return { answer, sources, toolCalls, conversationId, sourceKind, intent };
+  }
+
+  /** Observe LLM latency/tokens từ verbose trace. Không throw (unit test mock thiếu). */
+  private observeLlmTrace(trace: AiStepTrace[]): void {
+    try {
+      const m = this.metrics as unknown as {
+        observeAiLlm?: (
+          durationSeconds: number,
+          tokens: number,
+          labels: { step: string; model: string },
+        ) => void;
+      };
+      if (typeof m.observeAiLlm !== 'function') return;
+      for (const s of trace) {
+        const tokens = s.tokenUsage?.totalTokens ?? 0;
+        m.observeAiLlm(s.durationMs / 1000, tokens, {
+          step: s.name,
+          model: s.model ?? 'none',
+        });
+      }
+    } catch {
+      // metrics chưa sẵn (unit test) -> bỏ qua
+    }
   }
 
   /** Chấm precision/recall rồi observe Prometheus. Không throw. */
@@ -216,19 +271,36 @@ export class AiSupportService {
     dto: ChatRequestDto,
     userId?: string,
   ): AsyncGenerator<{ data: string }> {
-    const verbose = dto.verbose ?? false;
+    // verbose trace chỉ ở non-production (đồng bộ với controller).
+    const verbose =
+      (dto.verbose ?? false) &&
+      (process.env.NODE_ENV ?? 'development') !== 'production';
     if (verbose)
       yield { data: JSON.stringify({ type: 'tool', name: 'analyze_query' }) };
     let result: ChatResult;
     try {
       result = await this.chat(dto, userId);
     } catch (e) {
-      yield {
-        data: JSON.stringify({
-          type: 'error',
-          message: e instanceof Error ? e.message : 'chat failed',
-        }),
-      };
+      // Không lộ e.message nội bộ (Groq/Prisma). HttpException giữ
+      // errorCode an toàn, lỗi khác map về generic.
+      if (e instanceof HttpException) {
+        const res = e.getResponse() as Record<string, unknown>;
+        yield {
+          data: JSON.stringify({
+            type: 'error',
+            message: 'chat failed',
+            errorCode: res?.['errorCode'] ?? 'AI_CHAT_FAILED',
+          }),
+        };
+      } else {
+        yield {
+          data: JSON.stringify({
+            type: 'error',
+            message: 'chat failed',
+            errorCode: 'AI_CHAT_FAILED',
+          }),
+        };
+      }
       return;
     }
     if (verbose) {
@@ -238,6 +310,11 @@ export class AiSupportService {
       yield {
         data: JSON.stringify({ type: 'sources', sources: result.sources }),
       };
+      if (result.trace) {
+        yield {
+          data: JSON.stringify({ type: 'trace', steps: result.trace }),
+        };
+      }
       if (result.eval) {
         yield {
           data: JSON.stringify({
@@ -307,6 +384,7 @@ export class AiSupportService {
     query: string,
     userId: string | undefined,
     toolCalls: string[],
+    trace?: AiStepTrace[],
   ): Promise<{ text: string; sourceTags: string[] }> {
     const out: string[] = [];
     const sourceTags: string[] = [];
@@ -319,6 +397,7 @@ export class AiSupportService {
     try {
       if (/(phim|film)/.test(q)) {
         // contains cả câu gần như luôn total 0 — thử full query trước, rỗng thì list-all.
+        const tFilms = Date.now();
         let r = (await this.tools.searchFilms(query.slice(0, 100), 5)) as {
           films?: unknown[];
           total?: number;
@@ -343,24 +422,54 @@ export class AiSupportService {
             };
         }
         if (!r?.films || r.films.length === 0) {
-          r = (await this.tools.searchFilms('', 5)) as {
-            films?: unknown[];
-            total?: number;
-          };
+          // Chỉ list-all khi user hỏi liệt kê; query cụ thể không match
+          // thì để trống để response() từ chối mềm thay vì bịa phim.
+          if (isListAll) {
+            r = (await this.tools.searchFilms('', 5)) as {
+              films?: unknown[];
+              total?: number;
+            };
+          }
         }
         toolCalls.push('search_films');
+        trace?.push({
+          name: 'search_films',
+          durationMs: Date.now() - tFilms,
+          inputPreview: truncatePreview(query.slice(0, 100)),
+          outputPreview: truncatePreview(
+            JSON.stringify({
+              total:
+                (r as { total?: number })?.total ??
+                (r as { films?: unknown[] })?.films?.length ??
+                0,
+            }).slice(0, 500),
+          ),
+          chunkCount: Array.isArray((r as { films?: unknown[] })?.films)
+            ? (r as { films?: unknown[] }).films!.length
+            : 0,
+        });
         if (r?.films && r.films.length > 0) {
           out.push(`Films: ${JSON.stringify(r).slice(0, 1500)}`);
           sourceTags.push('structured:films');
         }
       }
       if (/(rạp|rap|cinema|suất|suat|show)/.test(q)) {
+        const tCine = Date.now();
         const r = (await this.tools.searchCinemasShowtimes(
           query.slice(0, 100),
           5,
         )) as { cinemas?: unknown[]; total?: number };
         const list = r?.cinemas;
         toolCalls.push('search_cinemas_showtimes');
+        trace?.push({
+          name: 'search_cinemas_showtimes',
+          durationMs: Date.now() - tCine,
+          inputPreview: truncatePreview(query.slice(0, 100)),
+          outputPreview: truncatePreview(
+            `total=${r?.total ?? list?.length ?? 0}`,
+          ),
+          chunkCount: list?.length ?? 0,
+        });
         if (list && list.length > 0) {
           out.push(`Cinemas: ${JSON.stringify(r).slice(0, 1500)}`);
           sourceTags.push('structured:cinemas');
@@ -382,8 +491,15 @@ export class AiSupportService {
           q,
         );
       if (orderMatch && userId) {
+        const tOrder = Date.now();
         const r = await this.tools.getOrderStatus(orderMatch[0], userId);
         toolCalls.push('get_order_status');
+        trace?.push({
+          name: 'get_order_status',
+          durationMs: Date.now() - tOrder,
+          inputPreview: truncatePreview(orderMatch[0]),
+          outputPreview: truncatePreview(JSON.stringify(r).slice(0, 500)),
+        });
         if (r) {
           out.push(`Order: ${JSON.stringify(r).slice(0, 1000)}`);
           sourceTags.push('structured:order');
@@ -397,8 +513,16 @@ export class AiSupportService {
           );
           sourceTags.push('structured:orders');
         } else {
+          const tList = Date.now();
           const rows = await this.tools.listOrders(userId, 5);
           toolCalls.push('list_orders');
+          trace?.push({
+            name: 'list_orders',
+            durationMs: Date.now() - tList,
+            inputPreview: truncatePreview(`user:${userId}`),
+            outputPreview: truncatePreview(`${rows.length} orders`),
+            chunkCount: rows.length,
+          });
           if (rows.length > 0) {
             out.push(`Orders: ${JSON.stringify(rows).slice(0, 1500)}`);
           } else {
@@ -462,7 +586,9 @@ export class AiSupportService {
       return convId;
     } catch (e) {
       this.logger.warn(`persist chat failed: ${String(e)}`);
-      return opts.conversationId ?? 'ephemeral';
+      // Không echo conversationId client gửi khi DB lỗi (chưa verify
+      // ownership): trả ephemeral để client không tưởng ID forged hợp lệ.
+      return 'ephemeral';
     }
   }
 }

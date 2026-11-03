@@ -142,6 +142,17 @@ import { ReplicaMetricsService } from './replica-metrics.service';
       help: 'RAG eval outcomes (evaluated = observed both histograms).',
       labelNames: ['result'],
     }),
+    makeHistogramProvider({
+      name: METRIC_NAMES.AI_LLM_DURATION,
+      help: 'LLM step duration in seconds by step and model (in-house trace).',
+      labelNames: ['step', 'model'],
+      buckets: HTTP_HISTOGRAM_BUCKETS,
+    }),
+    makeCounterProvider({
+      name: METRIC_NAMES.AI_LLM_TOKENS_TOTAL,
+      help: 'LLM total tokens by step and model.',
+      labelNames: ['step', 'model'],
+    }),
     MetricsService,
     ReplicaMetricsService,
   ],

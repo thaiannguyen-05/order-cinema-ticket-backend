@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
 import { LlmService } from './llm.service';
 import type { IntentKind, SourceKind } from './tools.service';
 
@@ -310,10 +308,11 @@ export class RagEvalService {
       `Chunk relevant (=1) nếu chứa thông tin TRỰC TIẾP trả lời query (phim/rạp/suất/giá/policy/order). Nhiễu/không liên quan (=0).\n` +
       `Chỉ trả JSON duy nhất, không giải thích. Format: {"relevant":[1,0,1]}\n\n` +
       `Query: ${query}\n\nChunks:\n${list}`;
-    const out = await ChatPromptTemplate.fromTemplate('{input}')
-      .pipe(this.llm.getModel({ maxTokens: 200, temperature: 0 }))
-      .pipe(new StringOutputParser())
-      .invoke({ input: prompt });
+    const { text: out } = await this.llm.invokeTemplate(
+      '{input}',
+      { input: prompt },
+      { maxTokens: 200, temperature: 0 },
+    );
     return parseRelevanceJson(out, chunks.length);
   }
 
@@ -329,10 +328,11 @@ export class RagEvalService {
       `Tách answer thành các factual claim (bỏ chào hỏi/câu gợi ý chung). Với mỗi claim, covered=true nếu được ít nhất 1 chunk chống lưng, ngược lại false.\n` +
       `Chỉ trả JSON duy nhất. Format: {"claims":[{"text":"...","covered":true}]}\n\n` +
       `Answer: ${answer}\n\nChunks:\n${list}`;
-    const out = await ChatPromptTemplate.fromTemplate('{input}')
-      .pipe(this.llm.getModel({ maxTokens: 250, temperature: 0 }))
-      .pipe(new StringOutputParser())
-      .invoke({ input: prompt });
+    const { text: out } = await this.llm.invokeTemplate(
+      '{input}',
+      { input: prompt },
+      { maxTokens: 250, temperature: 0 },
+    );
     const parsed = parseCoverageJson(out);
     if (parsed) return parsed;
     // Fallback format {"covered":X,"total":Y} nằm trong cùng parser.

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Trace Monitor (dev)</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+  input, textarea, button { font: inherit; }
+  .row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+  input[type=text], input[type=password], textarea { background: #222; color: #eee; border: 1px solid #444; padding: 6px 8px; border-radius: 6px; }
+  button { background: #2a6bff; color: #fff; border: 0; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13px; }
+  th, td { border: 1px solid #333; padding: 6px; text-align: left; vertical-align: top; }
+  th { background: #1c1c1c; }
+  pre { white-space: pre-wrap; word-break: break-word; margin: 0; max-height: 220px; overflow: auto; }
+  .muted { color: #999; }
+</style>
+</head>
+<body>
+<h2>AI Support Trace Monitor <span class="muted">(dev-only, verbose)</span></h2>
+<div class="row">
+  <input id="email" type="text" size="26" value="user01@test.local" />
+  <input id="password" type="password" size="14" value="Test1234" />
+  <button id="login">Login</button>
+  <span id="loginState" class="muted"></span>
+</div>
+<div class="row">
+  <textarea id="query" rows="2" cols="70">Chính sách hoàn vé thế nào?</textarea>
+</div>
+<div class="row">
+  <label>top_k <input id="topk" type="text" size="3" value="3" /></label>
+  <label><input id="verbose" type="checkbox" checked /> verbose</label>
+  <button id="send">Send</button>
+</div>
+<h3>Answer</h3>
+<pre id="answer" class="muted">(chưa gọi)</pre>
+<h3>Steps <span id="meta" class="muted"></span></h3>
+<table>
+  <thead><tr><th>step</th><th>ms</th><th>model</th><th>tokens</th><th>input</th><th>output</th></tr></thead>
+  <tbody id="steps"><tr><td colspan="6" class="muted">(trống)</td></tr></tbody>
+</table>
+<script>
+const API = 'http://localhost:4000';
+const $ = (id) => document.getElementById(id);
+$('login').onclick = async () => {
+  const r = await fetch(API + '/v1/auth/login', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: $('email').value, password: $('password').value }),
+  });
+  $('loginState').textContent = r.ok ? 'logged in (cookie set)' : ('login failed: ' + r.status);
+};
+$('send').onclick = async () => {
+  $('answer').textContent = '(đang gọi...)';
+  const r = await fetch(API + '/v1/ai-support/chat', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: $('query').value, top_k: Number($('topk').value) || 3, verbose: $('verbose').checked }),
+  });
+  const j = await r.json().catch(() => ({}));
+  const d = j.data ?? j;
+  $('answer').textContent = d.answer ?? JSON.stringify(j).slice(0, 2000);
+  $('meta').textContent = 'intent=' + (d.intent ?? '?') + ' source=' + (d.sourceKind ?? '?') + ' tools=' + (d.toolCalls || []).join(',');
+  const steps = d.trace || [];
+  $('steps').innerHTML = steps.length ? steps.map(s =>
+    '<tr><td>' + (s.name || '') + '</td><td>' + (s.durationMs ?? '') + '</td><td>' +
+    (s.model || '') + (s.maxTokens ? '<br/>' + s.maxTokens + '/' + (s.temperature ?? '') : '') + '</td><td>' +
+    (s.tokenUsage ? (s.tokenUsage.promptTokens ?? '-') + '/' + (s.tokenUsage.completionTokens ?? '-') + '/' + (s.tokenUsage.totalTokens ?? '-') : '') +
+    '</td><td><pre>' + escapeHtml((s.inputPreview || '').slice(0, 1200)) + '</pre></td><td><pre>' +
+    escapeHtml((s.outputPreview || '').slice(0, 1200)) + '</pre></td></tr>'
+  ).join('') : '<tr><td colspan="6" class="muted">(non-verbose hoặc 401 — login trước)</td></tr>';
+};
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+</script>
+</body>
+</html>

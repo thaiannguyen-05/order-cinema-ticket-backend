@@ -65,6 +65,10 @@ export class MetricsService {
     public readonly aiRagRecall: Histogram<string>,
     @InjectMetric(METRIC_NAMES.AI_RAG_EVAL_TOTAL)
     public readonly aiRagEvalTotal: Counter<string>,
+    @InjectMetric(METRIC_NAMES.AI_LLM_DURATION)
+    public readonly aiLlmDuration: Histogram<string>,
+    @InjectMetric(METRIC_NAMES.AI_LLM_TOKENS_TOTAL)
+    public readonly aiLlmTokensTotal: Counter<string>,
   ) {}
 
   observeHttp(
@@ -190,6 +194,21 @@ export class MetricsService {
     this.aiRagPrecision.observe(base, p);
     this.aiRagRecall.observe(base, r);
     this.incAiRagEval('evaluated');
+  }
+
+  observeAiLlm(
+    durationSeconds: number,
+    tokens: number,
+    labels: { step: string; model: string },
+  ): void {
+    const safeDuration = Number.isFinite(durationSeconds)
+      ? Math.max(0, durationSeconds)
+      : 0;
+    const safeTokens = Number.isFinite(tokens)
+      ? Math.max(0, Math.round(tokens))
+      : 0;
+    this.aiLlmDuration.observe(labels, safeDuration);
+    if (safeTokens > 0) this.aiLlmTokensTotal.inc(labels, safeTokens);
   }
 
   setReplicaLag(seconds: number): void {

@@ -16,10 +16,19 @@ export function getInjectionSdk(): InjectionSDK {
     sharedSdk = new InjectionSDK({
       inputRegex: [
         'ignore previous instructions',
-        'jailbreak',
-        'system prompt',
+        'disregard previous instructions',
         'override instructions',
+        'jailbreak',
         'developer mode',
+        'system prompt',
+        // Vietnamese paraphrases (matched against lowercased content).
+        'bỏ qua hướng dẫn',
+        'phớt lờ hướng dẫn',
+        'quên hướng dẫn',
+        'tiết lộ system prompt',
+        'tiết lộ prompt',
+        'giả vờ là',
+        'đóng vai',
       ],
       outputBlockedWords: ['AKIA', 'sk-'],
       outputBlockedCodeFormats: ['SQL'],
@@ -80,8 +89,19 @@ export class InjectionGuard implements CanActivate {
     let scan: { shouldDeny: boolean; verdict: boolean; results: unknown };
     try {
       const sdk = getInjectionSdk();
-      const payload = query !== null ? { ...body, query } : body;
-      const r = await sdk.scanInput(payload, 'chatComplete', req.headers ?? {});
+      // SDK only extracts text from messages/prompt/input fields. Sending
+      // {query} yields empty text and fail-open (shouldDeny always false).
+      // Wrap as chat messages and lowercase for case-insensitive matching
+      // (SDK builds `new RegExp(rule)` without flags).
+      const scanPayload =
+        query !== null
+          ? { messages: [{ role: 'user', content: query.toLowerCase() }] }
+          : { messages: [{ role: 'user', content: '' }] };
+      const r = await sdk.scanInput(
+        scanPayload,
+        'chatComplete',
+        req.headers ?? {},
+      );
       scan = r as unknown as typeof scan;
     } catch (e) {
       this.logger.warn(`scanInput failed open? deny: ${String(e)}`);

@@ -25,6 +25,8 @@ export const METRIC_NAMES = {
   AI_RAG_CONTEXT_PRECISION: 'app_ai_rag_context_precision',
   AI_RAG_CONTEXT_RECALL: 'app_ai_rag_context_recall',
   AI_RAG_EVAL_TOTAL: 'app_ai_rag_eval_total',
+  AI_LLM_DURATION: 'app_ai_llm_duration_seconds',
+  AI_LLM_TOKENS_TOTAL: 'app_ai_llm_tokens_total',
 } as const;
 
 export const AI_RAG_SCORE_BUCKETS = [0.1, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 1];
