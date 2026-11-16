@@ -29,8 +29,8 @@ jest.mock('../../../module/theater-module/ticket/ticket.service', () => ({
   TicketService: class TicketService {},
 }));
 
-jest.mock('../../../module/core-module/payment/payment.service', () => ({
-  PaymentService: class PaymentService {},
+jest.mock('../../../module/core-module/order/order.service', () => ({
+  OrderService: class OrderService {},
 }));
 
 jest.mock('../../../module/core-module/payment/sepay.service', () => ({

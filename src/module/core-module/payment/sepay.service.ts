@@ -28,6 +28,7 @@ import {
 } from './type';
 import type { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import type { PaymentOrder } from './type';
+import { OrderService } from '../order/order.service';
 
 export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 
@@ -61,6 +62,8 @@ export class SepayService {
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
     private readonly configService: ConfigService,
+    private readonly orderService: OrderService,
+
     @Optional() private readonly metrics?: MetricsService,
   ) {}
 
@@ -117,39 +120,6 @@ export class SepayService {
     const b = Buffer.from(expected, 'utf8');
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       throw new UnauthorizedException('Invalid return token');
-    }
-  }
-
-  private async requireOrder(
-    id: string,
-    userId?: string,
-  ): Promise<PaymentOrder> {
-    const order = userId
-      ? await this.prismaService.order.findFirst({ where: { id, userId } })
-      : await this.prismaService.order.findUnique({ where: { id } });
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-    return order;
-  }
-
-  private async saveStatus(
-    orderId: string,
-    data: Prisma.OrderUpdateInput,
-  ): Promise<PaymentOrder> {
-    try {
-      return await this.prismaService.order.update({
-        where: { id: orderId },
-        data,
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException('Duplicate Sepay reference');
-      }
-      throw error;
     }
   }
 
@@ -269,7 +239,7 @@ export class SepayService {
       }
     }
 
-    const updated = await this.saveStatus(order.id, {
+    const updated = await this.orderService.saveStatus(order.id, {
       status: nextStatus,
       sepayOrderId: dto.order.order_id,
       sepayTransactionId: dto.transaction.transaction_id,
@@ -310,7 +280,10 @@ export class SepayService {
         PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
         PAYMENT_LOCK_TTL_MS.CHECKOUT,
         async () => {
-          const order = await this.requireOrder(orderId, userId);
+          const order = await this.orderService.getOwnerOrder({
+            orderId,
+            userId,
+          });
 
           if (order.status === OrderStatus.PAID) {
             throw new ConflictException('Order already paid');
@@ -460,7 +433,11 @@ export class SepayService {
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(invoiceNumber),
       PAYMENT_LOCK_TTL_MS.WEBHOOK,
-      async () => this.applyIpn(await this.requireOrder(invoiceNumber), dto),
+      async () =>
+        this.applyIpn(
+          await this.orderService.getOrderById({ orderId: invoiceNumber }),
+          dto,
+        ),
     );
 
     if (result === null) {
@@ -501,13 +478,16 @@ export class SepayService {
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
-        const order = await this.requireOrder(orderId, userId);
+        const order = await this.orderService.getOwnerOrder({
+          orderId,
+          userId,
+        });
         if (
           order.status === OrderStatus.PENDING &&
           order.expiresAt &&
           order.expiresAt.getTime() <= Date.now()
         ) {
-          const updated = await this.saveStatus(order.id, {
+          const updated = await this.orderService.saveStatus(order.id, {
             status: OrderStatus.EXPIRED,
           });
           await this.prismaService.ticket.updateMany({
@@ -549,13 +529,13 @@ export class SepayService {
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
-        const order = await this.requireOrder(orderId);
+        const order = await this.orderService.getOrderById({ orderId });
         this.verifyReturnToken(order, token);
         if (outcome !== 'cancel' || order.status !== OrderStatus.PENDING) {
           return { orderId: order.id, status: order.status, idempotent: true };
         }
         const nextStatus = OrderStatus.CANCELLED;
-        const updated = await this.saveStatus(order.id, {
+        const updated = await this.orderService.saveStatus(order.id, {
           status: nextStatus,
         });
         await this.prismaService.ticket.updateMany({

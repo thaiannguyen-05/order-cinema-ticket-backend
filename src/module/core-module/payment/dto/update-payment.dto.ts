@@ -1,8 +1,1 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { OrderStatus } from '@prisma/client';
-
-export class UpdatePaymentDto {
-  @IsEnum(OrderStatus)
-  @IsNotEmpty()
-  status!: OrderStatus;
-}
+export { UpdateOrderDto as UpdatePaymentDto } from '../../order/dto/update-order.dto';

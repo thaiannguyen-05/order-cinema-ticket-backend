@@ -12,14 +12,15 @@ import { PrismaService } from '../infra/prisma/prisma.service';
 import { MetricsService } from '../infra/metrics/metrics.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { REDIS_LOCK_CLIENT } from '../infra/redis/redis.value';
-import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from './constant';
-import type { CreatePaymentDto } from './dto/create-payment.dto';
-import type { UpdatePaymentDto } from './dto/update-payment.dto';
-import type { PaymentInterface } from './payment.interface';
-import { ALLOWED_TRANSITIONS, type PaymentOrder } from './type';
+import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from '../payment/constant';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+import { GetOrderDto } from './dto/get-order.dto';
+import { GetOwnerOrderDto } from './dto/get-owner-order.dto';
+import { ALLOWED_TRANSITIONS, PaymentOrder } from './type';
 
 @Injectable()
-export class PaymentService implements PaymentInterface {
+export class OrderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
@@ -35,7 +36,7 @@ export class PaymentService implements PaymentInterface {
   }
 
   async createOrder(
-    dto: CreatePaymentDto & { userId: string; idempotencyKey?: string },
+    dto: CreateOrderDto & { userId: string; idempotencyKey?: string },
   ): Promise<PaymentOrder> {
     try {
       const order = await this.doCreateOrder(dto);
@@ -52,14 +53,13 @@ export class PaymentService implements PaymentInterface {
   }
 
   private async doCreateOrder(
-    dto: CreatePaymentDto & { userId: string; idempotencyKey?: string },
+    dto: CreateOrderDto & { userId: string; idempotencyKey?: string },
   ): Promise<PaymentOrder> {
     const idem = this.normalizeIdempotencyKey(dto.idempotencyKey);
     const idemRedisKey = idem
       ? `idemp:payment:create:${dto.userId}:${idem}`
       : null;
 
-    // Fast path: replay of a previous request with the same key.
     if (idemRedisKey) {
       try {
         const existingId = await this.redis.get(idemRedisKey);
@@ -80,8 +80,6 @@ export class PaymentService implements PaymentInterface {
       async () => {
         try {
           return await this.prismaService.$transaction(async (tx) => {
-            // Lifecycle guard: ticket must exist, price is source of truth.
-            // finalPrice client gửi lên chỉ để đối chiếu, không tin blind.
             const ticket = await tx.ticket.findUnique({
               where: { id: dto.ticketId },
             });
@@ -121,11 +119,6 @@ export class PaymentService implements PaymentInterface {
                 `Ticket already has active order ${active.status}`,
               );
             }
-            // AVAILABLE -> PROCESSING: hold the ticket while Order is PENDING.
-            // PAID path (Sepay IPN) flips it to BOOKED; FAILED/CANCELLED/EXPIRED
-            // flips it back to AVAILABLE for retry. Terminal rows for the same
-            // ticket are cleaned here so Order.ticketId @unique never bricks a
-            // legitimate retry after expiry/cancel/failure.
             if (ticket.ticketStatus === TicketStatus.AVAILABLE) {
               await tx.ticket.update({
                 where: { id: ticket.id },
@@ -144,10 +137,6 @@ export class PaymentService implements PaymentInterface {
                 },
               },
             });
-            // Only IPN may decide PAID/FAILED. Force PENDING on create and
-            // ignore gateway-controlled fields even if client sends them.
-            // Explicit whitelist: never spread ...dto into order.create.
-            // expiresAt is server-controlled (now + 15m).
             if (idemRedisKey) {
               try {
                 const replayId = await this.redis.get(idemRedisKey);
@@ -202,9 +191,7 @@ export class PaymentService implements PaymentInterface {
     return order;
   }
 
-  // Internal only: no longer exposed via PATCH /payment/:id.
-  // PAID/FAILED must come from Sepay IPN (SepayService.applyIpn).
-  async updateOrder(id: string, dto: UpdatePaymentDto): Promise<PaymentOrder> {
+  async updateOrder(id: string, dto: UpdateOrderDto): Promise<PaymentOrder> {
     const result = await this.redisLockService.runExclusive<PaymentOrder>(
       PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(id),
       PAYMENT_LOCK_TTL_MS.UPDATE,
@@ -215,11 +202,9 @@ export class PaymentService implements PaymentInterface {
         if (!current) {
           throw new NotFoundException('Order not found');
         }
-        // Idempotent: same status -> no-op.
         if (current.status === dto.status) {
           return current;
         }
-        // Terminal states are immutable; only PENDING may transition.
         if (!ALLOWED_TRANSITIONS[current.status].includes(dto.status)) {
           throw new ConflictException(
             `Cannot transition order from ${current.status} to ${dto.status}`,
@@ -252,11 +237,54 @@ export class PaymentService implements PaymentInterface {
   }
 
   async getOrder(id: string, userId: string): Promise<PaymentOrder | null> {
-    // Owner-scoped: any authenticated user may only read their own orders.
-    // findFirst returns null for foreign ids (controller maps to 404) instead
-    // of leaking cross-tenant order data like the old findUnique-by-id did.
     return await this.prismaService.order.findFirst({
       where: { id, userId },
     });
+  }
+
+  async getOrderById(dto: GetOrderDto) {
+    const order = await this.prismaService.order.findUnique({
+      where: { id: dto.orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with id ${dto.orderId} not found`);
+    }
+
+    return order;
+  }
+
+  async getOwnerOrder(dto: GetOwnerOrderDto) {
+    const order = await this.prismaService.order.findUnique({
+      where: { id: dto.orderId, userId: dto.userId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        `Order with id ${dto.orderId} and user id ${dto.userId} not found`,
+      );
+    }
+
+    return order;
+  }
+
+  async saveStatus(
+    orderId: string,
+    data: Prisma.OrderUpdateInput,
+  ): Promise<PaymentOrder> {
+    try {
+      return await this.prismaService.order.update({
+        where: { id: orderId },
+        data,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Duplicate Sepay reference');
+      }
+      throw error;
+    }
   }
 }
