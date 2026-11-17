@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import Redlock from 'redlock';
 import { REDIS_LOCK_CLIENT } from './redis.value';
 import Redis from 'ioredis';
@@ -26,7 +30,19 @@ export class RedisLockService {
     let lock: Redlock.Lock | null = null;
     try {
       lock = await this.redisLock.acquire([resource], ttlMs);
-    } catch {
+    } catch (error) {
+      const err = error as Error;
+      const name = err?.name ?? '';
+      const message = err?.message ?? '';
+      const isRedisFailure =
+        /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ECONNRESET|Connection is closed|Socket closed|Client is closed/i.test(
+          message,
+        ) || name === 'ReplyError';
+      if (isRedisFailure) {
+        // Redis/client failure: surface as 503 instead of masquerading as contention.
+        throw new ServiceUnavailableException('Lock service unavailable');
+      }
+      // Contention (or unknown): treat as lock not acquired.
       return null;
     }
 

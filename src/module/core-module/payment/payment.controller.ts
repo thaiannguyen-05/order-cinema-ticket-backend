@@ -25,18 +25,18 @@ import { Throttle } from '@nestjs/throttler';
 import { User } from '../../../core/decorator/user.decorator';
 import { Public } from '../../../core/decorator/ispublic.decorator';
 import { SepayService } from './sepay.service';
-import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SepayCheckoutDto } from './dto/sepay-checkout.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import { SEPAY } from './constant';
+import { OrderService } from '../order/order.service';
 
 @ApiTags('Payment')
 @Controller({ path: 'payment', version: '1' })
 export class PaymentController {
   constructor(
-    private readonly paymentService: PaymentService,
     private readonly sepayService: SepayService,
+    private readonly orderService: OrderService,
   ) {}
 
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
@@ -50,7 +50,7 @@ export class PaymentController {
     @User('id') userId: string,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.paymentService.createOrder({ ...dto, userId, idempotencyKey });
+    return this.orderService.createOrder({ ...dto, userId, idempotencyKey });
   }
 
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
@@ -184,7 +184,7 @@ export class PaymentController {
     @Param('id', ParseUUIDPipe) id: string,
     @User('id') userId: string,
   ) {
-    const order = await this.paymentService.getOrder(id, userId);
+    const order = await this.orderService.getOrder(id, userId);
     if (!order) {
       throw new NotFoundException('Order not found');
     }

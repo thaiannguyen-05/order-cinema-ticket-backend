@@ -29,6 +29,7 @@ import { TicketModule } from './module/theater-module/ticket/ticket.module';
 import { OutboxCronJobModule } from './module/core-module/infra/outbox-cron-job/outbox-cron-job.module';
 import { OrderExpireCronJobModule } from './module/core-module/infra/order-expire-cron-job/order-expire-cron-job.module';
 import { PaymentModule } from './module/core-module/payment/payment.module';
+import { OrderModule } from './module/core-module/order/order.module';
 import { MetricsModule } from './module/core-module/infra/metrics/metrics.module';
 import { SyncDataCronJobModule } from './background/sync-data-cron-job/sync-data-cron-job.module';
 import { AiSupportModule } from './module/ai-support/ai-support.module';
@@ -89,6 +90,7 @@ import { AiSupportModule } from './module/ai-support/ai-support.module';
     OutboxCronJobModule,
     OrderExpireCronJobModule,
     PaymentModule,
+    OrderModule,
     MetricsModule,
     ScheduleModule.forRoot({}),
     PrometheusModule.register({

@@ -2,18 +2,17 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
   Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { MetricsService } from '../infra/metrics/metrics.service';
 import {
-  PAYMENT_LOCK_KEY,
+  IDEMPOTENCY_KEYS,
   PAYMENT_LOCK_TTL_MS,
   SEPAY,
   SEPAY_NOTIFICATION_TYPE,
@@ -28,6 +27,7 @@ import {
 } from './type';
 import type { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import type { PaymentOrder } from './type';
+import { OrderService } from '../order/order.service';
 
 export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 
@@ -61,6 +61,8 @@ export class SepayService {
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
     private readonly configService: ConfigService,
+    private readonly orderService: OrderService,
+
     @Optional() private readonly metrics?: MetricsService,
   ) {}
 
@@ -117,39 +119,6 @@ export class SepayService {
     const b = Buffer.from(expected, 'utf8');
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       throw new UnauthorizedException('Invalid return token');
-    }
-  }
-
-  private async requireOrder(
-    id: string,
-    userId?: string,
-  ): Promise<PaymentOrder> {
-    const order = userId
-      ? await this.prismaService.order.findFirst({ where: { id, userId } })
-      : await this.prismaService.order.findUnique({ where: { id } });
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-    return order;
-  }
-
-  private async saveStatus(
-    orderId: string,
-    data: Prisma.OrderUpdateInput,
-  ): Promise<PaymentOrder> {
-    try {
-      return await this.prismaService.order.update({
-        where: { id: orderId },
-        data,
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException('Duplicate Sepay reference');
-      }
-      throw error;
     }
   }
 
@@ -228,30 +197,12 @@ export class SepayService {
 
     if (nextStatus === OrderStatus.PAID) {
       try {
-        const updated = await this.prismaService.$transaction(async (tx) => {
-          const paid = await tx.order.update({
-            where: { id: order.id },
-            data: {
-              status: nextStatus,
-              sepayOrderId: dto.order.order_id,
-              sepayTransactionId: dto.transaction.transaction_id,
-              paymentMethod: dto.transaction.payment_method,
-              paidAmount: Math.round(txAmount),
-              callbackPayload: JSON.parse(JSON.stringify(dto)),
-            },
-          });
-          const ticket = await tx.ticket.findUnique({
-            where: { id: order.ticketId },
-          });
-          if (!ticket) {
-            throw new NotFoundException('Ticket not found');
-          }
-          // Seat is reusable across ShowTimes; BOOKED lives on Ticket.
-          await tx.ticket.update({
-            where: { id: ticket.id },
-            data: { ticketStatus: TicketStatus.BOOKED },
-          });
-          return paid;
+        const updated = await this.orderService.settlePaid(order, {
+          sepayOrderId: dto.order.order_id,
+          sepayTransactionId: dto.transaction.transaction_id,
+          paymentMethod: dto.transaction.payment_method,
+          paidAmount: Math.round(txAmount),
+          callbackPayload: JSON.parse(JSON.stringify(dto)),
         });
         return {
           orderId: updated.id,
@@ -269,19 +220,17 @@ export class SepayService {
       }
     }
 
-    const updated = await this.saveStatus(order.id, {
-      status: nextStatus,
-      sepayOrderId: dto.order.order_id,
-      sepayTransactionId: dto.transaction.transaction_id,
-      paymentMethod: dto.transaction.payment_method,
-      paidAmount: Math.round(txAmount),
-      callbackPayload: JSON.parse(JSON.stringify(dto)),
-    });
-    // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
-    await this.prismaService.ticket.updateMany({
-      where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-      data: { ticketStatus: TicketStatus.AVAILABLE },
-    });
+    const updated = await this.orderService.settleFailed(
+      order,
+      {
+        sepayOrderId: dto.order.order_id,
+        sepayTransactionId: dto.transaction.transaction_id,
+        paymentMethod: dto.transaction.payment_method,
+        paidAmount: Math.round(txAmount),
+        callbackPayload: JSON.parse(JSON.stringify(dto)),
+      },
+      nextStatus,
+    );
     return { orderId: updated.id, status: updated.status, idempotent: false };
   }
 
@@ -307,10 +256,13 @@ export class SepayService {
   ): Promise<SepayCheckoutResult> {
     const result =
       await this.redisLockService.runExclusive<SepayCheckoutResult>(
-        PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
+        IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
         PAYMENT_LOCK_TTL_MS.CHECKOUT,
         async () => {
-          const order = await this.requireOrder(orderId, userId);
+          const order = await this.orderService.getOwnerOrder({
+            orderId,
+            userId,
+          });
 
           if (order.status === OrderStatus.PAID) {
             throw new ConflictException('Order already paid');
@@ -381,9 +333,8 @@ export class SepayService {
             .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
             .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`;
 
-          await this.prismaService.order.update({
-            where: { id: order.id },
-            data: { paymentMethod: 'SEPAY' },
+          await this.orderService.saveStatus(order.id, {
+            paymentMethod: 'SEPAY',
           });
 
           return {
@@ -458,9 +409,26 @@ export class SepayService {
     // Unified settle lock with browser return (same orderId) to prevent
     // PENDING->CANCELLED vs PENDING->PAID race.
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(invoiceNumber),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(invoiceNumber, invoiceNumber),
       PAYMENT_LOCK_TTL_MS.WEBHOOK,
-      async () => this.applyIpn(await this.requireOrder(invoiceNumber), dto),
+      async () => {
+        const order = await this.orderService.getOrderById({
+          orderId: invoiceNumber,
+        });
+        const result = await this.applyIpn(order, dto);
+        if (
+          result.status === OrderStatus.PAID ||
+          result.status === OrderStatus.FAILED ||
+          result.status === OrderStatus.CANCELLED ||
+          result.status === OrderStatus.EXPIRED
+        ) {
+          await this.orderService.revokeIdempotencyKey(
+            result.orderId,
+            order.userId,
+          );
+        }
+        return result;
+      },
     );
 
     if (result === null) {
@@ -497,41 +465,15 @@ export class SepayService {
     orderId: string,
     userId: string,
   ): Promise<SepayWebhookResult> {
-    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
-      PAYMENT_LOCK_TTL_MS.UPDATE,
-      async () => {
-        const order = await this.requireOrder(orderId, userId);
-        if (
-          order.status === OrderStatus.PENDING &&
-          order.expiresAt &&
-          order.expiresAt.getTime() <= Date.now()
-        ) {
-          const updated = await this.saveStatus(order.id, {
-            status: OrderStatus.EXPIRED,
-          });
-          await this.prismaService.ticket.updateMany({
-            where: {
-              id: order.ticketId,
-              ticketStatus: TicketStatus.PROCESSING,
-            },
-            data: { ticketStatus: TicketStatus.AVAILABLE },
-          });
-          return {
-            orderId: updated.id,
-            status: updated.status,
-            idempotent: false,
-          };
-        }
-        return { orderId: order.id, status: order.status, idempotent: true };
-      },
-    );
-    if (result === null) {
-      throw new ConflictException(
-        'Order update is already in progress for this order',
-      );
+    try {
+      const result = await this.orderService.syncOrder(orderId, userId);
+      return result as SepayWebhookResult;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw error;
     }
-    return result;
   }
 
   /**
@@ -546,22 +488,16 @@ export class SepayService {
     token: string | undefined,
   ): Promise<SepayWebhookResult> {
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
-        const order = await this.requireOrder(orderId);
+        const order = await this.orderService.getOrderById({ orderId });
         this.verifyReturnToken(order, token);
         if (outcome !== 'cancel' || order.status !== OrderStatus.PENDING) {
+          await this.orderService.revokeIdempotencyKey(order.id, order.userId);
           return { orderId: order.id, status: order.status, idempotent: true };
         }
-        const nextStatus = OrderStatus.CANCELLED;
-        const updated = await this.saveStatus(order.id, {
-          status: nextStatus,
-        });
-        await this.prismaService.ticket.updateMany({
-          where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-          data: { ticketStatus: TicketStatus.AVAILABLE },
-        });
+        const updated = await this.orderService.cancelOrder(order);
         return {
           orderId: updated.id,
           status: updated.status,
