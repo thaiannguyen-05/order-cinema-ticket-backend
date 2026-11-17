@@ -2,12 +2,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
   Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma, TicketStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
@@ -29,7 +28,6 @@ import {
 import type { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import type { PaymentOrder } from './type';
 import { OrderService } from '../order/order.service';
-import { TicketService } from '../../theater-module/ticket/ticket.service';
 
 export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 
@@ -64,7 +62,6 @@ export class SepayService {
     private readonly redisLockService: RedisLockService,
     private readonly configService: ConfigService,
     private readonly orderService: OrderService,
-    private readonly ticketService: TicketService,
 
     @Optional() private readonly metrics?: MetricsService,
   ) {}
@@ -200,34 +197,13 @@ export class SepayService {
 
     if (nextStatus === OrderStatus.PAID) {
       try {
-        const updated = await this.prismaService.$transaction(async (tx) => {
-          const paid = await tx.order.update({
-            where: { id: order.id },
-            data: {
-              status: nextStatus,
-              sepayOrderId: dto.order.order_id,
-              sepayTransactionId: dto.transaction.transaction_id,
-              paymentMethod: dto.transaction.payment_method,
-              paidAmount: Math.round(txAmount),
-              callbackPayload: JSON.parse(JSON.stringify(dto)),
-            },
-          });
-          const ticket = await this.ticketService.getTicketById(
-            order.ticketId,
-            tx,
-          );
-          if (!ticket) {
-            throw new NotFoundException('Ticket not found');
-          }
-          // Seat is reusable across ShowTimes; BOOKED lives on Ticket.
-          await this.ticketService.updateTicketStatus(
-            ticket.id,
-            TicketStatus.BOOKED,
-            tx,
-          );
-          return paid;
+        const updated = await this.orderService.settlePaid(order, {
+          sepayOrderId: dto.order.order_id,
+          sepayTransactionId: dto.transaction.transaction_id,
+          paymentMethod: dto.transaction.payment_method,
+          paidAmount: Math.round(txAmount),
+          callbackPayload: JSON.parse(JSON.stringify(dto)),
         });
-        await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
         return {
           orderId: updated.id,
           status: updated.status,
@@ -244,28 +220,17 @@ export class SepayService {
       }
     }
 
-    const updated = await this.prismaService.$transaction(async (tx) => {
-      const u = await this.orderService.saveStatus(
-        order.id,
-        {
-          status: nextStatus,
-          sepayOrderId: dto.order.order_id,
-          sepayTransactionId: dto.transaction.transaction_id,
-          paymentMethod: dto.transaction.payment_method,
-          paidAmount: Math.round(txAmount),
-          callbackPayload: JSON.parse(JSON.stringify(dto)),
-        },
-        tx,
-      );
-      // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
-      await this.ticketService.updateMany(
-        { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-        { ticketStatus: TicketStatus.AVAILABLE },
-        tx,
-      );
-      return u;
-    });
-    await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
+    const updated = await this.orderService.settleFailed(
+      order,
+      {
+        sepayOrderId: dto.order.order_id,
+        sepayTransactionId: dto.transaction.transaction_id,
+        paymentMethod: dto.transaction.payment_method,
+        paidAmount: Math.round(txAmount),
+        callbackPayload: JSON.parse(JSON.stringify(dto)),
+      },
+      nextStatus,
+    );
     return { orderId: updated.id, status: updated.status, idempotent: false };
   }
 
@@ -500,51 +465,15 @@ export class SepayService {
     orderId: string,
     userId: string,
   ): Promise<SepayWebhookResult> {
-    const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
-      PAYMENT_LOCK_TTL_MS.UPDATE,
-      async () => {
-        const order = await this.orderService.getOwnerOrder({
-          orderId,
-          userId,
-        });
-        if (
-          order.status === OrderStatus.PENDING &&
-          order.expiresAt &&
-          order.expiresAt.getTime() <= Date.now()
-        ) {
-          const updated = await this.prismaService.$transaction(async (tx) => {
-            const u = await this.orderService.saveStatus(
-              order.id,
-              { status: OrderStatus.EXPIRED },
-              tx,
-            );
-            await this.ticketService.updateMany(
-              {
-                id: order.ticketId,
-                ticketStatus: TicketStatus.PROCESSING,
-              },
-              { ticketStatus: TicketStatus.AVAILABLE },
-              tx,
-            );
-            return u;
-          });
-          await this.orderService.revokeIdempotencyKey(order.id, order.userId);
-          return {
-            orderId: updated.id,
-            status: updated.status,
-            idempotent: false,
-          };
-        }
-        return { orderId: order.id, status: order.status, idempotent: true };
-      },
-    );
-    if (result === null) {
-      throw new ConflictException(
-        'Order update is already in progress for this order',
-      );
+    try {
+      const result = await this.orderService.syncOrder(orderId, userId);
+      return result as SepayWebhookResult;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw error;
     }
-    return result;
   }
 
   /**
@@ -568,21 +497,7 @@ export class SepayService {
           await this.orderService.revokeIdempotencyKey(order.id, order.userId);
           return { orderId: order.id, status: order.status, idempotent: true };
         }
-        const nextStatus = OrderStatus.CANCELLED;
-        const updated = await this.prismaService.$transaction(async (tx) => {
-          const u = await this.orderService.saveStatus(
-            order.id,
-            { status: nextStatus },
-            tx,
-          );
-          await this.ticketService.updateMany(
-            { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-            { ticketStatus: TicketStatus.AVAILABLE },
-            tx,
-          );
-          return u;
-        });
-        await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
+        const updated = await this.orderService.cancelOrder(order);
         return {
           orderId: updated.id,
           status: updated.status,

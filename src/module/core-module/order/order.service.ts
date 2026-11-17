@@ -335,4 +335,177 @@ export class OrderService {
       // ignore cache errors
     }
   }
+
+  async settlePaid(
+    order: PaymentOrder,
+    data: {
+      sepayOrderId: string;
+      sepayTransactionId: string;
+      paymentMethod: string;
+      paidAmount: number;
+      callbackPayload: unknown;
+    },
+  ): Promise<PaymentOrder> {
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      const paid = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.PAID,
+          sepayOrderId: data.sepayOrderId,
+          sepayTransactionId: data.sepayTransactionId,
+          paymentMethod: data.paymentMethod,
+          paidAmount: data.paidAmount,
+          callbackPayload: data.callbackPayload as never,
+        },
+      });
+      await this.ticketService.updateTicketStatus(
+        order.ticketId,
+        TicketStatus.BOOKED,
+        tx,
+      );
+      return paid;
+    });
+    await this.revokeIdempotencyKey(updated.id, order.userId);
+    return updated;
+  }
+
+  async settleFailed(
+    order: PaymentOrder,
+    data: {
+      sepayOrderId: string;
+      sepayTransactionId: string;
+      paymentMethod: string;
+      paidAmount: number;
+      callbackPayload: unknown;
+    },
+    nextStatus: OrderStatus,
+  ): Promise<PaymentOrder> {
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      const u = await this.saveStatus(
+        order.id,
+        {
+          status: nextStatus,
+          sepayOrderId: data.sepayOrderId,
+          sepayTransactionId: data.sepayTransactionId,
+          paymentMethod: data.paymentMethod,
+          paidAmount: data.paidAmount,
+          callbackPayload: data.callbackPayload as never,
+        },
+        tx,
+      );
+      await this.ticketService.updateMany(
+        { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+        { ticketStatus: TicketStatus.AVAILABLE },
+        tx,
+      );
+      return u;
+    });
+    await this.revokeIdempotencyKey(updated.id, order.userId);
+    return updated;
+  }
+
+  async cancelOrder(order: PaymentOrder): Promise<PaymentOrder> {
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      const u = await this.saveStatus(
+        order.id,
+        { status: OrderStatus.CANCELLED },
+        tx,
+      );
+      await this.ticketService.updateMany(
+        { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+        { ticketStatus: TicketStatus.AVAILABLE },
+        tx,
+      );
+      return u;
+    });
+    await this.revokeIdempotencyKey(updated.id, order.userId);
+    return updated;
+  }
+
+  async expireOrder(order: PaymentOrder): Promise<PaymentOrder> {
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      const u = await this.saveStatus(
+        order.id,
+        { status: OrderStatus.EXPIRED },
+        tx,
+      );
+      await this.ticketService.updateMany(
+        { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+        { ticketStatus: TicketStatus.AVAILABLE },
+        tx,
+      );
+      return u;
+    });
+    await this.revokeIdempotencyKey(updated.id, order.userId);
+    return updated;
+  }
+
+  async expireDueOrders(): Promise<number> {
+    const due = await this.prismaService.order.findMany({
+      where: {
+        status: OrderStatus.PENDING,
+        expiresAt: { lte: new Date() },
+      },
+      select: { id: true, ticketId: true },
+    });
+    if (due.length === 0) {
+      return 0;
+    }
+    const result = await this.prismaService.$transaction(async (tx) => {
+      const r = await tx.order.updateMany({
+        where: {
+          id: { in: due.map((o) => o.id) },
+          status: OrderStatus.PENDING,
+        },
+        data: { status: OrderStatus.EXPIRED },
+      });
+      await tx.ticket.updateMany({
+        where: {
+          id: { in: due.map((o) => o.ticketId) },
+          ticketStatus: TicketStatus.PROCESSING,
+        },
+        data: { ticketStatus: TicketStatus.AVAILABLE },
+      });
+      return r;
+    });
+    for (const o of due) {
+      await this.revokeIdempotencyKey(o.id);
+    }
+    return result.count;
+  }
+
+  async syncOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<{ orderId: string; status: OrderStatus; idempotent: boolean }> {
+    return this.redisLockService
+      .runExclusive(
+        IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
+        PAYMENT_LOCK_TTL_MS.UPDATE,
+        async () => {
+          const order = await this.getOwnerOrder({ orderId, userId });
+          if (
+            order.status === OrderStatus.PENDING &&
+            order.expiresAt &&
+            order.expiresAt.getTime() <= Date.now()
+          ) {
+            const updated = await this.expireOrder(order);
+            return {
+              orderId: updated.id,
+              status: updated.status,
+              idempotent: false,
+            };
+          }
+          return { orderId: order.id, status: order.status, idempotent: true };
+        },
+      )
+      .then((r) => {
+        if (r === null) {
+          throw new ConflictException(
+            'Order update is already in progress for this order',
+          );
+        }
+        return r;
+      });
+  }
 }

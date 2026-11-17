@@ -1,18 +1,18 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { OrderStatus, TicketStatus } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+
 import { MyLogger } from '../logger/logger.service';
 import { RedisLockService } from '../redis/redis.lock.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { REDIS_LOCK_KEY, REDIS_TTL } from '../redis/redis.value';
+import { OrderService } from '../../order/order.service';
 
 @Injectable()
 export class OrderExpireCronJobService {
   constructor(
     private readonly redisLockService: RedisLockService,
     private readonly logger: MyLogger,
-    private readonly prismaService: PrismaService,
+    private readonly orderService: OrderService,
     @Optional() private readonly metrics?: MetricsService,
   ) {}
 
@@ -27,37 +27,14 @@ export class OrderExpireCronJobService {
           // Collect due orders first so the coupled Ticket hold can be released
           // atomically in the same lock scope (PENDING->EXPIRED must free
           // PROCESSING->AVAILABLE like sync/webhook/cancel paths do).
-          const due = await this.prismaService.order.findMany({
-            where: {
-              status: OrderStatus.PENDING,
-              expiresAt: { lte: new Date() },
-            },
-            select: { id: true, ticketId: true },
-          });
-          if (due.length === 0) {
+          const count = await this.orderService.expireDueOrders();
+          if (count === 0) {
             return;
           }
-          const result = await this.prismaService.$transaction(async (tx) => {
-            const r = await tx.order.updateMany({
-              where: {
-                id: { in: due.map((o) => o.id) },
-                status: OrderStatus.PENDING,
-              },
-              data: { status: OrderStatus.EXPIRED },
-            });
-            await tx.ticket.updateMany({
-              where: {
-                id: { in: due.map((o) => o.ticketId) },
-                ticketStatus: TicketStatus.PROCESSING,
-              },
-              data: { ticketStatus: TicketStatus.AVAILABLE },
-            });
-            return r;
-          });
-          this.metrics?.addExpiredOrders(result.count);
-          if (result.count > 0) {
+          this.metrics?.addExpiredOrders(count);
+          if (count > 0) {
             this.logger.log(
-              `Expired ${result.count} pending orders`,
+              `Expired ${count} pending orders`,
               'OrderExpireCronJob',
             );
           }
