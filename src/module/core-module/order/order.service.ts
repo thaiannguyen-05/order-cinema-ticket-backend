@@ -12,12 +12,13 @@ import { PrismaService } from '../infra/prisma/prisma.service';
 import { MetricsService } from '../infra/metrics/metrics.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { REDIS_LOCK_CLIENT } from '../infra/redis/redis.value';
-import { PAYMENT_LOCK_KEY, PAYMENT_LOCK_TTL_MS } from '../payment/constant';
+import { IDEMPOTENCY_KEYS, PAYMENT_LOCK_TTL_MS } from '../payment/constant';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderDto } from './dto/get-order.dto';
 import { GetOwnerOrderDto } from './dto/get-owner-order.dto';
 import { ALLOWED_TRANSITIONS, PaymentOrder } from './type';
+import { TicketService } from '../../theater-module/ticket/ticket.service';
 
 @Injectable()
 export class OrderService {
@@ -25,6 +26,7 @@ export class OrderService {
     private readonly prismaService: PrismaService,
     private readonly redisLockService: RedisLockService,
     @Inject(REDIS_LOCK_CLIENT) private readonly redis: Redis,
+    private readonly ticketService: TicketService,
     @Optional() private readonly metrics?: MetricsService,
   ) {}
 
@@ -55,34 +57,44 @@ export class OrderService {
   private async doCreateOrder(
     dto: CreateOrderDto & { userId: string; idempotencyKey?: string },
   ): Promise<PaymentOrder> {
-    const idem = this.normalizeIdempotencyKey(dto.idempotencyKey);
-    const idemRedisKey = idem
-      ? `idemp:payment:create:${dto.userId}:${idem}`
-      : null;
-
-    if (idemRedisKey) {
-      try {
-        const existingId = await this.redis.get(idemRedisKey);
-        if (existingId) {
-          const existing = await this.prismaService.order.findUnique({
-            where: { id: existingId },
-          });
-          if (existing && existing.userId === dto.userId) return existing;
+    // Server-side idempotency key: use client key if provided, otherwise fall
+    // back to ticketId so retries for the same ticket stay idempotent.
+    const idem =
+      this.normalizeIdempotencyKey(dto.idempotencyKey) ?? dto.ticketId;
+    const lockResource = IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(
+      dto.userId,
+      idem,
+    );
+    try {
+      const existingId = await this.redis.get(lockResource);
+      if (existingId) {
+        const existing = await this.prismaService.order.findUnique({
+          where: { id: existingId },
+        });
+        if (
+          existing &&
+          existing.userId === dto.userId &&
+          (existing.status === OrderStatus.PENDING ||
+            existing.status === OrderStatus.PAID)
+        ) {
+          return existing;
         }
-      } catch {
-        // ignore cache errors
       }
+    } catch {
+      // ignore cache errors
     }
 
     const order = await this.redisLockService.runExclusive<PaymentOrder>(
-      PAYMENT_LOCK_KEY.CREATE_BY_TICKET(dto.ticketId),
+      lockResource,
       PAYMENT_LOCK_TTL_MS.CREATE,
       async () => {
         try {
           return await this.prismaService.$transaction(async (tx) => {
-            const ticket = await tx.ticket.findUnique({
-              where: { id: dto.ticketId },
-            });
+            // get ticket -> check time & status
+            const ticket = await this.ticketService.getTicketById(
+              dto.ticketId,
+              tx,
+            );
             if (!ticket) {
               throw new NotFoundException('Ticket not found');
             }
@@ -120,10 +132,11 @@ export class OrderService {
               );
             }
             if (ticket.ticketStatus === TicketStatus.AVAILABLE) {
-              await tx.ticket.update({
-                where: { id: ticket.id },
-                data: { ticketStatus: TicketStatus.PROCESSING },
-              });
+              await this.ticketService.updateTicketStatus(
+                ticket.id,
+                TicketStatus.PROCESSING,
+                tx,
+              );
             }
             await tx.order.deleteMany({
               where: {
@@ -137,18 +150,23 @@ export class OrderService {
                 },
               },
             });
-            if (idemRedisKey) {
-              try {
-                const replayId = await this.redis.get(idemRedisKey);
-                if (replayId) {
-                  const replay = await tx.order.findUnique({
-                    where: { id: replayId },
-                  });
-                  if (replay && replay.userId === dto.userId) return replay;
+            try {
+              const replayId = await this.redis.get(lockResource);
+              if (replayId) {
+                const replay = await tx.order.findUnique({
+                  where: { id: replayId },
+                });
+                if (
+                  replay &&
+                  replay.userId === dto.userId &&
+                  (replay.status === OrderStatus.PENDING ||
+                    replay.status === OrderStatus.PAID)
+                ) {
+                  return replay;
                 }
-              } catch {
-                // ignore cache errors
               }
+            } catch {
+              // ignore cache errors
             }
             return await tx.order.create({
               data: {
@@ -180,12 +198,11 @@ export class OrderService {
       );
     }
 
-    if (idemRedisKey) {
-      try {
-        await this.redis.set(idemRedisKey, order.id, 'EX', 24 * 60 * 60);
-      } catch {
-        // ignore cache errors
-      }
+    try {
+      await this.redis.set(lockResource, order.id, 'EX', 5 * 60);
+      await this.redis.set(`idemp:order:${order.id}`, idem, 'EX', 5 * 60);
+    } catch {
+      // ignore cache errors
     }
 
     return order;
@@ -193,37 +210,39 @@ export class OrderService {
 
   async updateOrder(id: string, dto: UpdateOrderDto): Promise<PaymentOrder> {
     const result = await this.redisLockService.runExclusive<PaymentOrder>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(id),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(id, id),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
-        const current = await this.prismaService.order.findUnique({
-          where: { id },
-        });
-        if (!current) {
-          throw new NotFoundException('Order not found');
-        }
-        if (current.status === dto.status) {
-          return current;
-        }
-        if (!ALLOWED_TRANSITIONS[current.status].includes(dto.status)) {
-          throw new ConflictException(
-            `Cannot transition order from ${current.status} to ${dto.status}`,
-          );
-        }
-        try {
-          return await this.prismaService.order.update({
+        return await this.prismaService.$transaction(async (tx) => {
+          const current = await tx.order.findUnique({
             where: { id },
-            data: { status: dto.status },
           });
-        } catch (error) {
-          if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === 'P2025'
-          ) {
+          if (!current) {
             throw new NotFoundException('Order not found');
           }
-          throw error;
-        }
+          if (current.status === dto.status) {
+            return current;
+          }
+          if (!ALLOWED_TRANSITIONS[current.status].includes(dto.status)) {
+            throw new ConflictException(
+              `Cannot transition order from ${current.status} to ${dto.status}`,
+            );
+          }
+          try {
+            return await tx.order.update({
+              where: { id },
+              data: { status: dto.status },
+            });
+          } catch (error) {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === 'P2025'
+            ) {
+              throw new NotFoundException('Order not found');
+            }
+            throw error;
+          }
+        });
       },
     );
 
@@ -271,9 +290,11 @@ export class OrderService {
   async saveStatus(
     orderId: string,
     data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient,
   ): Promise<PaymentOrder> {
+    const client = tx ?? this.prismaService;
     try {
-      return await this.prismaService.order.update({
+      return await client.order.update({
         where: { id: orderId },
         data,
       });
@@ -285,6 +306,31 @@ export class OrderService {
         throw new ConflictException('Duplicate Sepay reference');
       }
       throw error;
+    }
+  }
+
+  async revokeIdempotencyKey(orderId: string, userId?: string): Promise<void> {
+    try {
+      const idem = await this.redis.get(`idemp:order:${orderId}`);
+      if (!idem) return;
+      const uid =
+        userId ??
+        (
+          await this.prismaService.order.findUnique({
+            where: { id: orderId },
+            select: { userId: true },
+          })
+        )?.userId;
+      if (uid) {
+        await this.redis.del(
+          `idemp:payment:create:${uid}:${idem}`,
+          `idemp:order:${orderId}`,
+        );
+      } else {
+        await this.redis.del(`idemp:order:${orderId}`);
+      }
+    } catch {
+      // ignore cache errors
     }
   }
 }

@@ -1,15 +1,15 @@
-export const PAYMENT_LOCK_KEY = {
-  CREATE_BY_TICKET: (ticketId: string) => `lock:payment:create:${ticketId}`,
-  CHECKOUT_BY_INVOICE: (invoice: string) => `lock:sepay:checkout:${invoice}`,
-  WEBHOOK_BY_INVOICE: (invoice: string) => `lock:sepay:webhook:${invoice}`,
-  UPDATE_BY_ORDER: (orderId: string) => `lock:payment:update:${orderId}`,
-} as const;
-
 export const PAYMENT_LOCK_TTL_MS = {
   CREATE: 5000,
   CHECKOUT: 10000,
   WEBHOOK: 10000,
   UPDATE: 5000,
+} as const;
+
+export const IDEMPOTENCY_KEYS = {
+  ORDER_LOCK_IDEMPOTENCY_KEY: (userId: string, idem: string) =>
+    `order:lock:idempotency-key:${userId}:${idem}`,
+  PAYMENT_LOCK_IDEMPOTENCY_KEY: (userId: string, idem: string) =>
+    `payment:lock:idempotency-key:${userId}:${idem}`,
 } as const;
 
 export const SEPAY = {

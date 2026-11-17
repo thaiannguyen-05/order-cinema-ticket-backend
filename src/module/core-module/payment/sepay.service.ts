@@ -13,7 +13,7 @@ import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisLockService } from '../infra/redis/redis.lock.service';
 import { MetricsService } from '../infra/metrics/metrics.service';
 import {
-  PAYMENT_LOCK_KEY,
+  IDEMPOTENCY_KEYS,
   PAYMENT_LOCK_TTL_MS,
   SEPAY,
   SEPAY_NOTIFICATION_TYPE,
@@ -29,6 +29,7 @@ import {
 import type { SepayWebhookDto } from './dto/sepay-webhook.dto';
 import type { PaymentOrder } from './type';
 import { OrderService } from '../order/order.service';
+import { TicketService } from '../../theater-module/ticket/ticket.service';
 
 export type SepayBrowserOutcome = 'success' | 'error' | 'cancel';
 
@@ -63,6 +64,7 @@ export class SepayService {
     private readonly redisLockService: RedisLockService,
     private readonly configService: ConfigService,
     private readonly orderService: OrderService,
+    private readonly ticketService: TicketService,
 
     @Optional() private readonly metrics?: MetricsService,
   ) {}
@@ -210,19 +212,22 @@ export class SepayService {
               callbackPayload: JSON.parse(JSON.stringify(dto)),
             },
           });
-          const ticket = await tx.ticket.findUnique({
-            where: { id: order.ticketId },
-          });
+          const ticket = await this.ticketService.getTicketById(
+            order.ticketId,
+            tx,
+          );
           if (!ticket) {
             throw new NotFoundException('Ticket not found');
           }
           // Seat is reusable across ShowTimes; BOOKED lives on Ticket.
-          await tx.ticket.update({
-            where: { id: ticket.id },
-            data: { ticketStatus: TicketStatus.BOOKED },
-          });
+          await this.ticketService.updateTicketStatus(
+            ticket.id,
+            TicketStatus.BOOKED,
+            tx,
+          );
           return paid;
         });
+        await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
         return {
           orderId: updated.id,
           status: updated.status,
@@ -248,10 +253,12 @@ export class SepayService {
       callbackPayload: JSON.parse(JSON.stringify(dto)),
     });
     // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
-    await this.prismaService.ticket.updateMany({
-      where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-      data: { ticketStatus: TicketStatus.AVAILABLE },
-    });
+    await this.ticketService.updateMany(
+      { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+      { ticketStatus: TicketStatus.AVAILABLE },
+      undefined,
+    );
+    await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
     return { orderId: updated.id, status: updated.status, idempotent: false };
   }
 
@@ -277,7 +284,7 @@ export class SepayService {
   ): Promise<SepayCheckoutResult> {
     const result =
       await this.redisLockService.runExclusive<SepayCheckoutResult>(
-        PAYMENT_LOCK_KEY.CHECKOUT_BY_INVOICE(orderId),
+        IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
         PAYMENT_LOCK_TTL_MS.CHECKOUT,
         async () => {
           const order = await this.orderService.getOwnerOrder({
@@ -354,9 +361,8 @@ export class SepayService {
             .get<string>('SEPAY_BASE_URL', SEPAY.BASE_URL)
             .replace(/\/+$/, '')}${SEPAY.CHECKOUT_PATH}`;
 
-          await this.prismaService.order.update({
-            where: { id: order.id },
-            data: { paymentMethod: 'SEPAY' },
+          await this.orderService.saveStatus(order.id, {
+            paymentMethod: 'SEPAY',
           });
 
           return {
@@ -431,13 +437,26 @@ export class SepayService {
     // Unified settle lock with browser return (same orderId) to prevent
     // PENDING->CANCELLED vs PENDING->PAID race.
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(invoiceNumber),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(invoiceNumber, invoiceNumber),
       PAYMENT_LOCK_TTL_MS.WEBHOOK,
-      async () =>
-        this.applyIpn(
-          await this.orderService.getOrderById({ orderId: invoiceNumber }),
-          dto,
-        ),
+      async () => {
+        const order = await this.orderService.getOrderById({
+          orderId: invoiceNumber,
+        });
+        const result = await this.applyIpn(order, dto);
+        if (
+          result.status === OrderStatus.PAID ||
+          result.status === OrderStatus.FAILED ||
+          result.status === OrderStatus.CANCELLED ||
+          result.status === OrderStatus.EXPIRED
+        ) {
+          await this.orderService.revokeIdempotencyKey(
+            result.orderId,
+            order.userId,
+          );
+        }
+        return result;
+      },
     );
 
     if (result === null) {
@@ -475,7 +494,7 @@ export class SepayService {
     userId: string,
   ): Promise<SepayWebhookResult> {
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
         const order = await this.orderService.getOwnerOrder({
@@ -490,13 +509,15 @@ export class SepayService {
           const updated = await this.orderService.saveStatus(order.id, {
             status: OrderStatus.EXPIRED,
           });
-          await this.prismaService.ticket.updateMany({
-            where: {
+          await this.ticketService.updateMany(
+            {
               id: order.ticketId,
               ticketStatus: TicketStatus.PROCESSING,
             },
-            data: { ticketStatus: TicketStatus.AVAILABLE },
-          });
+            { ticketStatus: TicketStatus.AVAILABLE },
+            undefined,
+          );
+          await this.orderService.revokeIdempotencyKey(order.id, order.userId);
           return {
             orderId: updated.id,
             status: updated.status,
@@ -526,22 +547,25 @@ export class SepayService {
     token: string | undefined,
   ): Promise<SepayWebhookResult> {
     const result = await this.redisLockService.runExclusive<SepayWebhookResult>(
-      PAYMENT_LOCK_KEY.UPDATE_BY_ORDER(orderId),
+      IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(orderId, orderId),
       PAYMENT_LOCK_TTL_MS.UPDATE,
       async () => {
         const order = await this.orderService.getOrderById({ orderId });
         this.verifyReturnToken(order, token);
         if (outcome !== 'cancel' || order.status !== OrderStatus.PENDING) {
+          await this.orderService.revokeIdempotencyKey(order.id, order.userId);
           return { orderId: order.id, status: order.status, idempotent: true };
         }
         const nextStatus = OrderStatus.CANCELLED;
         const updated = await this.orderService.saveStatus(order.id, {
           status: nextStatus,
         });
-        await this.prismaService.ticket.updateMany({
-          where: { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-          data: { ticketStatus: TicketStatus.AVAILABLE },
-        });
+        await this.ticketService.updateMany(
+          { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+          { ticketStatus: TicketStatus.AVAILABLE },
+          undefined,
+        );
+        await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
         return {
           orderId: updated.id,
           status: updated.status,
