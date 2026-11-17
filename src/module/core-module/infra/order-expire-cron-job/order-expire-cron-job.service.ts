@@ -37,19 +37,22 @@ export class OrderExpireCronJobService {
           if (due.length === 0) {
             return;
           }
-          const result = await this.prismaService.order.updateMany({
-            where: {
-              id: { in: due.map((o) => o.id) },
-              status: OrderStatus.PENDING,
-            },
-            data: { status: OrderStatus.EXPIRED },
-          });
-          await this.prismaService.ticket.updateMany({
-            where: {
-              id: { in: due.map((o) => o.ticketId) },
-              ticketStatus: TicketStatus.PROCESSING,
-            },
-            data: { ticketStatus: TicketStatus.AVAILABLE },
+          const result = await this.prismaService.$transaction(async (tx) => {
+            const r = await tx.order.updateMany({
+              where: {
+                id: { in: due.map((o) => o.id) },
+                status: OrderStatus.PENDING,
+              },
+              data: { status: OrderStatus.EXPIRED },
+            });
+            await tx.ticket.updateMany({
+              where: {
+                id: { in: due.map((o) => o.ticketId) },
+                ticketStatus: TicketStatus.PROCESSING,
+              },
+              data: { ticketStatus: TicketStatus.AVAILABLE },
+            });
+            return r;
           });
           this.metrics?.addExpiredOrders(result.count);
           if (result.count > 0) {

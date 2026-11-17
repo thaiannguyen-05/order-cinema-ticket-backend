@@ -61,9 +61,11 @@ export class OrderService {
     // back to ticketId so retries for the same ticket stay idempotent.
     const idem =
       this.normalizeIdempotencyKey(dto.idempotencyKey) ?? dto.ticketId;
+    // Lock is per-ticket (global) so concurrent buyers of the same ticket serialize;
+    // idempotency cache remains per user+key.
     const lockResource = IDEMPOTENCY_KEYS.ORDER_LOCK_IDEMPOTENCY_KEY(
-      dto.userId,
-      idem,
+      'ticket',
+      dto.ticketId,
     );
     try {
       const existingId = await this.redis.get(lockResource);

@@ -244,20 +244,27 @@ export class SepayService {
       }
     }
 
-    const updated = await this.orderService.saveStatus(order.id, {
-      status: nextStatus,
-      sepayOrderId: dto.order.order_id,
-      sepayTransactionId: dto.transaction.transaction_id,
-      paymentMethod: dto.transaction.payment_method,
-      paidAmount: Math.round(txAmount),
-      callbackPayload: JSON.parse(JSON.stringify(dto)),
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      const u = await this.orderService.saveStatus(
+        order.id,
+        {
+          status: nextStatus,
+          sepayOrderId: dto.order.order_id,
+          sepayTransactionId: dto.transaction.transaction_id,
+          paymentMethod: dto.transaction.payment_method,
+          paidAmount: Math.round(txAmount),
+          callbackPayload: JSON.parse(JSON.stringify(dto)),
+        },
+        tx,
+      );
+      // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
+      await this.ticketService.updateMany(
+        { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+        { ticketStatus: TicketStatus.AVAILABLE },
+        tx,
+      );
+      return u;
     });
-    // Release the hold so the ticket can be retried: PROCESSING -> AVAILABLE.
-    await this.ticketService.updateMany(
-      { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-      { ticketStatus: TicketStatus.AVAILABLE },
-      undefined,
-    );
     await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
     return { orderId: updated.id, status: updated.status, idempotent: false };
   }
@@ -506,17 +513,22 @@ export class SepayService {
           order.expiresAt &&
           order.expiresAt.getTime() <= Date.now()
         ) {
-          const updated = await this.orderService.saveStatus(order.id, {
-            status: OrderStatus.EXPIRED,
+          const updated = await this.prismaService.$transaction(async (tx) => {
+            const u = await this.orderService.saveStatus(
+              order.id,
+              { status: OrderStatus.EXPIRED },
+              tx,
+            );
+            await this.ticketService.updateMany(
+              {
+                id: order.ticketId,
+                ticketStatus: TicketStatus.PROCESSING,
+              },
+              { ticketStatus: TicketStatus.AVAILABLE },
+              tx,
+            );
+            return u;
           });
-          await this.ticketService.updateMany(
-            {
-              id: order.ticketId,
-              ticketStatus: TicketStatus.PROCESSING,
-            },
-            { ticketStatus: TicketStatus.AVAILABLE },
-            undefined,
-          );
           await this.orderService.revokeIdempotencyKey(order.id, order.userId);
           return {
             orderId: updated.id,
@@ -557,14 +569,19 @@ export class SepayService {
           return { orderId: order.id, status: order.status, idempotent: true };
         }
         const nextStatus = OrderStatus.CANCELLED;
-        const updated = await this.orderService.saveStatus(order.id, {
-          status: nextStatus,
+        const updated = await this.prismaService.$transaction(async (tx) => {
+          const u = await this.orderService.saveStatus(
+            order.id,
+            { status: nextStatus },
+            tx,
+          );
+          await this.ticketService.updateMany(
+            { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
+            { ticketStatus: TicketStatus.AVAILABLE },
+            tx,
+          );
+          return u;
         });
-        await this.ticketService.updateMany(
-          { id: order.ticketId, ticketStatus: TicketStatus.PROCESSING },
-          { ticketStatus: TicketStatus.AVAILABLE },
-          undefined,
-        );
         await this.orderService.revokeIdempotencyKey(updated.id, order.userId);
         return {
           orderId: updated.id,
